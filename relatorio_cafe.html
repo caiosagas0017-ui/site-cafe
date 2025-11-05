@@ -27,7 +27,7 @@
             border-radius: 50%;
             cursor: pointer;
             margin-top: -8px; /* Centraliza o polegar no trilho */
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8); /* Anel branco para destaque */
         }
         input[type=range]::-moz-range-thumb {
             width: 24px;
@@ -36,22 +36,276 @@
             border-radius: 50%;
             cursor: pointer;
             border: 0;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8);
         }
-        /* Estilos para as barras de custo para garantir que fiquem no fundo */
+        /* Estilos para as barras de custo para garantir que fiquem no fundo e maior visualização */
         .cost-bar-container {
             display: flex;
             align-items: flex-end;
-            height: 18rem; /* h-72 */
+            height: 20rem; /* Aumentado para melhor visualização (h-80) */
         }
     </style>
 </head>
 <body class="p-8">
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Content omitted for brevity due to length -->
-        <p>HTML gerado com sucesso.</p>
+        
+        <!-- Coluna Principal (Conteúdo Interativo) -->
+        <div class="lg:col-span-2 flex flex-col gap-8">
+            
+            <!-- Cabeçalho (Com Texto do Título/Marca) -->
+            <div class="mb-2">
+                <p class="text-2xl font-extrabold text-green-700 mb-3">UNIMED TATUÍ</p>
+                
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">Relatório Comparativo de Custos de Café</h1>
+                <h2 class="text-2xl font-semibold text-gray-600">Simulação: Café Pó Tradicional vs. Expresso Locado</h2>
+            </div>
+
+            <!-- Módulo: Simulador Interativo -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Simulador Interativo</h3>
+                <label for="kg-slider" class="block text-base font-medium text-gray-700 mb-2">Arraste para ajustar o Consumo Mensal de Grãos (kg)</label>
+                <div class="flex items-center space-x-4">
+                    <input 
+                        id="kg-slider" 
+                        type="range" 
+                        min="0" 
+                        max="40" 
+                        value="23" 
+                        step="0.5" 
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    >
+                    <span id="kg-value" class="font-bold text-blue-600 text-2xl w-28 text-center p-2 bg-blue-100 rounded-lg shadow-inner">23.0 kg</span>
+                </div>
+            </div>
+
+            <!-- Módulo: Cartões de Resumo Financeiro -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Custo Tradicional -->
+                <div class="bg-white p-5 rounded-2xl shadow-xl border-t-4 border-red-600">
+                    <h3 class="text-sm font-medium text-red-700">Custo Tradicional (Fixo)</h3>
+                    <p id="summary-traditional" class="text-3xl font-extrabold text-red-900 mt-1">R$ 3.752,06</p>
+                </div>
+                
+                <!-- Custo Expresso -->
+                <div class="bg-white p-5 rounded-2xl shadow-xl border-t-4 border-blue-600">
+                    <h3 class="text-sm font-medium text-blue-700">Custo Expresso (Simulado)</h3>
+                    <p id="summary-expresso" class="text-3xl font-extrabold text-blue-900 mt-1">R$ 0,00</p>
+                </div>
+                
+                <!-- Resultado -->
+                <div class="bg-white p-5 rounded-2xl shadow-xl border-t-4 border-gray-400" id="savings-card">
+                    <h3 id="savings-title" class="text-sm font-medium text-gray-700">Resultado (Economia)</h3>
+                    <p id="summary-savings" class="text-3xl font-extrabold text-gray-900 mt-1">R$ 0,00</p>
+                </div>
+            </div>
+
+            <!-- Módulo: Gráfico Comparativo -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6">Comparativo Visual de Custo</h3>
+                <div class="flex justify-around items-end cost-bar-container border-b-2 border-gray-300 pb-2 space-x-12">
+                    
+                    <!-- Barra Tradicional -->
+                    <div class="flex flex-col items-center w-1/3 h-full justify-end">
+                        <span id="label-traditional" class="text-base font-semibold text-red-700 mb-2">R$ 3.752,06</span>
+                        <div id="cost-traditional-bar" class="w-full bg-red-600 rounded-t-lg transition-all duration-300 relative" title="Custo Fixo Tradicional: R$ 3.752,06">
+                            <!-- Altura definida via JS -->
+                        </div>
+                        <span class="text-sm font-semibold text-gray-500 mt-2">Custo Tradicional</span>
+                    </div>
+                    
+                    <!-- Barra Expresso -->
+                    <div class="flex flex-col items-center w-1/3 h-full justify-end">
+                        <span id="label-expresso" class="text-base font-semibold text-blue-700 mb-2">R$ 0,00</span>
+                        <div id="cost-expresso-bar" class="w-full bg-blue-600 rounded-t-lg transition-all duration-300 relative">
+                            <!-- Altura definida via JS -->
+                        </div>
+                        <span class="text-sm font-semibold text-gray-500 mt-2">Custo Expresso</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informação da Área (Compras) -->
+            <div class="mt-4 p-4 text-center bg-gray-50 rounded-2xl shadow-inner border border-gray-200">
+                <p class="text-sm text-gray-600 font-medium">Relatório e Simulação desenvolvidos pela área de **Compras**.</p>
+            </div>
+        </div>
+
+        <!-- Coluna da Barra Lateral (Informações de Contexto) -->
+        <div class="lg:col-span-1 flex flex-col gap-8">
+            
+            <!-- Módulo: Premissas da Análise -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Premissas da Análise</h3>
+                <ul class="space-y-3 text-gray-700">
+                    <li class="flex items-center">
+                        <span class="flex-shrink-0 w-5 h-5 bg-red-600 rounded-full mr-3"></span>
+                        Custo Tradicional: <strong class="ml-1">R$ 3.752,06/mês</strong>
+                    </li>
+                    <!-- INÍCIO DO NOVO EXPLICATIVO -->
+                    <p class="text-xs text-gray-500 mt-2 mb-4 p-2 pl-8 border-l-4 border-red-300 bg-red-50 rounded-r-md">
+                        Composição do Custo Tradicional: Café em Pó (R$ 1.620,00) + Mão de Obra Indireta (R$ 1.739,06) + Gás (R$ 260,00) + Filtros (R$ 83,00) + Manutenção Térmica (R$ 50,00).
+                    </p>
+                    <!-- FIM DO NOVO EXPLICATIVO -->
+                    <li class="flex items-center">
+                        <span class="flex-shrink-0 w-5 h-5 bg-blue-600 rounded-full mr-3"></span>
+                        Custo Grão Expresso (Unitário): <strong class="ml-1">R$ 117,16/kg</strong>
+                    </li>
+                    <!-- Custo Expresso para o cenário de 23.0 kg -->
+                    <li class="flex items-center">
+                        <span class="flex-shrink-0 w-5 h-5 bg-blue-600 rounded-full mr-3"></span>
+                        Custo Expresso (Cenário Outubro): <strong class="ml-1">R$ 2.694,68/mês</strong>
+                    </li>
+                </ul>
+                <p class="text-sm text-gray-600 mt-4 p-3 bg-gray-50 rounded-md border border-gray-200">
+                    <span class="font-bold text-gray-800">Cenário Outubro:</span> O consumo real foi de **23,0 kg**.
+                </p>
+            </div>
+
+            <!-- Módulo: Ganhos Intangíveis -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl">
+                <h3 class="text-xl font-semibold text-gray-900 mb-5">Ganhos Intangíveis com Expresso</h3>
+                <ul class="space-y-4 text-gray-700">
+                    <!-- NOVO ITEM: Custo Operacional Oculto (detalhes sem valores) -->
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div>
+                            <strong class="text-gray-800">Eliminação do Custo Operacional Oculto</strong>
+                            <p class="text-sm">O modelo tradicional exige gestão de múltiplos insumos (pó, filtros, gás, garrafa térmica) e demanda aproximadamente 125 horas mensais de mão de obra indireta para preparo e manutenção.</p>
+                        </div>
+                    </li>
+                    <!-- ITEM AJUSTADO: Foco em segurança, removendo valor de R$ -->
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div>
+                            <strong class="text-gray-800">Segurança e Conformidade</strong>
+                            <p class="text-sm">Elimina riscos operacionais do preparo manual (água quente, manuseio de gás) e despesas de manutenção de garrafas.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></path></svg>
+                        <div>
+                            <strong class="text-gray-800">Qualidade Superior</strong>
+                            <p class="text-sm">Grãos moídos na hora e extração sob pressão garantem sabor e aroma de nível superior, não comparável ao café em pó tradicional.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div>
+                            <strong class="text-gray-800">Controle e Padronização</strong>
+                            <p class="text-sm">Doses padronizadas reduzem desperdício e melhoram a consistência da bebida.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div>
+                            <strong class="text-gray-800">Experiência do Colaborador</strong>
+                            <p class="text-sm">Aumento da satisfação interna com um benefício de maior percepção de valor.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
 
+    <script defer>
+        // Lógica de interatividade e cálculo (JavaScript)
+        const COST_TRADITIONAL = 3752.06;
+        const PRICE_PER_KG_EXPRESSO = 117.16;
+
+        // Elementos do DOM
+        const slider = document.getElementById('kg-slider');
+        const kgValue = document.getElementById('kg-value');
+        
+        const traditionalBar = document.getElementById('cost-traditional-bar');
+        const expressoBar = document.getElementById('cost-expresso-bar');
+
+        const labelTraditional = document.getElementById('label-traditional');
+        const labelExpresso = document.getElementById('label-expresso');
+        
+        const summaryTraditional = document.getElementById('summary-traditional');
+        const summaryExpresso = document.getElementById('summary-expresso');
+        const summarySavings = document.getElementById('summary-savings');
+        
+        const savingsCard = document.getElementById('savings-card');
+        const savingsTitle = document.getElementById('savings-title');
+        
+        // REMOÇÃO do elemento breakEvenPointEl (Não é mais necessário no DOM)
+        // const breakEvenPointEl = document.getElementById('break-even-point');
+
+        // Formatação de moeda
+        const formatCurrency = (value) => {
+            return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        };
+
+        // REMOÇÃO do cálculo do ponto de equilíbrio (Não é mais necessário na UI)
+        // const breakEvenKg = COST_TRADITIONAL / PRICE_PER_KG_EXPRESSO;
+        // breakEvenPointEl.textContent = breakEvenKg.toFixed(1);
+
+        // Função principal para atualizar a UI
+        function updateVisualization() {
+            const kg = parseFloat(slider.value);
+            kgValue.textContent = `${kg.toFixed(1)} kg`;
+
+            // Cálculos
+            const costExpresso = kg * PRICE_PER_KG_EXPRESSO;
+            const savings = COST_TRADITIONAL - costExpresso;
+
+            // Atualiza o sumário financeiro
+            summaryTraditional.textContent = formatCurrency(COST_TRADITIONAL);
+            summaryExpresso.textContent = formatCurrency(costExpresso);
+            summarySavings.textContent = formatCurrency(Math.abs(savings));
+            
+            // Atualiza o label do gráfico
+            labelTraditional.textContent = formatCurrency(COST_TRADITIONAL);
+            labelExpresso.textContent = formatCurrency(costExpresso);
+
+            // Atualiza cores e texto do card de Economia
+            // Limpa classes
+            savingsCard.classList.remove('border-green-600', 'border-red-600', 'border-gray-400');
+            savingsTitle.classList.remove('text-green-700', 'text-red-700', 'text-gray-700');
+            summarySavings.classList.remove('text-green-900', 'text-red-900', 'text-gray-900');
+
+            if (savings > 0.01) {
+                // Economia
+                savingsCard.classList.add('border-green-600');
+                savingsTitle.textContent = 'Economia (Positivo)';
+                savingsTitle.classList.add('text-green-700');
+                summarySavings.classList.add('text-green-900');
+            } else if (savings < -0.01) {
+                // Custo Extra
+                savingsCard.classList.add('border-red-600');
+                savingsTitle.textContent = 'Custo Extra (Negativo)';
+                savingsTitle.classList.add('text-red-700');
+                summarySavings.classList.add('text-red-900');
+            } else {
+                // Ponto de equilíbrio
+                savingsCard.classList.add('border-gray-400');
+                savingsTitle.textContent = 'Equilíbrio';
+                savingsTitle.classList.add('text-gray-700');
+                summarySavings.classList.add('text-gray-900');
+            }
+            
+            // Atualiza o gráfico de barras
+            const maxCost = Math.max(COST_TRADITIONAL, costExpresso) * 1.15; // 15% acima do maior valor
+            
+            const traditionalHeightPercent = (COST_TRADITIONAL / maxCost) * 100;
+            const expressoHeightPercent = (costExpresso / maxCost) * 100;
+
+            traditionalBar.style.height = `${Math.min(traditionalHeightPercent, 100)}%`;
+            expressoBar.style.height = `${Math.min(expressoHeightPercent, 100)}%`;
+
+            // Adiciona tooltips com os valores exatos
+            traditionalBar.title = `Custo Tradicional: ${formatCurrency(COST_TRADITIONAL)}`;
+            expressoBar.title = `Custo Expresso: ${formatCurrency(costExpresso)} @ ${kg.toFixed(1)} kg`;
+        }
+
+        // Adiciona o listener ao slider
+        slider.addEventListener('input', updateVisualization);
+
+        // Dispara a função uma vez no carregamento inicial (inicia em 23kg)
+        window.addEventListener('load', updateVisualization);
+
+    </script>
 </body>
 </html>
