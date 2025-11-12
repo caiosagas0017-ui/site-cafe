@@ -3,309 +3,1035 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise de Custo: Café</title>
-    
-    <!-- Carrega o Tailwind CSS -->
+    <title>Checklist Financeiro</title>
+    <!-- Carrega o Tailwind CSS para um design moderno -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Carrega a fonte Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Estilo para a fonte Inter */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* bg-gray-100 */
         }
-        /* Estilização customizada para o slider */
-        input[type=range]::-webkit-slider-thumb {
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        /* * Sistema de Temas com Variáveis CSS
+         * As variáveis são definidas no :root e trocadas pelo JavaScript
+         */
+        
+        /* Tema padrão (Rosa/Verde) */
+        :root {
+            --color-primary: 236 72 153; /* pink-600 */
+            --color-primary-hover: 219 39 119; /* pink-700 */
+            --color-secondary: 22 163 74; /* green-600 */
+            --color-secondary-hover: 21 128 61; /* green-700 */
+            --color-accent-text: 190 24 93; /* pink-700 */
+            --color-calendar-today: 22 163 74; /* green-600 */
+            --color-calendar-today-ring: 134 239 172; /* green-300 */
+            --color-calendar-header: 22 101 53; /* green-900 */
+            --color-ring-focus: 236 72 153; /* pink-500 */
+            --color-text-nav: 253 232 238; /* pink-100 */
+        }
+        
+        /* Tema Escuro (Define variáveis para o modo escuro) */
+        .theme-dark-lime {
+            --color-primary: 132 204 22; /* lime-500 */
+            --color-primary-hover: 163 230 53; /* lime-400 */
+            --color-secondary: 34 197 94; /* green-500 */
+            --color-secondary-hover: 74 222 128; /* green-400 */
+            --color-accent-text: 163 230 53; /* lime-400 */
+            --color-calendar-today: 132 204 22; /* lime-500 */
+            --color-calendar-today-ring: 190 242 100; /* lime-300 */
+            --color-calendar-header: 163 230 53; /* lime-400 */
+            --color-ring-focus: 132 204 22; /* lime-500 */
+            --color-text-nav: 220 252 231; /* green-100 */
+        }
+        
+        /* Aplicação das variáveis no Tailwind (via JS) */
+        .bg-var-primary { background-color: rgb(var(--color-primary) / 1); }
+        .bg-var-primary-hover:hover { background-color: rgb(var(--color-primary-hover) / 1); }
+        .bg-var-secondary { background-color: rgb(var(--color-secondary) / 1); }
+        .bg-var-secondary-hover:hover { background-color: rgb(var(--color-secondary-hover) / 1); }
+        
+        .text-var-accent-text { color: rgb(var(--color-accent-text) / 1); }
+        .text-var-secondary { color: rgb(var(--color-secondary) / 1); }
+        .text-var-calendar-header { color: rgb(var(--color-calendar-header) / 1); }
+        .text-var-nav { color: rgb(var(--color-text-nav) / 1); }
+        
+        .focus-ring-var-accent:focus { --tw-ring-color: rgb(var(--color-ring-focus) / 1); }
+
+        .tab-button.active {
+            border-bottom-color: rgb(var(--color-secondary) / 1);
+            color: rgb(var(--color-secondary) / 1);
+            font-weight: 600;
+        }
+
+        /* Estilo do seletor de cor */
+        input[type="color"] {
             -webkit-appearance: none;
+            -moz-appearance: none;
             appearance: none;
-            width: 24px;
-            height: 24px;
-            background: #2563eb; /* bg-blue-600 */
-            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            border: none;
+            background-color: transparent;
+            border-radius: 8px;
             cursor: pointer;
-            margin-top: -8px; /* Centraliza o polegar no trilho */
-            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8); /* Anel branco para destaque */
         }
-        input[type=range]::-moz-range-thumb {
-            width: 24px;
-            height: 24px;
-            background: #2563eb;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 0;
-            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8);
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1; /* gray-300 */
         }
-        /* Estilos para as barras de custo para garantir que fiquem no fundo e maior visualização */
-        .cost-bar-container {
-            display: flex;
-            align-items: flex-end;
-            height: 20rem; /* Aumentado para melhor visualização (h-80) */
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 8px;
         }
+        input[type="color"]::-moz-color-swatch {
+            border: none;
+            border-radius: 8px;
+        }
+
     </style>
 </head>
-<body class="p-8">
+<body class="bg-gray-100">
 
-    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        <!-- Coluna Principal (Conteúdo Interativo) -->
-        <div class="lg:col-span-2 flex flex-col gap-8">
-            
-            <!-- Cabeçalho (Com Texto do Título/Marca) -->
-            <div class="mb-2">
-                <p class="text-2xl font-extrabold text-green-700 mb-3">UNIMED TATUÍ</p>
-                
-                <h1 class="text-4xl font-bold text-gray-900 mb-2">Relatório Comparativo de Custos de Café</h1>
-                <h2 class="text-2xl font-semibold text-gray-600">Simulação: Café Pó Tradicional vs. Expresso Locado</h2>
-            </div>
-
-            <!-- Módulo: Simulador Interativo -->
-            <div class="bg-white p-6 rounded-2xl shadow-xl">
-                <h3 class="text-xl font-semibold text-gray-900 mb-4">Simulador Interativo</h3>
-                <label for="kg-slider" class="block text-base font-medium text-gray-700 mb-2">Arraste para ajustar o Consumo Mensal de Grãos (kg)</label>
-                <div class="flex items-center space-x-4">
-                    <input 
-                        id="kg-slider" 
-                        type="range" 
-                        min="0" 
-                        max="40" 
-                        value="23" 
-                        step="0.5" 
-                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    >
-                    <span id="kg-value" class="font-bold text-blue-600 text-2xl w-28 text-center p-2 bg-blue-100 rounded-lg shadow-inner">23.0 kg</span>
-                </div>
-            </div>
-
-            <!-- Módulo: Cartões de Resumo Financeiro -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Custo Tradicional -->
-                <div class="bg-white p-5 rounded-2xl shadow-xl border-t-4 border-red-600">
-                    <h3 class="text-sm font-medium text-red-700">Custo Tradicional (Fixo)</h3>
-                    <p id="summary-traditional" class="text-3xl font-extrabold text-red-900 mt-1">R$ 3.752,06</p>
-                </div>
-                
-                <!-- Custo Expresso -->
-                <div class="bg-white p-5 rounded-2xl shadow-xl border-t-4 border-blue-600">
-                    <h3 class="text-sm font-medium text-blue-700">Custo Expresso (Simulado)</h3>
-                    <p id="summary-expresso" class="text-3xl font-extrabold text-blue-900 mt-1">R$ 0,00</p>
-                </div>
-                
-                <!-- Resultado -->
-                <div class="bg-white p-5 rounded-2xl shadow-xl border-t-4 border-gray-400" id="savings-card">
-                    <h3 id="savings-title" class="text-sm font-medium text-gray-700">Resultado (Economia)</h3>
-                    <p id="summary-savings" class="text-3xl font-extrabold text-gray-900 mt-1">R$ 0,00</p>
-                </div>
-            </div>
-
-            <!-- Módulo: Gráfico Comparativo -->
-            <div class="bg-white p-6 rounded-2xl shadow-xl">
-                <h3 class="text-xl font-semibold text-gray-900 mb-6">Comparativo Visual de Custo</h3>
-                <div class="flex justify-around items-end cost-bar-container border-b-2 border-gray-300 pb-2 space-x-12">
-                    
-                    <!-- Barra Tradicional -->
-                    <div class="flex flex-col items-center w-1/3 h-full justify-end">
-                        <span id="label-traditional" class="text-base font-semibold text-red-700 mb-2">R$ 3.752,06</span>
-                        <div id="cost-traditional-bar" class="w-full bg-red-600 rounded-t-lg transition-all duration-300 relative" title="Custo Fixo Tradicional: R$ 3.752,06">
-                            <!-- Altura definida via JS -->
-                        </div>
-                        <span class="text-sm font-semibold text-gray-500 mt-2">Custo Tradicional</span>
-                    </div>
-                    
-                    <!-- Barra Expresso -->
-                    <div class="flex flex-col items-center w-1/3 h-full justify-end">
-                        <span id="label-expresso" class="text-base font-semibold text-blue-700 mb-2">R$ 0,00</span>
-                        <div id="cost-expresso-bar" class="w-full bg-blue-600 rounded-t-lg transition-all duration-300 relative">
-                            <!-- Altura definida via JS -->
-                        </div>
-                        <span class="text-sm font-semibold text-gray-500 mt-2">Custo Expresso</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Informação da Área (Compras) -->
-            <div class="mt-4 p-4 text-center bg-gray-50 rounded-2xl shadow-inner border border-gray-200">
-                <p class="text-sm text-gray-600 font-medium">Relatório e Simulação desenvolvidos pela área de **Compras**.</p>
-            </div>
+    <div class="container mx-auto max-w-4xl p-4 md:p-8">
+        <!-- Título com o Botão de Tema -->
+        <div class="flex justify-center items-center mb-8">
+            <h1 id="mainTitle" class="text-3xl font-bold text-center text-var-accent-text">
+                Meu Checklist Financeiro
+            </h1>
+            <!-- NOVO ÍCONE: SWATCH -->
+            <button id="themeToggle" class="ml-4 p-2 rounded-full text-var-accent-text hover:bg-gray-200 transition-colors focus:outline-none focus-ring-var-accent focus:ring-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4H7z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5a2 2 0 00-2 2v12a2 2 0 002 2h4a2 2 0 002-2V7a2 2 0 00-2-2h-4z" />
+                </svg>
+            </button>
         </div>
 
-        <!-- Coluna da Barra Lateral (Informações de Contexto) -->
-        <div class="lg:col-span-1 flex flex-col gap-8">
+        <!-- Container principal -->
+        <div class="bg-white shadow-xl rounded-lg overflow-hidden">
             
-            <!-- Módulo: Premissas da Análise -->
-            <div class="bg-white p-6 rounded-2xl shadow-xl">
-                <h3 class="text-xl font-semibold text-gray-900 mb-4">Premissas da Análise</h3>
-                <ul class="space-y-3 text-gray-700">
-                    <li class="flex items-center">
-                        <span class="flex-shrink-0 w-5 h-5 bg-red-600 rounded-full mr-3"></span>
-                        Custo Tradicional: <strong class="ml-1">R$ 3.752,06/mês</strong>
+            <!-- Abas de Navegação -->
+            <nav id="navBar" class="bg-var-primary">
+                <ul class="flex">
+                    <!-- Aba Resumo -->
+                    <li>
+                        <button data-tab-target="resumo" class="tab-button bg-white text-var-secondary py-3 px-6 font-medium text-lg rounded-t-lg">
+                            Resumo
+                        </button>
                     </li>
-                    <!-- INÍCIO DO NOVO EXPLICATIVO -->
-                    <p class="text-xs text-gray-500 mt-2 mb-4 p-2 pl-8 border-l-4 border-red-300 bg-red-50 rounded-r-md">
-                        Composição do Custo Tradicional: Café em Pó (R$ 1.620,00) + Mão de Obra Indireta (R$ 1.739,06) + Gás (R$ 260,00) + Filtros (R$ 83,00) + Manutenção Térmica (R$ 50,00).
-                    </p>
-                    <!-- FIM DO NOVO EXPLICATIVO -->
-                    <li class="flex items-center">
-                        <span class="flex-shrink-0 w-5 h-5 bg-blue-600 rounded-full mr-3"></span>
-                        Custo Grão Expresso (Unitário): <strong class="ml-1">R$ 117,16/kg</strong>
+                    <!-- Aba Contas Fixas -->
+                    <li>
+                        <button data-tab-target="contas-fixas" class="tab-button text-var-nav hover:text-white py-3 px-6 font-medium text-lg rounded-t-lg">
+                            Contas Fixas
+                        </button>
                     </li>
-                    <!-- Custo Expresso para o cenário de 23.0 kg -->
-                    <li class="flex items-center">
-                        <span class="flex-shrink-0 w-5 h-5 bg-blue-600 rounded-full mr-3"></span>
-                        Custo Expresso (Cenário Outubro): <strong class="ml-1">R$ 2.694,68/mês</strong>
+                    <!-- Aba Contas Variáveis -->
+                    <li>
+                        <button data-tab-target="contas-variaveis" class="tab-button text-var-nav hover:text-white py-3 px-6 font-medium text-lg rounded-t-lg">
+                            Contas do Mês
+                        </button>
+                    </li>
+                    <!-- NOVA ABA: Anotações -->
+                    <li>
+                        <button data-tab-target="anotacoes" class="tab-button text-var-nav hover:text-white py-3 px-6 font-medium text-lg rounded-t-lg">
+                            Anotações
+                        </button>
                     </li>
                 </ul>
-                <p class="text-sm text-gray-600 mt-4 p-3 bg-gray-50 rounded-md border border-gray-200">
-                    <span class="font-bold text-gray-800">Cenário Outubro:</span> O consumo real foi de **23,0 kg**.
-                </p>
-            </div>
+            </nav>
 
-            <!-- Módulo: Ganhos Intangíveis -->
-            <div class="bg-white p-6 rounded-2xl shadow-xl">
-                <h3 class="text-xl font-semibold text-gray-900 mb-5">Ganhos Intangíveis com Expresso</h3>
-                <ul class="space-y-4 text-gray-700">
-                    <!-- NOVO ITEM: Custo Operacional Oculto (detalhes sem valores) -->
-                    <li class="flex items-start">
-                        <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <div>
-                            <strong class="text-gray-800">Eliminação do Custo Operacional Oculto</strong>
-                            <p class="text-sm">O modelo tradicional exige gestão de múltiplos insumos (pó, filtros, gás, garrafa térmica) e demanda aproximadamente 125 horas mensais de mão de obra indireta para preparo e manutenção.</p>
+            <!-- Conteúdo das Abas -->
+            <div class="p-6 md:p-8">
+
+                <!-- ===== Conteúdo da Aba: RESUMO ===== -->
+                <div id="resumo" data-tab-content class="">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Visão Geral do Mês</h2>
+
+                    <!-- Bloco de Aviso de Vencimento (NOVO LAYOUT) -->
+                    <div id="dueDateWarning" class="hidden p-4 mb-6 bg-yellow-50 rounded-lg shadow-sm border border-yellow-200" role="alert">
+                        <div class="flex">
+                            <!-- Ícone de Lembrete (Sino) -->
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a3 3 0 01-5.714 0m5.714 0a3 3 0 00-5.714 0" />
+                                </svg>
+                            </div>
+                            <div class="ml-3 w-full">
+                                <h3 class="text-lg font-semibold text-yellow-800">Contas Próximas do Vencimento</h3>
+                                <div class="mt-2 text-sm text-yellow-700">
+                                    <ul id="warningList" class="list-disc list-inside space-y-1">
+                                        <!-- Avisos de vencimento serão inseridos aqui pelo JavaScript -->
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                    </li>
-                    <!-- ITEM AJUSTADO: Foco em segurança, removendo valor de R$ -->
-                    <li class="flex items-start">
-                        <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <div>
-                            <strong class="text-gray-800">Segurança e Conformidade</strong>
-                            <p class="text-sm">Elimina riscos operacionais do preparo manual (água quente, manuseio de gás) e despesas de manutenção de garrafas.</p>
+                    </div>
+                    <!-- Fim do Bloco de Aviso -->
+
+
+                    <!-- Cards de Resumo -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Card: Resumo Contas Fixas -->
+                        <div class="bg-red-50 p-6 rounded-lg shadow-sm border border-red-200">
+                            <h3 class="text-lg font-semibold text-red-800 mb-2">Contas Fixas</h3>
+                            <div id="summaryTotalFixed" class="text-3xl font-bold text-red-600 mb-3">
+                                R$ 0,00
+                            </div>
+                            <div id="summaryFixedStatus" class="text-sm font-medium text-red-700">
+                                0 de 0 pagas
+                            </div>
                         </div>
-                    </li>
-                    <li class="flex items-start">
-                        <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></path></svg>
-                        <div>
-                            <strong class="text-gray-800">Qualidade Superior</strong>
-                            <p class="text-sm">Grãos moídos na hora e extração sob pressão garantem sabor e aroma de nível superior, não comparável ao café em pó tradicional.</p>
+
+                        <!-- Card: Resumo Contas Variáveis -->
+                        <div class="bg-yellow-50 p-6 rounded-lg shadow-sm border border-yellow-200">
+                            <h3 class="text-lg font-semibold text-yellow-800 mb-2">Contas Variáveis (Gastos)</h3>
+                            <div id="summaryTotalVariable" class="text-3xl font-bold text-yellow-600">
+                                R$ 0,00
+                            </div>
                         </div>
-                    </li>
-                    <li class="flex items-start">
-                        <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <div>
-                            <strong class="text-gray-800">Controle e Padronização</strong>
-                            <p class="text-sm">Doses padronizadas reduzem desperdício e melhoram a consistência da bebida.</p>
+                    </div>
+
+                    <!-- NOVO: Post-it/Anotações Importantes na Visão Geral -->
+                    <div id="importantNotesCard" class="mt-8 p-4 bg-yellow-100 border-l-4 border-yellow-500 rounded-lg shadow-md hidden">
+                        <h3 class="text-lg font-semibold text-yellow-800 mb-2">Anotações Importantes</h3>
+                        <p id="notesSummary" class="text-sm text-yellow-700"></p>
+                        <button id="goToNotesTab" class="mt-2 text-sm text-yellow-700 underline hover:text-yellow-900 focus:outline-none">Ver todas as notas »</button>
+                    </div>
+
+                    <!-- Bloco do Calendário -->
+                    <div class="my-8">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">Calendário de Vencimentos</h3>
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-inner">
+                            <!-- Cabeçalho do Calendário (Mês) -->
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 id="calendarMonthYear" class="text-lg font-medium text-var-calendar-header">
+                                    Carregando...
+                                </h4>
+                            </div>
+                            <!-- Dias da Semana -->
+                            <div class="grid grid-cols-7 gap-1 text-center text-sm font-medium text-gray-500 mb-2">
+                                <div class="w-full">Dom</div>
+                                <div class="w-full">Seg</div>
+                                <div class="w-full">Ter</div>
+                                <div class="w-full">Qua</div>
+                                <div class="w-full">Qui</div>
+                                <div class="w-full">Sex</div>
+                                <div class="w-full">Sáb</div>
+                            </div>
+                            <!-- Dias do Calendário -->
+                            <div id="calendarDaysGrid" class="grid grid-cols-7 gap-1">
+                                <!-- Dias serão gerados pelo JS -->
+                            </div>
                         </div>
-                    </li>
-                    <li class="flex items-start">
-                        <svg class="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <div>
-                            <strong class="text-gray-800">Experiência do Colaborador</strong>
-                            <p class="text-sm">Aumento da satisfação interna com um benefício de maior percepção de valor.</p>
+                    </div>
+                </div>
+
+                <!-- ===== Conteúdo da Aba: CONTAS FIXAS ===== -->
+                <div id="contas-fixas" data-tab-content class="hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800">Checklist de Contas Fixas</h2>
+                    </div>
+                    <p class="text-gray-600 mb-6">Adicione suas contas mensais recorrentes (aluguel, luz, internet, etc.).</p>
+
+                    <!-- Formulário para adicionar conta fixa -->
+                    <form id="formFixedBill" class="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner flex flex-col md:flex-row md:items-end gap-4">
+                        <div class="flex-1">
+                            <label for="fixedName" class="block text-sm font-medium text-gray-700">Nome da Conta</label>
+                            <input type="text" id="fixedName" placeholder="Ex: Aluguel" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2" required>
                         </div>
-                    </li>
-                </ul>
+                        <!-- Campo Adicionado: Dia do Vencimento -->
+                        <div class="flex-none w-full md:w-32">
+                            <label for="fixedDueDate" class="block text-sm font-medium text-gray-700">Dia do Venc.</label>
+                            <input type="number" id="fixedDueDate" min="1" max="31" placeholder="Ex: 10" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2">
+                        </div>
+                        <div class="flex-1">
+                            <label for="fixedAmount" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
+                            <input type="number" id="fixedAmount" step="0.01" placeholder="Ex: 1200.00" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2" required>
+                        </div>
+                        <button id="fixedAddButton" type="submit" class="w-full md:w-auto p-3 px-6 bg-var-primary text-white font-medium rounded-lg shadow-md bg-var-primary-hover transition-colors">
+                            Adicionar
+                        </button>
+                    </form>
+
+                    <!-- Lista de Contas Fixas -->
+                    <ul id="fixedBillsList" class="space-y-3">
+                        <!-- As contas fixas serão inseridas aqui pelo JavaScript -->
+                        <li class="text-center text-gray-500 italic py-4">Nenhuma conta fixa adicionada.</li>
+                    </ul>
+                </div>
+
+                <!-- ===== Conteúdo da Aba: CONTAS VARIÁVEIS ===== -->
+                <div id="contas-variaveis" data-tab-content class="hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800">Lançamento de Contas do Mês</h2>
+                    </div>
+                    <p class="text-gray-600 mb-6">Adicione seus gastos diários (supermercado, iFood, gasolina, etc.).</p>
+
+                    <!-- Formulário para adicionar conta variável -->
+                    <form id="formVariableBill" class="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner flex flex-col md:flex-row md:items-end gap-4">
+                        <div class="flex-1">
+                            <label for="variableName" class="block text-sm font-medium text-gray-700">Nome do Gasto</label>
+                            <input type="text" id="variableName" placeholder="Ex: Supermercado" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2" required>
+                        </div>
+                        <div class="flex-1">
+                            <label for="variableAmount" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
+                            <input type="number" id="variableAmount" step="0.01" placeholder="Ex: 350.00" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2" required>
+                        </div>
+                        <button id="variableAddButton" type="submit" class="w-full md:w-auto p-3 px-6 bg-var-primary text-white font-medium rounded-lg shadow-md bg-var-primary-hover transition-colors">
+                            Adicionar
+                        </button>
+                    </form>
+
+                    <!-- Lista de Contas Variáveis -->
+                    <ul id="variableBillsList" class="space-y-3">
+                        <!-- Os gastos variáveis serão inseridos aqui pelo JavaScript -->
+                        <li class="text-center text-gray-500 italic py-4">Nenhum gasto variável adicionado.</li>
+                    </ul>
+                </div>
+
+                <!-- ===== Conteúdo da Aba: ANOTAÇÕES ===== -->
+                <div id="anotacoes" data-tab-content class="hidden">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Minhas Anotações</h2>
+                    <p class="text-gray-600 mb-4">Use este espaço para lembretes, planejamentos ou notas avulsas. O conteúdo é salvo automaticamente.</p>
+                    <textarea id="notesTextarea" rows="10" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2"></textarea>
+                </div>
+
+            </div>
+        </div>
+        <footer class="text-center text-gray-500 text-sm mt-6">
+            Checklist Financeiro Interativo. Seus dados são salvos localmente no seu navegador.
+        </footer>
+    </div>
+
+    <!-- ===== Modal de Vencimentos ===== -->
+    <div id="dueBillsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Overlay (fundo escuro) -->
+        <div id="modalOverlay" class="absolute inset-0 bg-black opacity-50"></div>
+        
+        <!-- Conteúdo do Modal -->
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6 z-10">
+            <!-- Cabeçalho do Modal -->
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-xl font-semibold text-gray-800">Vencimentos</h3>
+                <button id="modalCloseButton" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <!-- Corpo (Lista de Contas) -->
+            <ul id="modalBody" class="space-y-2">
+                <!-- Contas serão inseridas aqui pelo JavaScript -->
+            </ul>
+        </div>
+    </div>
+    <!-- Fim do Modal -->
+
+    <!-- ===== NOVO: Modal de Temas ===== -->
+    <div id="themeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Overlay (fundo escuro) -->
+        <div id="themeModalOverlay" class="absolute inset-0 bg-black opacity-50"></div>
+        
+        <!-- Conteúdo do Modal -->
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg p-6 z-10">
+            <!-- Cabeçalho do Modal -->
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="themeModalTitle" class="text-xl font-semibold text-gray-800">Escolha seu Tema</h3>
+                <button id="themeModalCloseButton" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Corpo (Opções de Tema) -->
+            <div>
+                <h4 class="text-lg font-medium text-gray-700 mb-3">Temas Prontos</h4>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Tema Rosa/Verde -->
+                    <button class="theme-preset-button p-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500" data-theme="pink-green">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-pink-600"></div>
+                            <div class="w-10 h-10 rounded-full bg-green-600"></div>
+                        </div>
+                        <span class="block text-left mt-2 font-medium text-gray-700">Rosa & Verde</span>
+                    </button>
+                    <!-- Tema Azul/Laranja -->
+                    <button class="theme-preset-button p-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500" data-theme="blue-orange">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-blue-700"></div>
+                            <div class="w-10 h-10 rounded-full bg-orange-600"></div>
+                        </div>
+                        <span class="block text-left mt-2 font-medium text-gray-700">Azul & Laranja</span>
+                    </button>
+                    <!-- Tema Roxo/Verde-Água -->
+                    <button class="theme-preset-button p-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500" data-theme="purple-teal">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-purple-600"></div>
+                            <div class="w-10 h-10 rounded-full bg-teal-500"></div>
+                        </div>
+                        <span class="block text-left mt-2 font-medium text-gray-700">Roxo & Verde-Água</span>
+                    </button>
+                    <!-- Tema Escuro/Lima -->
+                    <button class="theme-preset-button p-4 rounded-lg shadow-md bg-gray-800 focus:outline-none focus:ring-2 focus:ring-lime-500" data-theme="dark-lime">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-lime-500"></div>
+                            <div class="w-10 h-10 rounded-full bg-green-500"></div>
+                        </div>
+                        <span class="block text-left mt-2 font-medium text-white">Escuro & Lima</span>
+                    </button>
+                </div>
+
+                <!-- REMOVIDA A SEÇÃO DE PERSONALIZAR CORES -->
             </div>
         </div>
     </div>
+    <!-- Fim do Modal de Temas -->
 
-    <script defer>
-        // Lógica de interatividade e cálculo (JavaScript)
-        const COST_TRADITIONAL = 3752.06;
-        const PRICE_PER_KG_EXPRESSO = 117.16;
 
-        // Elementos do DOM
-        const slider = document.getElementById('kg-slider');
-        const kgValue = document.getElementById('kg-value');
-        
-        const traditionalBar = document.getElementById('cost-traditional-bar');
-        const expressoBar = document.getElementById('cost-expresso-bar');
-
-        const labelTraditional = document.getElementById('label-traditional');
-        const labelExpresso = document.getElementById('label-expresso');
-        
-        const summaryTraditional = document.getElementById('summary-traditional');
-        const summaryExpresso = document.getElementById('summary-expresso');
-        const summarySavings = document.getElementById('summary-savings');
-        
-        const savingsCard = document.getElementById('savings-card');
-        const savingsTitle = document.getElementById('savings-title');
-        
-        // REMOÇÃO do elemento breakEvenPointEl (Não é mais necessário no DOM)
-        // const breakEvenPointEl = document.getElementById('break-even-point');
-
-        // Formatação de moeda
-        const formatCurrency = (value) => {
-            return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        };
-
-        // REMOÇÃO do cálculo do ponto de equilíbrio (Não é mais necessário na UI)
-        // const breakEvenKg = COST_TRADITIONAL / PRICE_PER_KG_EXPRESSO;
-        // breakEvenPointEl.textContent = breakEvenKg.toFixed(1);
-
-        // Função principal para atualizar a UI
-        function updateVisualization() {
-            const kg = parseFloat(slider.value);
-            kgValue.textContent = `${kg.toFixed(1)} kg`;
-
-            // Cálculos
-            const costExpresso = kg * PRICE_PER_KG_EXPRESSO;
-            const savings = COST_TRADITIONAL - costExpresso;
-
-            // Atualiza o sumário financeiro
-            summaryTraditional.textContent = formatCurrency(COST_TRADITIONAL);
-            summaryExpresso.textContent = formatCurrency(costExpresso);
-            summarySavings.textContent = formatCurrency(Math.abs(savings));
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
             
-            // Atualiza o label do gráfico
-            labelTraditional.textContent = formatCurrency(COST_TRADITIONAL);
-            labelExpresso.textContent = formatCurrency(costExpresso);
+            // --- Mapa de Temas (Novos) ---
+            // Define as cores como strings RGB para as variáveis CSS
+            const themeMap = {
+                'pink-green': {
+                    primary: '236 72 153',
+                    primaryHover: '219 39 119',
+                    secondary: '22 163 74',
+                    secondaryHover: '21 128 61',
+                    accentText: '190 24 93',
+                    calendarToday: '22 163 74',
+                    calendarTodayRing: '134 239 172',
+                    calendarHeader: '22 101 53',
+                    ringFocus: '236 72 153',
+                    textNav: '253 232 238', // pink-100
+                },
+                'blue-orange': {
+                    primary: '29 78 216', // blue-700
+                    primaryHover: '30 64 175', // blue-800
+                    secondary: '249 115 22', // orange-600
+                    secondaryHover: '234 88 12', // orange-700
+                    accentText: '37 99 235', // blue-600
+                    calendarToday: '249 115 22', // orange-600
+                    calendarTodayRing: '253 186 116', // orange-300
+                    calendarHeader: '29 78 216', // blue-700
+                    ringFocus: '251 146 60', // orange-400
+                    textNav: '219 234 254', // blue-100
+                },
+                'purple-teal': {
+                    primary: '147 51 234', // purple-600
+                    primaryHover: '126 34 206', // purple-700
+                    secondary: '13 148 136', // teal-600
+                    secondaryHover: '15 118 110', // teal-700
+                    accentText: '126 34 206', // purple-700
+                    calendarToday: '13 148 136', // teal-600
+                    calendarTodayRing: '107 231 204', // teal-300
+                    calendarHeader: '15 118 110', // teal-700
+                    ringFocus: '168 85 247', // purple-500
+                    textNav: '243 232 255', // purple-100
+                },
+                'dark-lime': {
+                    primary: '132 204 22', // lime-500
+                    primaryHover: '163 230 53', // lime-400
+                    secondary: '34 197 94', // green-500
+                    secondaryHover: '74 222 128', // green-400
+                    accentText: '163 230 53', // lime-400
+                    calendarToday: '132 204 22', // lime-500
+                    calendarTodayRing: '190 242 100', // lime-300
+                    calendarHeader: '163 230 53', // lime-400
+                    ringFocus: '132 204 22', // lime-500
+                    textNav: '240 253 244', // green-50
+                }
+            };
 
-            // Atualiza cores e texto do card de Economia
-            // Limpa classes
-            savingsCard.classList.remove('border-green-600', 'border-red-600', 'border-gray-400');
-            savingsTitle.classList.remove('text-green-700', 'text-red-700', 'text-gray-700');
-            summarySavings.classList.remove('text-green-900', 'text-red-900', 'text-gray-900');
+            // --- Estado da Aplicação ---
+            let state = {
+                fixedBills: [],
+                variableBills: [],
+                notes: '',
+                activeTab: 'resumo',
+                theme: 'pink-green', // Tema padrão
+                // REMOVIDO: customColors
+            };
 
-            if (savings > 0.01) {
-                // Economia
-                savingsCard.classList.add('border-green-600');
-                savingsTitle.textContent = 'Economia (Positivo)';
-                savingsTitle.classList.add('text-green-700');
-                summarySavings.classList.add('text-green-900');
-            } else if (savings < -0.01) {
-                // Custo Extra
-                savingsCard.classList.add('border-red-600');
-                savingsTitle.textContent = 'Custo Extra (Negativo)';
-                savingsTitle.classList.add('text-red-700');
-                summarySavings.classList.add('text-red-900');
-            } else {
-                // Ponto de equilíbrio
-                savingsCard.classList.add('border-gray-400');
-                savingsTitle.textContent = 'Equilíbrio';
-                savingsTitle.classList.add('text-gray-700');
-                summarySavings.classList.add('text-gray-900');
+            // --- Seletores do DOM (Elementos) ---
+            const tabs = document.querySelectorAll('[data-tab-target]');
+            const summaryTotalFixedEl = document.getElementById('summaryTotalFixed');
+            const summaryFixedStatusEl = document.getElementById('summaryFixedStatus');
+            const summaryTotalVariableEl = document.getElementById('summaryTotalVariable'); 
+            const dueDateWarningEl = document.getElementById('dueDateWarning'); 
+            const warningListEl = document.getElementById('warningList'); 
+            const calendarMonthYearEl = document.getElementById('calendarMonthYear');
+            const calendarDaysGridEl = document.getElementById('calendarDaysGrid');
+            
+            // Modal de Vencimentos
+            const dueBillsModal = document.getElementById('dueBillsModal');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalCloseButton = document.getElementById('modalCloseButton');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            // Formulários
+            const formFixedBill = document.getElementById('formFixedBill'); 
+            const fixedNameInput = document.getElementById('fixedName'); 
+            const fixedDueDateInput = document.getElementById('fixedDueDate'); 
+            const fixedAmountInput = document.getElementById('fixedAmount'); 
+            const fixedBillsListEl = document.getElementById('fixedBillsList'); 
+            const formVariableBill = document.getElementById('formVariableBill'); 
+            const variableNameInput = document.getElementById('variableName'); 
+            const variableAmountInput = document.getElementById('variableAmount'); 
+            const variableBillsListEl = document.getElementById('variableBillsList'); 
+            
+            // Anotações
+            const notesTextarea = document.getElementById('notesTextarea');
+            const notesCardEl = document.getElementById('importantNotesCard');
+            const notesSummaryEl = document.getElementById('notesSummary');
+            const goToNotesTabButton = document.getElementById('goToNotesTab');
+            
+            // Novos elementos de Tema
+            const themeToggleBtn = document.getElementById('themeToggle');
+            const themeModal = document.getElementById('themeModal');
+            const themeModalOverlay = document.getElementById('themeModalOverlay');
+            const themeModalCloseButton = document.getElementById('themeModalCloseButton');
+            const presetThemeButtons = document.querySelectorAll('.theme-preset-button');
+            // REMOVIDO: Seletores de cor e botão de aplicar
+            
+
+            // --- Funções de Persistência (LocalStorage) ---
+            const saveState = () => { 
+                localStorage.setItem('financeChecklistState', JSON.stringify(state));
+            };
+
+            const loadState = () => { 
+                const savedState = localStorage.getItem('financeChecklistState');
+                if (savedState) {
+                    const parsedState = JSON.parse(savedState);
+                    state.activeTab = parsedState.activeTab || 'resumo';
+                    state.notes = parsedState.notes || ''; 
+                    state.theme = parsedState.theme || 'pink-green'; // Carrega nome do tema
+                    // REMOVIDO: customColors
+                    
+                    state.fixedBills = parsedState.fixedBills.map(b => ({
+                        ...b,
+                        amount: parseFloat(b.amount) || 0,
+                        dueDate: b.dueDate ? parseInt(b.dueDate) : null,
+                        paid: b.paid || false
+                    }));
+                    state.variableBills = parsedState.variableBills.map(b => ({ 
+                        ...b,
+                        amount: parseFloat(b.amount) || 0
+                    }));
+                }
+            };
+
+            // --- Funções de Tema (NOVAS e ATUALIZADAS) ---
+
+            // REMOVIDAS: Funções hexToRgbString, darkenRgbString, lightenRgbString
+
+            // Função genérica para aplicar um conjunto de cores
+            const setThemeProperties = (themeData) => {
+                const root = document.documentElement;
+                root.style.setProperty('--color-primary', themeData.primary);
+                root.style.setProperty('--color-primary-hover', themeData.primaryHover);
+                root.style.setProperty('--color-secondary', themeData.secondary);
+                root.style.setProperty('--color-secondary-hover', themeData.secondaryHover);
+                root.style.setProperty('--color-accent-text', themeData.accentText);
+                root.style.setProperty('--color-calendar-today', themeData.calendarToday);
+                root.style.setProperty('--color-calendar-today-ring', themeData.calendarTodayRing);
+                root.style.setProperty('--color-calendar-header', themeData.calendarHeader);
+                root.style.setProperty('--color-ring-focus', themeData.ringFocus);
+                root.style.setProperty('--color-text-nav', themeData.textNav);
+                
+                // Aplica classes de fundo (para modo escuro, etc.)
+                document.body.className = "bg-gray-100"; // Reseta
+                if (themeData.cssClass) {
+                    document.body.classList.add(themeData.cssClass);
+                }
+            };
+            
+            // Aplica um tema (predefinido ou customizado)
+            const applyTheme = (themeName) => {
+                let themeData;
+                
+                // REMOVIDO: Bloco 'if (themeName === 'custom')'
+                
+                // Pega dados do tema predefinido
+                themeData = { ...themeMap[themeName], cssClass: themeName === 'dark-lime' ? 'bg-gray-900' : '' };
+                
+                
+                setThemeProperties(themeData);
+                state.theme = themeName; // Salva o nome do tema ativo
+                
+                // REMOVIDO: Lógica de atualizar seletores de cor
+            };
+
+            // --- Funções Auxiliares ---
+            const formatCurrency = (value) => { 
+                return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            };
+
+            // --- Função Principal de Renderização ---
+            const saveAndRender = () => { 
+                saveState();
+                render();
+            };
+
+            const render = () => { 
+                applyTheme(state.theme); // Aplica o tema ANTES de renderizar listas e calendário
+
+                // Calcula totais
+                const totalFixed = state.fixedBills.reduce((sum, bill) => sum + bill.amount, 0); 
+                const totalVariable = state.variableBills.reduce((sum, bill) => sum + bill.amount, 0);
+                const fixedPaidCount = state.fixedBills.filter(bill => bill.paid).length;
+                const fixedTotalCount = state.fixedBills.length;
+
+                // Atualiza o DOM (elementos da tela)
+                summaryTotalFixedEl.textContent = formatCurrency(totalFixed);
+                summaryTotalVariableEl.textContent = formatCurrency(totalVariable);
+                summaryFixedStatusEl.textContent = `${fixedPaidCount} de ${fixedTotalCount} pagas`;
+            
+                // Atualiza a lista de Contas Fixas
+                if (state.fixedBills.length === 0) { 
+                    fixedBillsListEl.innerHTML = '<li class="text-center text-gray-500 italic py-4">Nenhuma conta fixa adicionada.</li>';
+                } else {
+                    fixedBillsListEl.innerHTML = state.fixedBills.map(bill => {
+                        const isPaid = bill.paid;
+                        // Define as classes do botão: PENDENTE = Tema Primário, PAGA = Tema Secundário
+                        const buttonClasses = isPaid 
+                            ? "bg-var-secondary text-white" 
+                            : "bg-var-primary text-white";
+                        
+                        return `
+                        <li data-id="${bill.id}" class="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+                            <div class="flex items-center space-x-4">
+                                <!-- Botão Pagar/Paga com Ícone -->
+                                <button data-id="${bill.id}" class="toggle-paid w-28 text-sm font-medium py-2 px-4 rounded-md shadow-sm transition-colors duration-200 ${buttonClasses} hover:opacity-80 flex items-center justify-center space-x-1" aria-label="${isPaid ? 'Marcar como não paga' : 'Marcar como paga'}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                                        <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm3 0a1 1 0 011-1h1a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>${isPaid ? 'Paga' : 'Pagar'}</span>
+                                </button>
+                                <div>
+                                    <span class="text-lg font-medium text-gray-800 ${isPaid ? 'line-through text-gray-500' : ''}">
+                                        ${bill.name}
+                                    </span>
+                                    <!-- Exibe o vencimento -->
+                                    ${bill.dueDate ? `<span class="block text-sm text-gray-500 ${isPaid ? 'line-through' : ''}">Venc. dia ${String(bill.dueDate).padStart(2, '0')}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="text-lg font-semibold text-gray-700 ${isPaid ? 'line-through text-gray-500' : ''}">
+                                    ${formatCurrency(bill.amount)}
+                                </span>
+                                <button data-id="${bill.id}" class="delete-fixed text-gray-400 hover:text-red-500 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </li>
+                    `}).join('');
+                }
+
+                // Atualiza a lista de Contas Variáveis
+                if (state.variableBills.length === 0) { 
+                    variableBillsListEl.innerHTML = '<li class="text-center text-gray-500 italic py-4">Nenhum gasto variável adicionado.</li>';
+                } else {
+                    variableBillsListEl.innerHTML = state.variableBills.map(bill => `
+                        <li data-id="${bill.id}" class="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+                            <div>
+                                <span class="text-lg font-medium text-gray-800">${bill.name}</span>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="text-lg font-semibold text-gray-700">
+                                    ${formatCurrency(bill.amount)}
+                                </span>
+                                <button data-id="${bill.id}" class="delete-variable text-gray-400 hover:text-red-500 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </li>
+                    `).join('');
+                }
+
+                // Atualiza Anotações na Aba Resumo
+                if (state.notes.trim()) {
+                    notesCardEl.classList.remove('hidden');
+                    let summaryText = state.notes.trim();
+                    const maxLength = 200;
+                    if (summaryText.length > maxLength) {
+                        summaryText = summaryText.substring(0, maxLength).trim() + '...';
+                    }
+                    notesSummaryEl.textContent = summaryText;
+                } else {
+                    notesCardEl.classList.add('hidden');
+                }
+
+                // Atualiza Anotações na Aba Anotações
+                if (notesTextarea) {
+                    notesTextarea.value = state.notes;
+                }
+
+                // Atualiza Abas
+                tabs.forEach(tab => { 
+                    const target = tab.dataset.tabTarget;
+                    const content = document.getElementById(target);
+                    if (target === state.activeTab) {
+                        tab.classList.add('bg-white', 'active', 'text-var-secondary');
+                        tab.classList.remove('text-var-nav', 'hover:text-white');
+                        content.classList.remove('hidden');
+                    } else {
+                        tab.classList.remove('bg-white', 'active', 'text-var-secondary');
+                        tab.classList.add('text-var-nav', 'hover:text-white');
+                        content.classList.add('hidden');
+                    }
+                });
+
+                // Atualiza Avisos de Vencimento
+                const today = new Date().getDate(); 
+                const upcomingBills = state.fixedBills.filter(bill => {
+                    if (bill.paid || !bill.dueDate) return false;
+                    const diff = bill.dueDate - today;
+                    return diff <= 3; 
+                });
+
+                if (upcomingBills.length > 0) {
+                    dueDateWarningEl.classList.remove('hidden');
+                    warningListEl.innerHTML = upcomingBills
+                        .sort((a, b) => a.dueDate - b.dueDate)
+                        .map(bill => {
+                            const diff = bill.dueDate - today;
+                            let text = '';
+                            if (diff < 0) {
+                                text = `<span class="font-bold text-red-600">Vencida:</span> ${bill.name}`;
+                            } else if (diff === 0) {
+                                text = `<span class="font-bold text-yellow-800">Vence Hoje:</span> ${bill.name}`;
+                            } else {
+                                text = `Vence em ${diff} dia${diff > 1 ? 's' : ''}: ${bill.name}`;
+                            }
+                            return `<li>${text} (${formatCurrency(bill.amount)})</li>`;
+                        }).join('');
+                    
+                    // --- NOVO: Lógica de Notificação do Navegador ---
+                    // Chave para controlar a notificação por sessão
+                    const notificationKey = 'dueBillNotified';
+                    const alreadyNotified = sessionStorage.getItem(notificationKey);
+
+                    // Só notifica se ainda não o fez nesta sessão
+                    if (!alreadyNotified) {
+                        // 1. Verifica se o navegador suporta notificações
+                        if (!("Notification" in window)) {
+                            console.warn("Este navegador não suporta notificações.");
+                        } 
+                        // 2. Verifica se a permissão já foi concedida
+                        else if (Notification.permission === "granted") {
+                            const notificationBody = upcomingBills
+                                .map(b => `${b.name} (${formatCurrency(b.amount)})`)
+                                .join('\n');
+                            // Exibe a notificação
+                            new Notification("Contas Próximas do Vencimento!", {
+                                body: notificationBody,
+                                icon: "https://cdn-icons-png.flaticon.com/512/1656/1656914.png" // Ícone de sino
+                            });
+                            // Marca como notificado para esta sessão
+                            sessionStorage.setItem(notificationKey, "true");
+                        } 
+                        // 3. Se a permissão for 'default' (nem sim, nem não), pede permissão
+                        else if (Notification.permission !== "denied") {
+                            Notification.requestPermission().then((permission) => {
+                                // Se o usuário permitir, exibe a notificação
+                                if (permission === "granted") {
+                                    const notificationBody = upcomingBills
+                                        .map(b => `${b.name} (${formatCurrency(b.amount)})`)
+                                        .join('\n');
+                                    new Notification("Contas Próximas do Vencimento!", {
+                                        body: notificationBody,
+                                        icon: "https://cdn-icons-png.flaticon.com/512/1656/1656914.png"
+                                    });
+                                    // Marca como notificado para esta sessão
+                                    sessionStorage.setItem(notificationKey, "true");
+                                }
+                            });
+                        }
+                        // Se a permissão foi 'denied', não faz nada.
+                    }
+                    // --- Fim da Lógica de Notificação ---
+
+                } else {
+                    dueDateWarningEl.classList.add('hidden');
+                    // Limpa o 'lock' da notificação se não houver mais contas vencendo
+                    sessionStorage.removeItem('dueBillNotified');
+                }
+
+                // Chama a função para renderizar o calendário
+                renderCalendar(state.fixedBills);
+
+            }; // Fim da função render()
+ 
+            // --- Função: Renderizar Calendário ---
+            const renderCalendar = (fixedBills) => {
+                const today = new Date();
+                const month = today.getMonth(); 
+                const year = today.getFullYear();
+                const todayDate = today.getDate(); 
+
+                const dueBillsByDay = {};
+                fixedBills.forEach(bill => {
+                    if (bill.dueDate && !bill.paid) {
+                        if (!dueBillsByDay[bill.dueDate]) {
+                            dueBillsByDay[bill.dueDate] = [];
+                        }
+                        dueBillsByDay[bill.dueDate].push({ name: bill.name, amount: bill.amount });
+                    }
+                });
+
+                const monthName = today.toLocaleString('pt-BR', { month: 'long' });
+                calendarMonthYearEl.textContent = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
+
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                calendarDaysGridEl.innerHTML = '';
+
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    calendarDaysGridEl.innerHTML += '<div class="h-20"></div>';
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const isToday = (day === todayDate);
+                    const billsOnThisDay = dueBillsByDay[day] || [];
+
+                    let cellClasses = 'p-2 h-20 text-center rounded-lg relative transition-all duration-200 flex flex-col items-center justify-start';
+                    let title = '';
+                    let billInfoHtml = '';
+
+                    // CORREÇÃO: Aplica as cores do tema ao dia de hoje no calendário
+                    if (isToday) {
+                        cellClasses += ' text-white font-bold ring-2';
+                        // Adiciona estilo inline para usar as variáveis CSS
+                        cellClasses += ' " style="background-color: rgb(var(--color-calendar-today)); border-color: rgb(var(--color-calendar-today-ring));';
+                    } else {
+                        cellClasses += ' bg-white text-gray-700 shadow-sm border border-gray-100';
+                    }
+
+                    if (billsOnThisDay.length > 0) {
+                        const totalAmountOnDay = billsOnThisDay.reduce((sum, bill) => sum + bill.amount, 0);
+                        const billTitles = billsOnThisDay.map(b => `${b.name} (${formatCurrency(b.amount)})`).join(', ');
+                        title = `title="${day}: ${billTitles}"`; 
+                        
+                        const firstBillName = billsOnThisDay[0].name;
+                        let truncatedName = firstBillName.length > 9 ? firstBillName.substring(0, 9) + '...' : firstBillName;
+                        let textColor = isToday ? 'text-white' : 'text-red-600';
+
+                        billInfoHtml = `
+                            <span class="text-xs font-medium ${textColor} mt-1 truncate w-full px-1" title="${firstBillName}">${truncatedName}</span>
+                            <span class="text-xs font-semibold ${textColor} truncate w-full px-1">${formatCurrency(totalAmountOnDay)}</span>
+                        `;
+
+                        if (billsOnThisDay.length > 1) {
+                            billInfoHtml += `<span class="text-xs font-bold ${textColor}">+${billsOnThisDay.length - 1}</span>`;
+                        }
+
+                        if (!isToday) {
+                            cellClasses += ' cursor-pointer border-2 border-red-400 font-bold hover:bg-red-50';
+                        } else {
+                            cellClasses += ' cursor-pointer hover:opacity-80'; 
+                        }
+                        
+                        calendarDaysGridEl.innerHTML += `
+                            <div class="${cellClasses}" ${title} data-day="${day}">
+                                <span class="text-sm">${day}</span>
+                                ${billInfoHtml}
+                            </div>
+                        `;
+
+                    } else {
+                        if (!isToday) {
+                            cellClasses += ' hover:bg-gray-100';
+                        }
+                        calendarDaysGridEl.innerHTML += `
+                            <div class="${cellClasses}" ${title}>
+                                <span class="text-sm">${day}</span>
+                            </div>
+                        `;
+                    }
+                }
+            };
+
+            // --- Event Listeners (Tratadores de Eventos) ---
+
+            // --- Modal de Temas (NOVOS) ---
+            const openThemeModal = () => themeModal.classList.remove('hidden');
+            const closeThemeModal = () => themeModal.classList.add('hidden');
+
+            themeToggleBtn.addEventListener('click', openThemeModal);
+            themeModalCloseButton.addEventListener('click', closeThemeModal);
+            themeModalOverlay.addEventListener('click', closeThemeModal);
+            
+            // Botões de Tema Predefinido
+            presetThemeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const themeName = button.dataset.theme;
+                    state.theme = themeName; // Salva o nome do tema
+                    applyTheme(themeName);
+                    saveState(); // Salva a escolha do tema
+                    closeThemeModal();
+                });
+            });
+
+            // REMOVIDO: Event listener do applyCustomThemeButton
+
+
+            // Navegação por Abas
+            tabs.forEach(tab => { 
+                tab.addEventListener('click', () => {
+                    state.activeTab = tab.dataset.tabTarget;
+                    saveAndRender(); 
+                });
+            });
+
+            // Adicionar Conta Fixa
+            formFixedBill.addEventListener('submit', (e) => { 
+                e.preventDefault();
+                const name = fixedNameInput.value.trim();
+                const amount = parseFloat(fixedAmountInput.value) || 0;
+                const dueDate = fixedDueDateInput.value ? parseInt(fixedDueDateInput.value) : null;
+
+                if (name && amount > 0) {
+                    state.fixedBills.push({
+                        id: Date.now(),
+                        name,
+                        amount,
+                        dueDate,
+                        paid: false
+                    });
+                    fixedNameInput.value = '';
+                    fixedAmountInput.value = '';
+                    fixedDueDateInput.value = '';
+                    saveAndRender();
+                }
+            });
+            
+            // Adicionar Conta Variável
+            formVariableBill.addEventListener('submit', (e) => { 
+                e.preventDefault();
+                const name = variableNameInput.value.trim();
+                const amount = parseFloat(variableAmountInput.value) || 0;
+                
+                if (name && amount > 0) {
+                    state.variableBills.push({
+                        id: Date.now(),
+                        name,
+                        amount
+                    });
+                    variableNameInput.value = '';
+                    variableAmountInput.value = '';
+                    saveAndRender();
+                }
+            });
+
+            // Eventos na lista de Contas Fixas (Toggle/Delete)
+            fixedBillsListEl.addEventListener('click', (e) => { 
+                const toggleButton = e.target.closest('.toggle-paid');
+                const deleteButton = e.target.closest('.delete-fixed');
+
+                // Marcar como Pago/Não Pago
+                if (toggleButton) {
+                    const id = parseInt(toggleButton.dataset.id);
+                    const bill = state.fixedBills.find(b => b.id === id);
+                    if (bill) {
+                        bill.paid = !bill.paid;
+                        saveAndRender();
+                    }
+                }
+                // Deletar Conta Fixa
+                if (deleteButton) {
+                    const id = parseInt(deleteButton.dataset.id);
+                    state.fixedBills = state.fixedBills.filter(b => b.id !== id);
+                    saveAndRender();
+                }
+            });
+
+            // Eventos na lista de Contas Variáveis (Delete)
+            variableBillsListEl.addEventListener('click', (e) => { 
+                const deleteButton = e.target.closest('.delete-variable');
+                // Deletar Conta Variável
+                if (deleteButton) {
+                    const id = parseInt(deleteButton.dataset.id);
+                    state.variableBills = state.variableBills.filter(b => b.id !== id);
+                    saveAndRender();
+                }
+            });
+
+            // Anotações (Salva 500ms após parar de digitar)
+            let notesTimer;
+            if (notesTextarea) {
+                notesTextarea.addEventListener('keyup', () => {
+                    clearTimeout(notesTimer);
+                    notesTimer = setTimeout(() => {
+                        state.notes = notesTextarea.value;
+                        saveState(); 
+                    }, 500);
+                });
             }
-            
-            // Atualiza o gráfico de barras
-            const maxCost = Math.max(COST_TRADITIONAL, costExpresso) * 1.15; // 15% acima do maior valor
-            
-            const traditionalHeightPercent = (COST_TRADITIONAL / maxCost) * 100;
-            const expressoHeightPercent = (costExpresso / maxCost) * 100;
 
-            traditionalBar.style.height = `${Math.min(traditionalHeightPercent, 100)}%`;
-            expressoBar.style.height = `${Math.min(expressoHeightPercent, 100)}%`;
+            // --- Event Listener para ir para a aba Anotações ---
+            if (goToNotesTabButton) {
+                goToNotesTabButton.addEventListener('click', () => {
+                    state.activeTab = 'anotacoes';
+                    saveAndRender();
+                });
+            }
 
-            // Adiciona tooltips com os valores exatos
-            traditionalBar.title = `Custo Tradicional: ${formatCurrency(COST_TRADITIONAL)}`;
-            expressoBar.title = `Custo Expresso: ${formatCurrency(costExpresso)} @ ${kg.toFixed(1)} kg`;
-        }
 
-        // Adiciona o listener ao slider
-        slider.addEventListener('input', updateVisualization);
+            // --- Event Listeners do Modal de Vencimentos ---
 
-        // Dispara a função uma vez no carregamento inicial (inicia em 23kg)
-        window.addEventListener('load', updateVisualization);
+            // Abre o modal ao clicar no dia
+            calendarDaysGridEl.addEventListener('click', (e) => {
+                const dayCell = e.target.closest('[data-day]'); 
+                if (!dayCell) return; 
 
+                const day = parseInt(dayCell.dataset.day);
+                
+                const billsOnThisDay = state.fixedBills.filter(bill => 
+                    bill.dueDate === day && !bill.paid
+                );
+
+                if (billsOnThisDay.length > 0) {
+                    modalTitle.textContent = `Vencimentos - Dia ${day}`;
+                    modalBody.innerHTML = billsOnThisDay.map(bill => `
+                        <li class="flex justify-between items-center p-3 rounded-md bg-gray-100">
+                            <span class="text-gray-800">${bill.name}</span>
+                            <span class="font-semibold text-red-600">${formatCurrency(bill.amount)}</span>
+                        </li>
+                    `).join('');
+                    
+                    dueBillsModal.classList.remove('hidden');
+                }
+            });
+
+            // Fecha o modal
+            const closeModal = () => {
+                dueBillsModal.classList.add('hidden');
+            };
+            modalCloseButton.addEventListener('click', closeModal);
+            modalOverlay.addEventListener('click', closeModal);
+
+
+            // --- Carga Inicial ---
+            loadState(); 
+            // Na carga inicial, aplica o tema salvo
+            applyTheme(state.theme || 'pink-green');
+            render(); // Renderiza o restante da UI
+        });
     </script>
+
 </body>
 </html>
