@@ -95,7 +95,28 @@
 </head>
 <body class="bg-gray-100">
 
-    <div class="container mx-auto max-w-4xl p-4 md:p-8">
+    <!-- ===== NOVO: Tela de Bloqueio (PIN) ===== -->
+    <div id="pinLockScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-75">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-sm text-center">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Acesso Restrito</h2>
+            <p class="text-gray-600 mb-6">Por favor, insira seu PIN para continuar.</p>
+            
+            <form id="pinForm">
+                <input type="password" id="pinInput" maxlength="4" class="w-full p-4 text-center text-3xl tracking-[1em] border-gray-300 border rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2" placeholder="••••" required>
+                
+                <p id="pinErrorMessage" class="text-red-500 text-sm mt-2 hidden">PIN incorreto. Tente novamente.</p>
+                
+                <button type="submit" class="w-full p-3 mt-6 bg-var-primary text-white font-medium rounded-lg shadow-md bg-var-primary-hover transition-colors">
+                    Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+    <!-- ===== Fim da Tela de Bloqueio ===== -->
+
+
+    <!-- Conteúdo Principal (Inicialmente escondido) -->
+    <div id="mainAppContent" class="container mx-auto max-w-4xl p-4 md:p-8 hidden">
         <!-- Título com o Botão de Tema -->
         <div class="flex justify-center items-center mb-8">
             <h1 id="mainTitle" class="text-3xl font-bold text-center text-var-accent-text">
@@ -113,9 +134,9 @@
         <!-- Container principal -->
         <div class="bg-white shadow-xl rounded-lg overflow-hidden">
             
-            <!-- Abas de Navegação -->
-            <nav id="navBar" class="bg-var-primary">
-                <ul class="flex">
+            <!-- Abas de Navegação (COM SCROLL HORIZONTAL) -->
+            <nav id="navBar" class="bg-var-primary overflow-hidden">
+                <ul class="flex overflow-x-auto whitespace-nowrap">
                     <!-- Aba Resumo -->
                     <li>
                         <button data-tab-target="resumo" class="tab-button bg-white text-var-secondary py-3 px-6 font-medium text-lg rounded-t-lg">
@@ -194,12 +215,35 @@
                         </div>
                     </div>
 
-                    <!-- NOVO: Post-it/Anotações Importantes na Visão Geral -->
-                    <div id="importantNotesCard" class="mt-8 p-4 bg-yellow-100 border-l-4 border-yellow-500 rounded-lg shadow-md hidden">
-                        <h3 class="text-lg font-semibold text-yellow-800 mb-2">Anotações Importantes</h3>
-                        <p id="notesSummary" class="text-sm text-yellow-700"></p>
-                        <button id="goToNotesTab" class="mt-2 text-sm text-yellow-700 underline hover:text-yellow-900 focus:outline-none">Ver todas as notas »</button>
+                    <!-- NOVO: Card Total de Gastos -->
+                    <div class="mt-6 bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Total de Gastos no Mês</h3>
+                        <div id="summaryTotalSpent" class="text-4xl font-bold text-var-accent-text">
+                            R$ 0,00
+                        </div>
+                        <p class="text-sm font-medium text-gray-600">(Soma de Contas Fixas e Variáveis)</p>
                     </div>
+                    <!-- FIM DO NOVO CARD -->
+
+                    <!-- NOVO: Post-it/Anotações Importantes na Visão Geral (Layout Profissional) -->
+                    <div id="importantNotesCard" class="hidden mt-8 p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200" role="alert">
+                        <div class="flex">
+                            <!-- Ícone de Bloco de Notas -->
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                </svg>
+                            </div>
+                            <div class="ml-3 w-full">
+                                <h3 class="text-lg font-semibold text-gray-800">Anotações Importantes</h3>
+                                <div class="mt-2 text-sm text-gray-700">
+                                    <p id="notesSummary" class="whitespace-pre-line"></p>
+                                </div>
+                                <button id="goToNotesTab" class="mt-2 text-sm text-var-accent-text hover:underline focus:outline-none font-medium">Ver todas as notas »</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Fim do Bloco de Anotações -->
 
                     <!-- Bloco do Calendário -->
                     <div class="my-8">
@@ -212,7 +256,7 @@
                                 </h4>
                             </div>
                             <!-- Dias da Semana -->
-                            <div class="grid grid-cols-7 gap-1 text-center text-sm font-medium text-gray-500 mb-2">
+                            <div class="grid grid-cols-7 gap-1 text-center text-xs sm:text-sm font-medium text-gray-500 mb-2">
                                 <div class="w-full">Dom</div>
                                 <div class="w-full">Seg</div>
                                 <div class="w-full">Ter</div>
@@ -296,7 +340,7 @@
                 <div id="anotacoes" data-tab-content class="hidden">
                     <h2 class="text-2xl font-semibold text-gray-800 mb-6">Minhas Anotações</h2>
                     <p class="text-gray-600 mb-4">Use este espaço para lembretes, planejamentos ou notas avulsas. O conteúdo é salvo automaticamente.</p>
-                    <textarea id="notesTextarea" rows="10" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2"></textarea>
+                    <textarea id="notesTextarea" rows="10" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2 whitespace-pre-line"></textarea>
                 </div>
 
             </div>
@@ -395,478 +439,537 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             
-            // --- Mapa de Temas (Novos) ---
-            // Define as cores como strings RGB para as variáveis CSS
-            const themeMap = {
-                'pink-green': {
-                    primary: '236 72 153',
-                    primaryHover: '219 39 119',
-                    secondary: '22 163 74',
-                    secondaryHover: '21 128 61',
-                    accentText: '190 24 93',
-                    calendarToday: '22 163 74',
-                    calendarTodayRing: '134 239 172',
-                    calendarHeader: '22 101 53',
-                    ringFocus: '236 72 153',
-                    textNav: '253 232 238', // pink-100
-                },
-                'blue-orange': {
-                    primary: '29 78 216', // blue-700
-                    primaryHover: '30 64 175', // blue-800
-                    secondary: '249 115 22', // orange-600
-                    secondaryHover: '234 88 12', // orange-700
-                    accentText: '37 99 235', // blue-600
-                    calendarToday: '249 115 22', // orange-600
-                    calendarTodayRing: '253 186 116', // orange-300
-                    calendarHeader: '29 78 216', // blue-700
-                    ringFocus: '251 146 60', // orange-400
-                    textNav: '219 234 254', // blue-100
-                },
-                'purple-teal': {
-                    primary: '147 51 234', // purple-600
-                    primaryHover: '126 34 206', // purple-700
-                    secondary: '13 148 136', // teal-600
-                    secondaryHover: '15 118 110', // teal-700
-                    accentText: '126 34 206', // purple-700
-                    calendarToday: '13 148 136', // teal-600
-                    calendarTodayRing: '107 231 204', // teal-300
-                    calendarHeader: '15 118 110', // teal-700
-                    ringFocus: '168 85 247', // purple-500
-                    textNav: '243 232 255', // purple-100
-                },
-                'dark-lime': {
-                    primary: '132 204 22', // lime-500
-                    primaryHover: '163 230 53', // lime-400
-                    secondary: '34 197 94', // green-500
-                    secondaryHover: '74 222 128', // green-400
-                    accentText: '163 230 53', // lime-400
-                    calendarToday: '132 204 22', // lime-500
-                    calendarTodayRing: '190 242 100', // lime-300
-                    calendarHeader: '163 230 53', // lime-400
-                    ringFocus: '132 204 22', // lime-500
-                    textNav: '240 253 244', // green-50
+            // --- LÓGICA DO PIN (NOVO) ---
+            const pinScreen = document.getElementById('pinLockScreen');
+            const mainContent = document.getElementById('mainAppContent');
+            const pinForm = document.getElementById('pinForm');
+            const pinInput = document.getElementById('pinInput');
+            const pinErrorMessage = document.getElementById('pinErrorMessage');
+            
+            const CORRECT_PIN = "1234";
+
+            pinForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const enteredPin = pinInput.value;
+                
+                if (enteredPin === CORRECT_PIN) {
+                    // PIN correto: esconde a tela de bloqueio e mostra o app
+                    pinScreen.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                    // Inicia o app financeiro
+                    initializeApp();
+                } else {
+                    // PIN incorreto: mostra erro
+                    pinErrorMessage.classList.remove('hidden');
+                    pinInput.value = ''; // Limpa o campo
                 }
-            };
+            });
 
-            // --- Estado da Aplicação ---
-            let state = {
-                fixedBills: [],
-                variableBills: [],
-                notes: '',
-                activeTab: 'resumo',
-                theme: 'pink-green', // Tema padrão
-                // REMOVIDO: customColors
-            };
+            // Esconde o erro ao digitar novamente
+            pinInput.addEventListener('input', () => {
+                pinErrorMessage.classList.add('hidden');
+            });
+            // --- FIM DA LÓGICA DO PIN ---
 
-            // --- Seletores do DOM (Elementos) ---
-            const tabs = document.querySelectorAll('[data-tab-target]');
-            const summaryTotalFixedEl = document.getElementById('summaryTotalFixed');
-            const summaryFixedStatusEl = document.getElementById('summaryFixedStatus');
-            const summaryTotalVariableEl = document.getElementById('summaryTotalVariable'); 
-            const dueDateWarningEl = document.getElementById('dueDateWarning'); 
-            const warningListEl = document.getElementById('warningList'); 
-            const calendarMonthYearEl = document.getElementById('calendarMonthYear');
-            const calendarDaysGridEl = document.getElementById('calendarDaysGrid');
-            
-            // Modal de Vencimentos
-            const dueBillsModal = document.getElementById('dueBillsModal');
-            const modalOverlay = document.getElementById('modalOverlay');
-            const modalCloseButton = document.getElementById('modalCloseButton');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalBody = document.getElementById('modalBody');
-            
-            // Formulários
-            const formFixedBill = document.getElementById('formFixedBill'); 
-            const fixedNameInput = document.getElementById('fixedName'); 
-            const fixedDueDateInput = document.getElementById('fixedDueDate'); 
-            const fixedAmountInput = document.getElementById('fixedAmount'); 
-            const fixedBillsListEl = document.getElementById('fixedBillsList'); 
-            const formVariableBill = document.getElementById('formVariableBill'); 
-            const variableNameInput = document.getElementById('variableName'); 
-            const variableAmountInput = document.getElementById('variableAmount'); 
-            const variableBillsListEl = document.getElementById('variableBillsList'); 
-            
-            // Anotações
-            const notesTextarea = document.getElementById('notesTextarea');
-            const notesCardEl = document.getElementById('importantNotesCard');
-            const notesSummaryEl = document.getElementById('notesSummary');
-            const goToNotesTabButton = document.getElementById('goToNotesTab');
-            
-            // Novos elementos de Tema
-            const themeToggleBtn = document.getElementById('themeToggle');
-            const themeModal = document.getElementById('themeModal');
-            const themeModalOverlay = document.getElementById('themeModalOverlay');
-            const themeModalCloseButton = document.getElementById('themeModalCloseButton');
-            const presetThemeButtons = document.querySelectorAll('.theme-preset-button');
-            // REMOVIDO: Seletores de cor e botão de aplicar
-            
 
-            // --- Funções de Persistência (LocalStorage) ---
-            const saveState = () => { 
-                localStorage.setItem('financeChecklistState', JSON.stringify(state));
-            };
+            // ===== INÍCIO DA APLICAÇÃO FINANCEIRA =====
+            // Todo o código anterior foi movido para dentro desta função
+            // para que só seja executado *depois* do PIN correto.
+            const initializeApp = () => {
 
-            const loadState = () => { 
-                const savedState = localStorage.getItem('financeChecklistState');
-                if (savedState) {
-                    const parsedState = JSON.parse(savedState);
-                    state.activeTab = parsedState.activeTab || 'resumo';
-                    state.notes = parsedState.notes || ''; 
-                    state.theme = parsedState.theme || 'pink-green'; // Carrega nome do tema
+                // --- Mapa de Temas (Novos) ---
+                // Define as cores como strings RGB para as variáveis CSS
+                const themeMap = {
+                    'pink-green': {
+                        primary: '236 72 153',
+                        primaryHover: '219 39 119',
+                        secondary: '22 163 74',
+                        secondaryHover: '21 128 61',
+                        accentText: '190 24 93',
+                        calendarToday: '22 163 74',
+                        calendarTodayRing: '134 239 172',
+                        calendarHeader: '22 101 53',
+                        ringFocus: '236 72 153',
+                        textNav: '253 232 238', // pink-100
+                    },
+                    'blue-orange': {
+                        primary: '29 78 216', // blue-700
+                        primaryHover: '30 64 175', // blue-800
+                        secondary: '249 115 22', // orange-600
+                        secondaryHover: '234 88 12', // orange-700
+                        accentText: '37 99 235', // blue-600
+                        calendarToday: '249 115 22', // orange-600
+                        calendarTodayRing: '253 186 116', // orange-300
+                        calendarHeader: '29 78 216', // blue-700
+                        ringFocus: '251 146 60', // orange-400
+                        textNav: '219 234 254', // blue-100
+                    },
+                    'purple-teal': {
+                        primary: '147 51 234', // purple-600
+                        primaryHover: '126 34 206', // purple-700
+                        secondary: '13 148 136', // teal-600
+                        secondaryHover: '15 118 110', // teal-700
+                        accentText: '126 34 206', // purple-700
+                        calendarToday: '13 148 136', // teal-600
+                        calendarTodayRing: '107 231 204', // teal-300
+                        calendarHeader: '15 118 110', // teal-700
+                        ringFocus: '168 85 247', // purple-500
+                        textNav: '243 232 255', // purple-100
+                    },
+                    'dark-lime': {
+                        primary: '132 204 22', // lime-500
+                        primaryHover: '163 230 53', // lime-400
+                        secondary: '34 197 94', // green-500
+                        secondaryHover: '74 222 128', // green-400
+                        accentText: '163 230 53', // lime-400
+                        calendarToday: '132 204 22', // lime-500
+                        calendarTodayRing: '190 242 100', // lime-300
+                        calendarHeader: '163 230 53', // lime-400
+                        ringFocus: '132 204 22', // lime-500
+                        textNav: '240 253 244', // green-50
+                    }
+                };
+
+                // --- Estado da Aplicação ---
+                let state = {
+                    fixedBills: [],
+                    variableBills: [],
+                    notes: '',
+                    activeTab: 'resumo',
+                    theme: 'pink-green', // Tema padrão
                     // REMOVIDO: customColors
-                    
-                    state.fixedBills = parsedState.fixedBills.map(b => ({
-                        ...b,
-                        amount: parseFloat(b.amount) || 0,
-                        dueDate: b.dueDate ? parseInt(b.dueDate) : null,
-                        paid: b.paid || false
-                    }));
-                    state.variableBills = parsedState.variableBills.map(b => ({ 
-                        ...b,
-                        amount: parseFloat(b.amount) || 0
-                    }));
-                }
-            };
+                };
 
-            // --- Funções de Tema (NOVAS e ATUALIZADAS) ---
-
-            // REMOVIDAS: Funções hexToRgbString, darkenRgbString, lightenRgbString
-
-            // Função genérica para aplicar um conjunto de cores
-            const setThemeProperties = (themeData) => {
-                const root = document.documentElement;
-                root.style.setProperty('--color-primary', themeData.primary);
-                root.style.setProperty('--color-primary-hover', themeData.primaryHover);
-                root.style.setProperty('--color-secondary', themeData.secondary);
-                root.style.setProperty('--color-secondary-hover', themeData.secondaryHover);
-                root.style.setProperty('--color-accent-text', themeData.accentText);
-                root.style.setProperty('--color-calendar-today', themeData.calendarToday);
-                root.style.setProperty('--color-calendar-today-ring', themeData.calendarTodayRing);
-                root.style.setProperty('--color-calendar-header', themeData.calendarHeader);
-                root.style.setProperty('--color-ring-focus', themeData.ringFocus);
-                root.style.setProperty('--color-text-nav', themeData.textNav);
+                // --- Seletores do DOM (Elementos) ---
+                const tabs = document.querySelectorAll('[data-tab-target]');
+                const summaryTotalFixedEl = document.getElementById('summaryTotalFixed');
+                const summaryFixedStatusEl = document.getElementById('summaryFixedStatus');
+                const summaryTotalVariableEl = document.getElementById('summaryTotalVariable'); 
+                const summaryTotalSpentEl = document.getElementById('summaryTotalSpent'); // NOVO SELETOR
+                const dueDateWarningEl = document.getElementById('dueDateWarning'); 
+                const warningListEl = document.getElementById('warningList'); 
+                const calendarMonthYearEl = document.getElementById('calendarMonthYear');
+                const calendarDaysGridEl = document.getElementById('calendarDaysGrid');
                 
-                // Aplica classes de fundo (para modo escuro, etc.)
-                document.body.className = "bg-gray-100"; // Reseta
-                if (themeData.cssClass) {
-                    document.body.classList.add(themeData.cssClass);
-                }
-            };
-            
-            // Aplica um tema (predefinido ou customizado)
-            const applyTheme = (themeName) => {
-                let themeData;
+                // Modal de Vencimentos
+                const dueBillsModal = document.getElementById('dueBillsModal');
+                const modalOverlay = document.getElementById('modalOverlay');
+                const modalCloseButton = document.getElementById('modalCloseButton');
+                const modalTitle = document.getElementById('modalTitle');
+                const modalBody = document.getElementById('modalBody');
                 
-                // REMOVIDO: Bloco 'if (themeName === 'custom')'
+                // Formulários
+                const formFixedBill = document.getElementById('formFixedBill'); 
+                const fixedNameInput = document.getElementById('fixedName'); 
+                const fixedDueDateInput = document.getElementById('fixedDueDate'); 
+                const fixedAmountInput = document.getElementById('fixedAmount'); 
+                const fixedBillsListEl = document.getElementById('fixedBillsList'); 
+                const formVariableBill = document.getElementById('formVariableBill'); 
+                const variableNameInput = document.getElementById('variableName'); 
+                const variableAmountInput = document.getElementById('variableAmount'); 
+                const variableBillsListEl = document.getElementById('variableBillsList'); 
                 
-                // Pega dados do tema predefinido
-                themeData = { ...themeMap[themeName], cssClass: themeName === 'dark-lime' ? 'bg-gray-900' : '' };
+                // Anotações
+                const notesTextarea = document.getElementById('notesTextarea');
+                const notesCardEl = document.getElementById('importantNotesCard');
+                const notesSummaryEl = document.getElementById('notesSummary');
+                const goToNotesTabButton = document.getElementById('goToNotesTab');
                 
+                // Novos elementos de Tema
+                const themeToggleBtn = document.getElementById('themeToggle');
+                const themeModal = document.getElementById('themeModal');
+                const themeModalOverlay = document.getElementById('themeModalOverlay');
+                const themeModalCloseButton = document.getElementById('themeModalCloseButton');
+                const presetThemeButtons = document.querySelectorAll('.theme-preset-button');
+                // REMOVIDO: Seletores de cor e botão de aplicar
                 
-                setThemeProperties(themeData);
-                state.theme = themeName; // Salva o nome do tema ativo
-                
-                // REMOVIDO: Lógica de atualizar seletores de cor
-            };
 
-            // --- Funções Auxiliares ---
-            const formatCurrency = (value) => { 
-                return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            };
+                // --- Funções de Persistência (LocalStorage) ---
+                const saveState = () => { 
+                    localStorage.setItem('financeChecklistState', JSON.stringify(state));
+                };
 
-            // --- Função Principal de Renderização ---
-            const saveAndRender = () => { 
-                saveState();
-                render();
-            };
-
-            const render = () => { 
-                applyTheme(state.theme); // Aplica o tema ANTES de renderizar listas e calendário
-
-                // Calcula totais
-                const totalFixed = state.fixedBills.reduce((sum, bill) => sum + bill.amount, 0); 
-                const totalVariable = state.variableBills.reduce((sum, bill) => sum + bill.amount, 0);
-                const fixedPaidCount = state.fixedBills.filter(bill => bill.paid).length;
-                const fixedTotalCount = state.fixedBills.length;
-
-                // Atualiza o DOM (elementos da tela)
-                summaryTotalFixedEl.textContent = formatCurrency(totalFixed);
-                summaryTotalVariableEl.textContent = formatCurrency(totalVariable);
-                summaryFixedStatusEl.textContent = `${fixedPaidCount} de ${fixedTotalCount} pagas`;
-            
-                // Atualiza a lista de Contas Fixas
-                if (state.fixedBills.length === 0) { 
-                    fixedBillsListEl.innerHTML = '<li class="text-center text-gray-500 italic py-4">Nenhuma conta fixa adicionada.</li>';
-                } else {
-                    fixedBillsListEl.innerHTML = state.fixedBills.map(bill => {
-                        const isPaid = bill.paid;
-                        // Define as classes do botão: PENDENTE = Tema Primário, PAGA = Tema Secundário
-                        const buttonClasses = isPaid 
-                            ? "bg-var-secondary text-white" 
-                            : "bg-var-primary text-white";
+                const loadState = () => { 
+                    const savedState = localStorage.getItem('financeChecklistState');
+                    if (savedState) {
+                        const parsedState = JSON.parse(savedState);
+                        state.activeTab = parsedState.activeTab || 'resumo';
+                        state.notes = parsedState.notes || ''; 
+                        state.theme = parsedState.theme || 'pink-green'; // Carrega nome do tema
+                        // REMOVIDO: customColors
                         
-                        return `
-                        <li data-id="${bill.id}" class="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
-                            <div class="flex items-center space-x-4">
-                                <!-- Botão Pagar/Paga com Ícone -->
-                                <button data-id="${bill.id}" class="toggle-paid w-28 text-sm font-medium py-2 px-4 rounded-md shadow-sm transition-colors duration-200 ${buttonClasses} hover:opacity-80 flex items-center justify-center space-x-1" aria-label="${isPaid ? 'Marcar como não paga' : 'Marcar como paga'}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                                        <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm3 0a1 1 0 011-1h1a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd" />
-                                    </svg>
-                                    <span>${isPaid ? 'Paga' : 'Pagar'}</span>
-                                </button>
-                                <div>
-                                    <span class="text-lg font-medium text-gray-800 ${isPaid ? 'line-through text-gray-500' : ''}">
-                                        ${bill.name}
-                                    </span>
-                                    <!-- Exibe o vencimento -->
-                                    ${bill.dueDate ? `<span class="block text-sm text-gray-500 ${isPaid ? 'line-through' : ''}">Venc. dia ${String(bill.dueDate).padStart(2, '0')}</span>` : ''}
+                        state.fixedBills = parsedState.fixedBills.map(b => ({
+                            ...b,
+                            amount: parseFloat(b.amount) || 0,
+                            dueDate: b.dueDate ? parseInt(b.dueDate) : null,
+                            paid: b.paid || false
+                        }));
+                        state.variableBills = parsedState.variableBills.map(b => ({ 
+                            ...b,
+                            amount: parseFloat(b.amount) || 0
+                        }));
+                    }
+                };
+
+                // --- Funções de Tema (NOVAS e ATUALIZADAS) ---
+
+                // REMOVIDAS: Funções hexToRgbString, darkenRgbString, lightenRgbString
+
+                // Função genérica para aplicar um conjunto de cores
+                const setThemeProperties = (themeData) => {
+                    const root = document.documentElement;
+                    root.style.setProperty('--color-primary', themeData.primary);
+                    root.style.setProperty('--color-primary-hover', themeData.primaryHover);
+                    root.style.setProperty('--color-secondary', themeData.secondary);
+                    root.style.setProperty('--color-secondary-hover', themeData.secondaryHover);
+                    root.style.setProperty('--color-accent-text', themeData.accentText);
+                    root.style.setProperty('--color-calendar-today', themeData.calendarToday);
+                    root.style.setProperty('--color-calendar-today-ring', themeData.calendarTodayRing);
+                    root.style.setProperty('--color-calendar-header', themeData.calendarHeader);
+                    root.style.setProperty('--color-ring-focus', themeData.ringFocus);
+                    root.style.setProperty('--color-text-nav', themeData.textNav);
+                    
+                    // Aplica classes de fundo (para modo escuro, etc.)
+                    document.body.className = "bg-gray-100"; // Reseta
+                    if (themeData.cssClass) {
+                        document.body.classList.add(themeData.cssClass);
+                    }
+                };
+                
+                // Aplica um tema (predefinido ou customizado)
+                const applyTheme = (themeName) => {
+                    let themeData;
+                    
+                    // REMOVIDO: Bloco 'if (themeName === 'custom')'
+                    
+                    // Pega dados do tema predefinido
+                    themeData = { ...themeMap[themeName], cssClass: themeName === 'dark-lime' ? 'bg-gray-900' : '' };
+                    
+                    
+                    setThemeProperties(themeData);
+                    state.theme = themeName; // Salva o nome do tema ativo
+                    
+                    // REMOVIDO: Lógica de atualizar seletores de cor
+                };
+
+                // --- Funções Auxiliares ---
+                const formatCurrency = (value) => { 
+                    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                };
+
+                // --- Função Principal de Renderização ---
+                const saveAndRender = () => { 
+                    saveState();
+                    render();
+                };
+
+                const render = () => { 
+                    applyTheme(state.theme); // Aplica o tema ANTES de renderizar listas e calendário
+
+                    // Calcula totais
+                    const totalFixed = state.fixedBills.reduce((sum, bill) => sum + bill.amount, 0); 
+                    const totalVariable = state.variableBills.reduce((sum, bill) => sum + bill.amount, 0);
+                    const totalSpent = totalFixed + totalVariable; // NOVO CÁLCULO
+                    const fixedPaidCount = state.fixedBills.filter(bill => bill.paid).length;
+                    const fixedTotalCount = state.fixedBills.length;
+
+                    // Atualiza o DOM (elementos da tela)
+                    summaryTotalFixedEl.textContent = formatCurrency(totalFixed);
+                    summaryTotalVariableEl.textContent = formatCurrency(totalVariable);
+                    summaryTotalSpentEl.textContent = formatCurrency(totalSpent); // NOVO UPDATE
+                    summaryFixedStatusEl.textContent = `${fixedPaidCount} de ${fixedTotalCount} pagas`;
+                
+                    // Atualiza a lista de Contas Fixas
+                    if (state.fixedBills.length === 0) { 
+                        fixedBillsListEl.innerHTML = '<li class="text-center text-gray-500 italic py-4">Nenhuma conta fixa adicionada.</li>';
+                    } else {
+                        fixedBillsListEl.innerHTML = state.fixedBills.map(bill => {
+                            const isPaid = bill.paid;
+                            // Define as classes do botão: PENDENTE = Tema Primário, PAGA = Tema Secundário
+                            const buttonClasses = isPaid 
+                                ? "bg-var-secondary text-white" 
+                                : "bg-var-primary text-white";
+                            
+                            // ===== MUDANÇA RESPONSIVA =====
+                            return `
+                            <li data-id="${bill.id}" class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+                                <!-- Lado Esquerdo -->
+                                <div class="flex items-center space-x-4">
+                                    <!-- Botão Pagar/Paga com Ícone -->
+                                    <button data-id="${bill.id}" class="toggle-paid w-28 text-sm font-medium py-2 px-4 rounded-md shadow-sm transition-colors duration-200 ${buttonClasses} hover:opacity-80 flex items-center justify-center space-x-1" aria-label="${isPaid ? 'Marcar como não paga' : 'Marcar como paga'}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                                            <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm3 0a1 1 0 011-1h1a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span>${isPaid ? 'Paga' : 'Pagar'}</span>
+                                    </button>
+                                    <div>
+                                        <span class="text-lg font-medium text-gray-800 ${isPaid ? 'line-through text-gray-500' : ''}">
+                                            ${bill.name}
+                                        </span>
+                                        <!-- Exibe o vencimento -->
+                                        ${bill.dueDate ? `<span class="block text-sm text-gray-500 ${isPaid ? 'line-through' : ''}">Venc. dia ${String(bill.dueDate).padStart(2, '0')}</span>` : ''}
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <span class="text-lg font-semibold text-gray-700 ${isPaid ? 'line-through text-gray-500' : ''}">
-                                    ${formatCurrency(bill.amount)}
-                                </span>
-                                <button data-id="${bill.id}" class="delete-fixed text-gray-400 hover:text-red-500 transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </li>
-                    `}).join('');
-                }
-
-                // Atualiza a lista de Contas Variáveis
-                if (state.variableBills.length === 0) { 
-                    variableBillsListEl.innerHTML = '<li class="text-center text-gray-500 italic py-4">Nenhum gasto variável adicionado.</li>';
-                } else {
-                    variableBillsListEl.innerHTML = state.variableBills.map(bill => `
-                        <li data-id="${bill.id}" class="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
-                            <div>
-                                <span class="text-lg font-medium text-gray-800">${bill.name}</span>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <span class="text-lg font-semibold text-gray-700">
-                                    ${formatCurrency(bill.amount)}
-                                </span>
-                                <button data-id="${bill.id}" class="delete-variable text-gray-400 hover:text-red-500 transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </li>
-                    `).join('');
-                }
-
-                // Atualiza Anotações na Aba Resumo
-                if (state.notes.trim()) {
-                    notesCardEl.classList.remove('hidden');
-                    let summaryText = state.notes.trim();
-                    const maxLength = 200;
-                    if (summaryText.length > maxLength) {
-                        summaryText = summaryText.substring(0, maxLength).trim() + '...';
+                                <!-- Lado Direito -->
+                                <div class="flex items-center justify-between w-full sm:w-auto sm:space-x-4 mt-2 sm:mt-0">
+                                    <span class="text-lg font-semibold text-gray-700 ${isPaid ? 'line-through text-gray-500' : ''}">
+                                        ${formatCurrency(bill.amount)}
+                                    </span>
+                                    <button data-id="${bill.id}" class="delete-fixed text-gray-400 hover:text-red-500 transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </li>
+                        `}).join('');
                     }
-                    notesSummaryEl.textContent = summaryText;
-                } else {
-                    notesCardEl.classList.add('hidden');
-                }
 
-                // Atualiza Anotações na Aba Anotações
-                if (notesTextarea) {
-                    notesTextarea.value = state.notes;
-                }
-
-                // Atualiza Abas
-                tabs.forEach(tab => { 
-                    const target = tab.dataset.tabTarget;
-                    const content = document.getElementById(target);
-                    if (target === state.activeTab) {
-                        tab.classList.add('bg-white', 'active', 'text-var-secondary');
-                        tab.classList.remove('text-var-nav', 'hover:text-white');
-                        content.classList.remove('hidden');
+                    // Atualiza a lista de Contas Variáveis
+                    if (state.variableBills.length === 0) { 
+                        variableBillsListEl.innerHTML = '<li class="text-center text-gray-500 italic py-4">Nenhum gasto variável adicionado.</li>';
                     } else {
-                        tab.classList.remove('bg-white', 'active', 'text-var-secondary');
-                        tab.classList.add('text-var-nav', 'hover:text-white');
-                        content.classList.add('hidden');
+                        variableBillsListEl.innerHTML = state.variableBills.map(bill => `
+                            <!-- ===== MUDANÇA RESPONSIVA ===== -->
+                            <li data-id="${bill.id}" class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+                                <!-- Lado Esquerdo -->
+                                <div>
+                                    <span class="text-lg font-medium text-gray-800">${bill.name}</span>
+                                </div>
+                                <!-- Lado Direito -->
+                                <div class="flex items-center justify-between w-full sm:w-auto sm:space-x-4 mt-2 sm:mt-0">
+                                    <span class="text-lg font-semibold text-gray-700">
+                                        ${formatCurrency(bill.amount)}
+                                    </span>
+                                    <button data-id="${bill.id}" class="delete-variable text-gray-400 hover:text-red-500 transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </li>
+                        `).join('');
                     }
-                });
 
-                // Atualiza Avisos de Vencimento
-                const today = new Date().getDate(); 
-                const upcomingBills = state.fixedBills.filter(bill => {
-                    if (bill.paid || !bill.dueDate) return false;
-                    const diff = bill.dueDate - today;
-                    return diff <= 3; 
-                });
-
-                if (upcomingBills.length > 0) {
-                    dueDateWarningEl.classList.remove('hidden');
-                    warningListEl.innerHTML = upcomingBills
-                        .sort((a, b) => a.dueDate - b.dueDate)
-                        .map(bill => {
-                            const diff = bill.dueDate - today;
-                            let text = '';
-                            if (diff < 0) {
-                                text = `<span class="font-bold text-red-600">Vencida:</span> ${bill.name}`;
-                            } else if (diff === 0) {
-                                text = `<span class="font-bold text-yellow-800">Vence Hoje:</span> ${bill.name}`;
-                            } else {
-                                text = `Vence em ${diff} dia${diff > 1 ? 's' : ''}: ${bill.name}`;
-                            }
-                            return `<li>${text} (${formatCurrency(bill.amount)})</li>`;
-                        }).join('');
-                    
-                    // --- NOVO: Lógica de Notificação do Navegador ---
-                    // Chave para controlar a notificação por sessão
-                    const notificationKey = 'dueBillNotified';
-                    const alreadyNotified = sessionStorage.getItem(notificationKey);
-
-                    // Só notifica se ainda não o fez nesta sessão
-                    if (!alreadyNotified) {
-                        // 1. Verifica se o navegador suporta notificações
-                        if (!("Notification" in window)) {
-                            console.warn("Este navegador não suporta notificações.");
-                        } 
-                        // 2. Verifica se a permissão já foi concedida
-                        else if (Notification.permission === "granted") {
-                            const notificationBody = upcomingBills
-                                .map(b => `${b.name} (${formatCurrency(b.amount)})`)
-                                .join('\n');
-                            // Exibe a notificação
-                            new Notification("Contas Próximas do Vencimento!", {
-                                body: notificationBody,
-                                icon: "https://cdn-icons-png.flaticon.com/512/1656/1656914.png" // Ícone de sino
-                            });
-                            // Marca como notificado para esta sessão
-                            sessionStorage.setItem(notificationKey, "true");
-                        } 
-                        // 3. Se a permissão for 'default' (nem sim, nem não), pede permissão
-                        else if (Notification.permission !== "denied") {
-                            Notification.requestPermission().then((permission) => {
-                                // Se o usuário permitir, exibe a notificação
-                                if (permission === "granted") {
-                                    const notificationBody = upcomingBills
-                                        .map(b => `${b.name} (${formatCurrency(b.amount)})`)
-                                        .join('\n');
-                                    new Notification("Contas Próximas do Vencimento!", {
-                                        body: notificationBody,
-                                        icon: "https://cdn-icons-png.flaticon.com/512/1656/1656914.png"
-                                    });
-                                    // Marca como notificado para esta sessão
-                                    sessionStorage.setItem(notificationKey, "true");
-                                }
-                            });
+                    // Atualiza Anotações na Aba Resumo
+                    if (state.notes.trim()) {
+                        notesCardEl.classList.remove('hidden');
+                        let summaryText = state.notes.trim();
+                        const maxLength = 200;
+                        if (summaryText.length > maxLength) {
+                            summaryText = summaryText.substring(0, maxLength).trim() + '...';
                         }
-                        // Se a permissão foi 'denied', não faz nada.
-                    }
-                    // --- Fim da Lógica de Notificação ---
-
-                } else {
-                    dueDateWarningEl.classList.add('hidden');
-                    // Limpa o 'lock' da notificação se não houver mais contas vencendo
-                    sessionStorage.removeItem('dueBillNotified');
-                }
-
-                // Chama a função para renderizar o calendário
-                renderCalendar(state.fixedBills);
-
-            }; // Fim da função render()
- 
-            // --- Função: Renderizar Calendário ---
-            const renderCalendar = (fixedBills) => {
-                const today = new Date();
-                const month = today.getMonth(); 
-                const year = today.getFullYear();
-                const todayDate = today.getDate(); 
-
-                const dueBillsByDay = {};
-                fixedBills.forEach(bill => {
-                    if (bill.dueDate && !bill.paid) {
-                        if (!dueBillsByDay[bill.dueDate]) {
-                            dueBillsByDay[bill.dueDate] = [];
-                        }
-                        dueBillsByDay[bill.dueDate].push({ name: bill.name, amount: bill.amount });
-                    }
-                });
-
-                const monthName = today.toLocaleString('pt-BR', { month: 'long' });
-                calendarMonthYearEl.textContent = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
-
-                const firstDayOfMonth = new Date(year, month, 1).getDay();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-                calendarDaysGridEl.innerHTML = '';
-
-                for (let i = 0; i < firstDayOfMonth; i++) {
-                    calendarDaysGridEl.innerHTML += '<div class="h-20"></div>';
-                }
-
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const isToday = (day === todayDate);
-                    const billsOnThisDay = dueBillsByDay[day] || [];
-
-                    let cellClasses = 'p-2 h-20 text-center rounded-lg relative transition-all duration-200 flex flex-col items-center justify-start';
-                    let title = '';
-                    let billInfoHtml = '';
-
-                    // CORREÇÃO: Aplica as cores do tema ao dia de hoje no calendário
-                    if (isToday) {
-                        cellClasses += ' text-white font-bold ring-2';
-                        // Adiciona estilo inline para usar as variáveis CSS
-                        cellClasses += ' " style="background-color: rgb(var(--color-calendar-today)); border-color: rgb(var(--color-calendar-today-ring));';
+                        notesSummaryEl.textContent = summaryText;
                     } else {
-                        cellClasses += ' bg-white text-gray-700 shadow-sm border border-gray-100';
+                        notesCardEl.classList.add('hidden');
                     }
 
-                    if (billsOnThisDay.length > 0) {
-                        const totalAmountOnDay = billsOnThisDay.reduce((sum, bill) => sum + bill.amount, 0);
-                        const billTitles = billsOnThisDay.map(b => `${b.name} (${formatCurrency(b.amount)})`).join(', ');
-                        title = `title="${day}: ${billTitles}"`; 
-                        
-                        const firstBillName = billsOnThisDay[0].name;
-                        let truncatedName = firstBillName.length > 9 ? firstBillName.substring(0, 9) + '...' : firstBillName;
-                        let textColor = isToday ? 'text-white' : 'text-red-600';
+                    // Atualiza Anotações na Aba Anotações
+                    if (notesTextarea) {
+                        notesTextarea.value = state.notes;
+                    }
 
-                        billInfoHtml = `
-                            <span class="text-xs font-medium ${textColor} mt-1 truncate w-full px-1" title="${firstBillName}">${truncatedName}</span>
-                            <span class="text-xs font-semibold ${textColor} truncate w-full px-1">${formatCurrency(totalAmountOnDay)}</span>
-                        `;
-
-                        if (billsOnThisDay.length > 1) {
-                            billInfoHtml += `<span class="text-xs font-bold ${textColor}">+${billsOnThisDay.length - 1}</span>`;
-                        }
-
-                        if (!isToday) {
-                            cellClasses += ' cursor-pointer border-2 border-red-400 font-bold hover:bg-red-50';
+                    // Atualiza Abas
+                    tabs.forEach(tab => { 
+                        const target = tab.dataset.tabTarget;
+                        const content = document.getElementById(target);
+                        if (target === state.activeTab) {
+                            tab.classList.add('bg-white', 'active', 'text-var-secondary');
+                            tab.classList.remove('text-var-nav', 'hover:text-white');
+                            content.classList.remove('hidden');
                         } else {
-                            cellClasses += ' cursor-pointer hover:opacity-80'; 
+                            tab.classList.remove('bg-white', 'active', 'text-var-secondary');
+                            tab.classList.add('text-var-nav', 'hover:text-white');
+                            content.classList.add('hidden');
                         }
+                    });
+
+                    // Atualiza Avisos de Vencimento
+                    const today = new Date().getDate(); 
+                    const upcomingBills = state.fixedBills.filter(bill => {
+                        if (bill.paid || !bill.dueDate) return false;
+                        const diff = bill.dueDate - today;
+                        return diff <= 3; 
+                    });
+
+                    if (upcomingBills.length > 0) {
+                        dueDateWarningEl.classList.remove('hidden');
+                        warningListEl.innerHTML = upcomingBills
+                            .sort((a, b) => a.dueDate - b.dueDate)
+                            .map(bill => {
+                                const diff = bill.dueDate - today;
+                                let text = '';
+                                if (diff < 0) {
+                                    text = `<span class="font-bold text-red-600">Vencida:</span> ${bill.name}`;
+                                } else if (diff === 0) {
+                                    text = `<span class="font-bold text-yellow-800">Vence Hoje:</span> ${bill.name}`;
+                                } else {
+                                    text = `Vence em ${diff} dia${diff > 1 ? 's' : ''}: ${bill.name}`;
+                                }
+                                return `<li>${text} (${formatCurrency(bill.amount)})</li>`;
+                            }).join('');
                         
-                        calendarDaysGridEl.innerHTML += `
-                            <div class="${cellClasses}" ${title} data-day="${day}">
-                                <span class="text-sm">${day}</span>
-                                ${billInfoHtml}
-                            </div>
-                        `;
+                        // --- NOVO: Lógica de Notificação do Navegador ---
+                        // Chave para controlar a notificação por sessão
+                        const notificationKey = 'dueBillNotified';
+                        const alreadyNotified = sessionStorage.getItem(notificationKey);
+
+                        // Só notifica se ainda não o fez nesta sessão
+                        if (!alreadyNotified) {
+                            // 1. Verifica se o navegador suporta notificações
+                            if (!("Notification" in window)) {
+                                console.warn("Este navegador não suporta notificações.");
+                            } 
+                            // 2. Verifica se a permissão já foi concedida
+                            else if (Notification.permission === "granted") {
+                                const notificationBody = upcomingBills
+                                    .map(b => `${b.name} (${formatCurrency(b.amount)})`)
+                                    .join('\n');
+                                // Exibe a notificação
+                                new Notification("Contas Próximas do Vencimento!", {
+                                    body: notificationBody,
+                                    icon: "https://cdn-icons-png.flaticon.com/512/1656/1656914.png" // Ícone de sino
+                                });
+                                // Marca como notificado para esta sessão
+                                sessionStorage.setItem(notificationKey, "true");
+                            } 
+                            // 3. Se a permissão for 'default' (nem sim, nem não), pede permissão
+                            else if (Notification.permission !== "denied") {
+                                Notification.requestPermission().then((permission) => {
+                                    // Se o usuário permitir, exibe a notificação
+                                    if (permission === "granted") {
+                                        const notificationBody = upcomingBills
+                                            .map(b => `${b.name} (${formatCurrency(b.amount)})`)
+                                            .join('\n');
+                                        new Notification("Contas Próximas do Vencimento!", {
+                                            body: notificationBody,
+                                            icon: "https://cdn-icons-png.flaticon.com/512/1656/1656914.png"
+                                        });
+                                        // Marca como notificado para esta sessão
+                                        sessionStorage.setItem(notificationKey, "true");
+                                    }
+                                });
+                            }
+                            // Se a permissão foi 'denied', não faz nada.
+                        }
+                        // --- Fim da Lógica de Notificação ---
 
                     } else {
-                        if (!isToday) {
-                            cellClasses += ' hover:bg-gray-100';
+                        dueDateWarningEl.classList.add('hidden');
+                        // Limpa o 'lock' da notificação se não houver mais contas vencendo
+                        sessionStorage.removeItem('dueBillNotified');
+                    }
+
+                    // Chama a função para renderizar o calendário
+                    renderCalendar(state.fixedBills);
+
+                }; // Fim da função render()
+     
+                // --- Função: Renderizar Calendário ---
+                const renderCalendar = (fixedBills) => {
+                    const today = new Date();
+                    const month = today.getMonth(); 
+                    const year = today.getFullYear();
+                    const todayDate = today.getDate(); 
+
+                    const dueBillsByDay = {};
+                    fixedBills.forEach(bill => {
+                        if (bill.dueDate && !bill.paid) {
+                            if (!dueBillsByDay[bill.dueDate]) {
+                                dueBillsByDay[bill.dueDate] = [];
+                            }
+                            dueBillsByDay[bill.dueDate].push({ name: bill.name, amount: bill.amount });
                         }
-                        calendarDaysGridEl.innerHTML += `
-                            <div class="${cellClasses}" ${title}>
-                                <span class="text-sm">${day}</span>
-                            </div>
+                    });
+
+                    const monthName = today.toLocaleString('pt-BR', { month: 'long' });
+                    calendarMonthYearEl.textContent = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
+
+                    const firstDayOfMonth = new Date(year, month, 1).getDay();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                    calendarDaysGridEl.innerHTML = '';
+
+                    // ===== MUDANÇA RESPONSIVA (h-16 md:h-20) =====
+                    for (let i = 0; i < firstDayOfMonth; i++) {
+                        calendarDaysGridEl.innerHTML += '<div class="h-16 md:h-20"></div>';
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const isToday = (day === todayDate);
+                        const billsOnThisDay = dueBillsByDay[day] || [];
+
+                        // ===== MUDANÇA RESPONSIVA (h-16 md:h-20) =====
+                        let cellClasses = 'p-2 h-16 md:h-20 text-center rounded-lg relative transition-all duration-200 flex flex-col items-center justify-start';
+                        let title = '';
+                        let billInfoHtml = '';
+
+                        // CORREÇÃO: Aplica as cores do tema ao dia de hoje no calendário
+                        if (isToday) {
+                            cellClasses += ' text-white font-bold ring-2';
+                            // Adiciona estilo inline para usar as variáveis CSS
+                            cellClasses += ' " style="background-color: rgb(var(--color-calendar-today)); border-color: rgb(var(--color-calendar-today-ring));';
+                        } else {
+                            cellClasses += ' bg-white text-gray-700 shadow-sm border border-gray-100';
+                        }
+
+                        if (billsOnThisDay.length > 0) {
+                            const totalAmountOnDay = billsOnThisDay.reduce((sum, bill) => sum + bill.amount, 0);
+                            const billTitles = billsOnThisDay.map(b => `${b.name} (${formatCurrency(b.amount)})`).join(', ');
+                            title = `title="${day}: ${billTitles}"`; 
+                            
+                            const firstBillName = billsOnThisDay[0].name;
+                            let textColor = isToday ? 'text-white' : 'text-red-600';
+
+                            // ===== MUDANÇA RESPONSIVA (dot no mobile, texto no desktop) =====
+                            
+                            // Padrão (Mobile): Ponto (mostra sempre, mas é escondido em 'md' se houver texto)
+                            billInfoHtml = `
+                                <span class="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full ${isToday ? 'bg-white' : 'bg-red-500'} md:hidden"></span>
+                            `;
+                            
+                            // Telas Médias+ (md): Texto completo
+                            let truncatedName = firstBillName.length > 9 ? firstBillName.substring(0, 9) + '...' : firstBillName;
+                            billInfoHtml += `
+                                <div class="hidden md:flex md:flex-col md:items-center md:justify-start mt-1 w-full px-1">
+                                    <span class="text-xs font-medium ${textColor} truncate w-full" title="${firstBillName}">${truncatedName}</span>
+                                    <span class="text-xs font-semibold ${textColor} truncate w-full">${formatCurrency(totalAmountOnDay)}</span>
+                                    ${billsOnThisDay.length > 1 ? `<span class="text-xs font-bold ${textColor}">+${billsOnThisDay.length - 1}</span>` : ''}
+                                </div>
+                            `;
+                            // ===== FIM DA MUDANÇA RESPONSIVA =====
+
+
+                            if (!isToday) {
+                                cellClasses += ' cursor-pointer border-2 border-red-400 font-bold hover:bg-red-50';
+                            } else {
+                                cellClasses += ' cursor-pointer hover:opacity-80'; 
+                            }
+                            
+                            calendarDaysGridEl.innerHTML += `
+                                <div class="${cellClasses}" ${title} data-day="${day}">
+                                    <span class="text-sm">${day}</span>
+                                    ${billInfoHtml}
+                                </div>
+                            `;
+
+                        } else {
+                            if (!isToday) {
+                                cellClasses += ' hover:bg-gray-100';
+                            }
+                            // CORREÇÃO: Removido o 'D' que estava aqui
+                            calendarDaysGridEl.innerHTML += `
+                                <div class="${cellClasses}" ${title}>
+                                    <span class="text-sm">${day}</span>
+                                </div>
                         `;
                     }
                 }
             };
 
             // --- Event Listeners (Tratadores de Eventos) ---
-
+            
             // --- Modal de Temas (NOVOS) ---
             const openThemeModal = () => themeModal.classList.remove('hidden');
             const closeThemeModal = () => themeModal.classList.add('hidden');
@@ -886,8 +989,7 @@
                 });
             });
 
-            // REMOVIDO: Event listener do applyCustomThemeButton
-
+            // REMOVIDO: Botão de Aplicar Tema Customizado
 
             // Navegação por Abas
             tabs.forEach(tab => { 
@@ -978,6 +1080,20 @@
                     notesTimer = setTimeout(() => {
                         state.notes = notesTextarea.value;
                         saveState(); 
+                        // Atualiza o resumo do post-it na aba Resumo em tempo real
+                        if (state.activeTab !== 'resumo') {
+                            if (state.notes.trim()) {
+                                notesCardEl.classList.remove('hidden');
+                                let summaryText = state.notes.trim();
+                                const maxLength = 200;
+                                if (summaryText.length > maxLength) {
+                                    summaryText = summaryText.substring(0, maxLength).trim() + '...';
+                                }
+                                notesSummaryEl.textContent = summaryText;
+                            } else {
+                                notesCardEl.classList.add('hidden');
+                            }
+                        }
                     }, 500);
                 });
             }
@@ -1030,6 +1146,12 @@
             // Na carga inicial, aplica o tema salvo
             applyTheme(state.theme || 'pink-green');
             render(); // Renderiza o restante da UI
+            
+            }; // --- Fim da função initializeApp ---
+
+            // Inicialmente, não chamamos initializeApp()
+            // A chamada só acontece após o PIN correto ser inserido.
+
         });
     </script>
 
