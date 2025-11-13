@@ -46,7 +46,6 @@
             <p class="text-center text-gray-600 mt-2">Arquive suas Notas Fiscais (NF), Ordens de Compra (OC) e Cotações.</p>
             <!-- MUDANÇA: Status de Autenticação agora é Modo Demo -->
             <div id="auth-status" class="text-center text-sm text-yellow-600 mt-4 font-semibold">
-                Modo de Demonstração (Dados não serão salvos)
             </div>
         </header>
         
@@ -71,10 +70,17 @@
                     <!-- Nova Estrutura em Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         
-                        <div class="md:col-span-2">
-                            <label for="doc-ref" class="block text-sm font-medium text-gray-700">Número (NF, OC, etc.)</label>
+                        <div>
+                            <label for="doc-ref" class="block text-sm font-medium text-gray-700">Número da Nf</label>
                             <input type="text" id="doc-ref" name="doc-ref" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ex: 12345">
                         </div>
+
+                        <!-- NOVO CAMPO ADICIONADO -->
+                        <div>
+                            <label for="doc-oc" class="block text-sm font-medium text-gray-700">Número da OC </label>
+                            <input type="text" id="doc-oc" name="doc-oc" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ex: 9876">
+                        </div>
+                        <!-- FIM DO NOVO CAMPO -->
 
                         <div class="md:col-span-2">
                             <label for="doc-sector" class="block text-sm font-medium text-gray-700">Setor / Categoria</label>
@@ -119,7 +125,8 @@
                 <!-- +++ FILTROS +++ -->
                 <div id="filter-section" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div>
-                        <label for="filter-ref" class="block text-sm font-medium text-gray-700">Filtrar por Número</label>
+                        <!-- ETIQUETA ATUALIZADA -->
+                        <label for="filter-ref" class="block text-sm font-medium text-gray-700">Filtrar por Número (NF ou OC)</label>
                         <input type="text" id="filter-ref" name="filter-ref" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Digite um número...">
                     </div>
                     
@@ -143,6 +150,9 @@
 
                 </div>
                 <!-- +++ FIM DOS FILTROS +++ -->
+
+                <!-- BOTÕES DE FILTRO REMOVIDOS -->
+                
 
                 <div id="documents-list" class="space-y-4">
                     <p id="no-documents" class="text-gray-500 text-center">Nenhum documento arquivado ainda.</p>
@@ -184,8 +194,9 @@
     </div>
 
     <!-- NOVO: Details Modal (Modal de Detalhes do Documento) -->
+    <!-- ATUALIZADO: Adicionado 'data-current-doc-id' no modal-content -->
     <div id="details-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
-        <div id="details-modal-content" class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 md:p-8 m-4">
+        <div id="details-modal-content" data-current-doc-id="" class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 md:p-8 m-4 max-h-[90vh] flex flex-col">
             <!-- Botão de Fechar -->
             <button id="details-modal-close-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -193,18 +204,34 @@
                 </svg>
             </button>
             
-            <h3 id="modal-doc-title" class="text-2xl font-bold text-emerald-600 mb-6 border-b pb-3">Detalhes do Documento</h3>
+            <h3 id="modal-doc-title" class="text-2xl font-bold text-emerald-600 mb-6 border-b pb-3 flex-shrink-0">Detalhes do Documento</h3>
             
-            <!-- Detalhes -->
-            <ul id="modal-doc-details-list" class="divide-y divide-gray-200 mb-6">
-                <!-- Conteúdo dinâmico (Ex: Setor, Descrição) -->
-            </ul>
-            
-            <!-- Lista de Anexos -->
-            <h4 class="text-xl font-semibold text-gray-800 mb-4">Anexos</h4>
-            <ul id="modal-doc-files-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-                <!-- Conteúdo dinâmico (lista de arquivos) -->
-            </ul>
+            <!-- Conteúdo rolável -->
+            <div class="overflow-y-auto pr-2">
+                <!-- Detalhes -->
+                <ul id="modal-doc-details-list" class="divide-y divide-gray-200 mb-6">
+                    <!-- Conteúdo dinâmico (Ex: Setor, Descrição) -->
+                </ul>
+                
+                <!-- Lista de Anexos -->
+                <h4 class="text-xl font-semibold text-gray-800 mb-4">Anexos</h4>
+                <ul id="modal-doc-files-list" class="space-y-3 mb-6">
+                    <!-- Conteúdo dinâmico (lista de arquivos) -->
+                </ul>
+
+                <!-- NOVO: Seção para Adicionar Mais Anexos -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">Adicionar Novos Anexos</h4>
+                    <div class="space-y-4">
+                        <input type="file" id="modal-add-files-input" multiple class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-3 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                        <button id="modal-add-files-btn" class="inline-flex justify-center py-2 px-5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                            Adicionar Anexos
+                        </button>
+                    </div>
+                </div>
+                <!-- FIM DA NOVA SEÇÃO -->
+            </div>
+
         </div>
     </div>
 
@@ -222,7 +249,11 @@
             { id: '3', name: 'Manutenção', createdAt: new Date() }
         ]; 
 
-        // Elementos do DOM
+        // =======================================================
+        // DECLARAÇÃO DE VARIÁVEIS DO DOM
+        // =======================================================
+        
+        // Elementos do DOM (Geral)
         const authStatus = document.getElementById('auth-status');
         const submitButton = document.querySelector('#archive-form button[type="submit"]');
         const buttonText = document.getElementById('button-text');
@@ -230,21 +261,13 @@
         const uploadProgress = document.getElementById('upload-progress');
         const documentsList = document.getElementById('documents-list');
         const noDocuments = document.getElementById('no-documents');
-        
+
         // Elementos do Modal de Confirmação
         const customModal = document.getElementById('custom-modal');
         const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
         const modalCancelBtn = document.getElementById('modal-cancel-btn');
         const modalConfirmBtn = document.getElementById('modal-confirm-btn');
-
-        // NOVO: Elementos do Modal de Detalhes
-        const detailsModal = document.getElementById('details-modal');
-        const detailsModalCloseBtn = document.getElementById('details-modal-close-btn');
-        const modalDocTitle = document.getElementById('modal-doc-title');
-        const modalDocDetailsList = document.getElementById('modal-doc-details-list');
-        const modalDocFilesList = document.getElementById('modal-doc-files-list');
-
 
         // Elementos das Abas
         const tabButtons = document.querySelectorAll('.tab-btn');
@@ -254,8 +277,6 @@
         };
         
         // Elementos da Aba Arquivamento
-        const formSection = document.getElementById('form-section');
-        const archivedDocuments = document.getElementById('archived-documents');
         const archiveForm = document.getElementById('archive-form');
         const docSectorSelect = document.getElementById('doc-sector');
         
@@ -263,16 +284,34 @@
         const categoryForm = document.getElementById('category-form');
         const newCategoryName = document.getElementById('new-category-name');
         const categoriesList = document.getElementById('categories-list');
-        
+
         // Elementos de Filtro
         const filterRef = document.getElementById('filter-ref');
         const filterSectorSelect = document.getElementById('filter-sector');
         const filterDateStart = document.getElementById('filter-date-start');
         const filterDateEnd = document.getElementById('filter-date-end');
+        // NOVOS BOTÕES DE FILTRO
+        const filterApplyBtn = document.getElementById('filter-apply-btn');
+        const filterClearBtn = document.getElementById('filter-clear-btn');
+
+
+        // NOVO: Elementos do Modal de Detalhes
+        const detailsModal = document.getElementById('details-modal');
+        const detailsModalContent = document.getElementById('details-modal-content'); // ADICIONADO
+        const detailsModalCloseBtn = document.getElementById('details-modal-close-btn');
+        const modalDocTitle = document.getElementById('modal-doc-title');
+        const modalDocDetailsList = document.getElementById('modal-doc-details-list');
+        const modalDocFilesList = document.getElementById('modal-doc-files-list');
+        // NOVO: Elementos do modal de adicionar arquivos
+        const modalAddFilesInput = document.getElementById('modal-add-files-input'); // ADICIONADO
+        const modalAddFilesBtn = document.getElementById('modal-add-files-btn'); // ADICIONADO
+
+        // =======================================================
+        // FIM DA DECLARAÇÃO
+        // =======================================================
 
 
         // MUDANÇA: Inicialização do App (Modo Demo)
-        // Usamos DOMContentLoaded para garantir que o HTML foi carregado
         document.addEventListener('DOMContentLoaded', () => {
             // 1. Carregar e ouvir categorias
             loadCategories(); 
@@ -280,19 +319,30 @@
             // 2. Habilitar listeners de documentos
             loadDocuments();
 
-            // Listeners para os filtros (agora dependentes do carregamento de categorias)
+            // MUDANÇA: Filtro ao vivo reativado. Listeners agora em 'input' e 'change'.
             filterRef.addEventListener('input', renderDocuments);
-            filterDateStart.addEventListener('change', renderDocuments); 
-            filterDateEnd.addEventListener('change', renderDocuments);   
+            filterSectorSelect.addEventListener('change', renderDocuments);
+            filterDateStart.addEventListener('change', renderDocuments);
+            filterDateEnd.addEventListener('change', renderDocuments);
 
             // Listener para a Aba Categorias
             categoryForm.addEventListener('submit', addCategory);
 
             // Listener para o formulário principal
             archiveForm.addEventListener('submit', archiveDocumentSubmit);
+            
+            // NOVO: Listener para adicionar mais arquivos no modal
+            modalAddFilesBtn.addEventListener('click', handleAddMoreFiles);
 
             // Mostra a aba de arquivamento por padrão
             showSection('archiving'); 
+            
+            // Listener dos botões de Abas
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    showSection(btn.getAttribute('data-section'));
+                });
+            });
         });
 
         
@@ -338,20 +388,38 @@
         }
 
         // =======================================================
-        // NOVO: FUNÇÃO MODAL DE DETALHES
+        // FUNÇÕES MODAL DE DETALHES (ATUALIZADO)
         // =======================================================
+        
         function showDetailsModal(docData) {
+            // ATUALIZAÇÃO: Armazena o ID no modal para a função de adicionar arquivos
+            detailsModalContent.dataset.currentDocId = docData.id; 
             modalDocTitle.textContent = `Documento: ${docData.ref || 'Sem Número'}`;
             
-            // CORREÇÃO: docData.createdAt agora é um objeto Date, não um Timestamp do Firebase
             const date = docData.createdAt ? docData.createdAt.toLocaleString('pt-BR') : 'Data indisponível';
 
+            // ATUALIZADO: Adiciona o número da OC
+            // CORREÇÃO: Alterando o texto da etiqueta para "N° da Nf"
+            const refHtml = docData.ref ? `<li class="py-2"><span class="font-semibold text-gray-600">N° da Nf:</span> ${docData.ref}</li>` : '';
+            const ocHtml = docData.oc ? `<li class="py-2"><span class="font-semibold text-gray-600">N° da OC:</span> ${docData.oc}</li>` : '';
+
+            // ATUALIZADO: Ordem ajustada como solicitado
             modalDocDetailsList.innerHTML = `
+                ${refHtml}
+                ${ocHtml}
                 <li class="py-2"><span class="font-semibold text-gray-600">Setor:</span> ${docData.sector || 'Nenhum'}</li>
                 <li class="py-2"><span class="font-semibold text-gray-600">Descrição:</span> ${docData.desc || 'Nenhuma'}</li>
                 <li class="py-2"><span class="font-semibold text-gray-600">Arquivado em:</span> ${date}</li>
             `;
 
+            // ATUALIZAÇÃO: Lógica de renderização da lista de arquivos movida para helper
+            renderModalFileList(docData);
+
+            detailsModal.classList.remove('hidden');
+        }
+        
+        // NOVO: Função helper para renderizar a lista de arquivos no modal
+        function renderModalFileList(docData) {
             modalDocFilesList.innerHTML = ''; // Limpa a lista
             if (docData.files && docData.files.length > 0) {
                 docData.files.forEach(file => {
@@ -374,9 +442,8 @@
             } else {
                 modalDocFilesList.innerHTML = '<li class="text-gray-500">Nenhum anexo encontrado para este documento.</li>';
             }
-
-            detailsModal.classList.remove('hidden');
         }
+
 
         // NOVO: Listeners para fechar o Modal de Detalhes
         detailsModalCloseBtn.addEventListener('click', () => detailsModal.classList.add('hidden'));
@@ -385,6 +452,54 @@
                 detailsModal.classList.add('hidden');
             }
         });
+        
+        // NOVO: Função para adicionar mais arquivos (via modal)
+        async function handleAddMoreFiles() {
+            const docId = detailsModalContent.dataset.currentDocId;
+            const files = modalAddFilesInput.files;
+
+            if (!docId) {
+                showMessage("Erro: ID do documento não encontrado.", "error");
+                return;
+            }
+            if (!files || files.length === 0) {
+                showMessage("Por favor, selecione um ou mais arquivos.", "warning");
+                return;
+            }
+
+            const docData = allDocuments.find(d => d.id === docId);
+            if (!docData) {
+                showMessage("Erro: Documento não encontrado na memória.", "error");
+                return;
+            }
+
+            // Simula o loading
+            modalAddFilesBtn.disabled = true;
+            modalAddFilesBtn.textContent = 'Enviando...';
+            await new Promise(resolve => setTimeout(resolve, 500)); // Simula upload
+
+            // Adiciona os novos arquivos (simulados)
+            for (const file of files) {
+                docData.files.push({
+                    link: "#", // Link falso
+                    storagePath: `mock/added-${Date.now()}-${file.name.replace(/\s/g, '_')}`, // Caminho falso
+                    fileName: file.name
+                });
+            }
+
+            // Reseta o botão e o input
+            modalAddFilesBtn.disabled = false;
+            modalAddFilesBtn.textContent = 'Adicionar Anexos';
+            modalAddFilesInput.value = '';
+
+            showMessage(`Novos ${files.length} anexo(s) adicionados!`, "success");
+
+            // Re-renderiza a lista de arquivos DENTRO do modal
+            renderModalFileList(docData);
+            
+            // Re-renderiza a lista de documentos (para atualizar o card, ex: "+1")
+            renderDocuments();
+        }
 
 
         // =======================================================
@@ -405,12 +520,6 @@
             });
         }
         
-        tabButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                showSection(btn.getAttribute('data-section'));
-            });
-        });
-
         // MUDANÇA: Autenticação removida
         
         // =======================================================
@@ -446,8 +555,7 @@
                 filterSectorSelect.appendChild(option);
             });
             
-            filterSectorSelect.removeEventListener('change', renderDocuments);
-            filterSectorSelect.addEventListener('change', renderDocuments);
+            // MUDANÇA: O listener do select de filtro foi removido (agora é no botão)
         }
 
         async function addCategory(e) {
@@ -546,6 +654,7 @@
             renderDocuments();
         }
 
+        // MUDANÇA: Esta função agora é chamada pelos botões de filtro
         function renderDocuments() {
             documentsList.innerHTML = '';
 
@@ -559,13 +668,16 @@
 
 
             const filteredDocs = allDocuments.filter(docData => {
-                const refMatch = !refFilter || (docData.ref && docData.ref.toLowerCase().includes(refFilter));
+                // ATUALIZADO: Filtro agora também verifica o campo 'oc'
+                const refMatch = !refFilter || 
+                                 (docData.ref && docData.ref.toLowerCase().includes(refFilter)) ||
+                                 (docData.oc && docData.oc.toLowerCase().includes(refFilter));
+
                 const sectorMatch = !sectorFilter || docData.sector === sectorFilter;
                 
                 let dateMatch = true;
 
                 if (docData.createdAt) {
-                    // CORREÇÃO: docData.createdAt agora é um objeto Date
                     const docDate = docData.createdAt; 
 
                     if (startDateFilter && docDate < startDateFilter) {
@@ -587,7 +699,6 @@
                 noDocuments.textContent = "Nenhum documento corresponde aos filtros.";
                 documentsList.appendChild(noDocuments);
             } else {
-                // Ordena por data (mais recente primeiro)
                 filteredDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
                 filteredDocs.forEach(docData => {
@@ -597,13 +708,12 @@
             }
         }
         
-        // REMOVIDO: deleteSingleFile (Não estava sendo usado pela UI)
-
         // NOVO: Função para definir cores específicas por setor
         function getSectorColor(sectorName) {
             if (!sectorName) sectorName = 'Geral';
             const sName = sectorName.toLowerCase();
 
+            // ATUALIZAÇÃO: Verifica se o nome CONTÉM farmácia
             if (sName.includes('farmácia') || sName.includes('farmacia')) {
                 return 'pink';
             }
@@ -625,16 +735,53 @@
             card.className = 'p-4 border border-gray-200 rounded-lg shadow-sm bg-gray-50 flex flex-col justify-between items-start';
             
             const sectorName = docData.sector || 'Geral';
+            // ATUALIZAÇÃO: Chama getSectorColor
             const baseColor = getSectorColor(sectorName);
             
             const sectorClass = `bg-${baseColor}-100 text-${baseColor}-800`;
             const sectorHtml = docData.sector ? `<span class="inline-block rounded-full px-3 py-1 text-sm font-semibold ${sectorClass} mr-2 mb-2">${docData.sector}</span>` : '';
 
-            // CORREÇÃO: docData.createdAt agora é um objeto Date
             const date = docData.createdAt ? docData.createdAt.toLocaleString('pt-BR') : 'Data indisponível';
 
             let attachmentsHtml = '';
             
+            if (docData.files && Array.isArray(docData.files) && docData.files.length > 0) {
+                // ... (código de anexos existente) ...
+            } else {
+                 attachmentsHtml = '<span class="w-full sm:w-auto text-center py-2 px-4 mb-2 sm:mb-0 text-gray-400">Sem Anexos</span>';
+            }
+
+            // ATUALIZADO: Adiciona o número da OC ao card
+            const ocHtml = docData.oc ? `<span class="text-sm font-medium text-gray-500"> | OC: ${docData.oc}</span>` : '';
+
+            card.innerHTML = `
+                <div class="flex flex-col w-full sm:flex-row sm:justify-between sm:items-center">
+                    <div class="flex-1 mb-4 sm:mb-0">
+                        <div class="flex flex-wrap items-center">
+                            ${sectorHtml}
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">${docData.ref || 'Sem Número/Ref.'} ${ocHtml}</h3>
+                        <p class="text-gray-700">${docData.desc || 'Sem descrição'}</p>
+                        <p class="text-sm text-gray-500 mt-1">Arquivado em: ${date}</p>
+                    </div>
+                    <div class="flex-shrink-0 flex flex-col sm:flex-row sm:space-x-2 w-full sm:w-auto">
+                        <button data-id="${docData.id}" class="view-doc-btn w-full sm:w-auto py-2 px-4 mb-2 sm:mb-0 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition duration-150">
+                            Ver Documentação
+                        </button>
+                        
+                        <button data-id="${docData.id}" class="delete-btn w-full sm:w-auto py-2 px-4 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition duration-150">Excluir Documento</button>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-gray-200 w-full">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Anexos:</p>
+                    <div class="flex flex-wrap items-center -ml-2 -mr-2">
+                        ${attachmentsHtml} 
+                    </div>
+                </div>
+            `;
+            
+            // ATUALIZAÇÃO: O código abaixo para anexos foi movido para dentro da verificação
             if (docData.files && Array.isArray(docData.files) && docData.files.length > 0) {
                 const file = docData.files[0];
                 const remaining = docData.files.length - 1;
@@ -647,36 +794,10 @@
                         </span>
                         ${remaining > 0 ? `<span class="text-sm text-gray-500">+${remaining} outro(s)</span>` : ''}
                     </div>`;
-            } else {
-                 attachmentsHtml = '<span class="w-full sm:w-auto text-center py-2 px-4 mb-2 sm:mb-0 text-gray-400">Sem Anexos</span>';
-            }
-
-            card.innerHTML = `
-                <div class="flex flex-col w-full sm:flex-row sm:justify-between sm:items-center">
-                    <div class="flex-1 mb-4 sm:mb-0">
-                        <div class="flex flex-wrap items-center">
-                            ${sectorHtml}
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-900">${docData.ref || 'Sem Número/Ref.'}</h3>
-                        <p class="text-gray-700">${docData.desc || 'Sem descrição'}</p>
-                        <p class="text-sm text-gray-500 mt-1">Arquivado em: ${date}</p>
-                    </div>
-                    <div class="flex-shrink-0 flex flex-col sm:flex-row sm:space-x-2 w-full sm:w-auto">
-                        <button data-id="${docData.id}" class="view-doc-btn w-full sm:w-auto py-2 px-4 mb-2 sm:mb-0 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition duration-150 disabled:opacity-50" ${(!docData.files || docData.files.length === 0) ? 'disabled' : ''}>
-                            Ver Documentação
-                        </button>
-                        
-                        <button data-id="${docData.id}" class="delete-btn w-full sm:w-auto py-2 px-4 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition duration-150">Excluir Documento</button>
-                    </div>
-                </div>
                 
-                <div class="mt-4 pt-4 border-t border-gray-200 w-full">
-                    <p class="text-sm font-medium text-gray-700 mb-2">Anexos:</p>
-                    <div class="flex flex-wrap items-center -ml-2 -mr-2">
-                        ${attachmentsHtml}
-                    </div>
-                </div>
-            `;
+                // Reaplica o HTML de anexos no local correto
+                card.querySelector('.flex.flex-wrap.items-center.-ml-2.-mr-2').innerHTML = attachmentsHtml;
+            }
 
             // Botão de Excluir Documento (chama o Modal de Confirmação)
             card.querySelector('.delete-btn').addEventListener('click', async (e) => {
@@ -689,14 +810,14 @@
                 );
 
                 if (confirmed) {
-                    await deleteDocument(id); // Não precisa mais passar 'files'
+                    await deleteDocument(id);
                 }
             });
             
             // Botão Ver Documentação (chama o Modal de Detalhes)
+            // ATUALIZAÇÃO: Removida a verificação 'disabled' do botão
             card.querySelector('.view-doc-btn').addEventListener('click', (e) => {
                 e.preventDefault();
-                // Encontra o docData mais recente do array global
                 const currentDocData = allDocuments.find(d => d.id === docData.id);
                 if (currentDocData) {
                     showDetailsModal(currentDocData);
@@ -718,9 +839,11 @@
             const fileInput = document.getElementById('doc-file');
             const files = fileInput.files;
 
+            // ATUALIZADO: Lê o novo campo 'doc-oc'
             const docData = {
                 id: Date.now().toString(), // ID local
                 ref: document.getElementById('doc-ref').value,
+                oc: document.getElementById('doc-oc').value, // Novo campo salvo
                 sector: document.getElementById('doc-sector').value,
                 desc: document.getElementById('doc-desc').value,
                 createdAt: new Date(), // Data local
