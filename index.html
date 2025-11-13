@@ -241,7 +241,7 @@
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // Configuração do Firebase
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const firebaseConfig = JSON.parse(typeof FIREBASE_CONFIG_JSON !== 'undefined' ? FIREBASE_CONFIG_JSON : '{}');
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         let app, auth, db, userId;
@@ -303,6 +303,7 @@
 
 
         // Inicializar Firebase
+        let initFailed = false; // <-- CORREÇÃO: Adicionada flag
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
@@ -313,6 +314,7 @@
             console.error("Erro ao inicializar o Firebase:", e);
             authStatus.textContent = "Erro ao conectar ao Firebase.";
             showMessage("Erro ao inicializar: " + e.message, "error");
+            initFailed = true; // <-- CORREÇÃO: Define a flag em caso de erro
         }
         
         // =======================================================
@@ -437,51 +439,57 @@
         });
 
         // Autenticação
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                authStatus.textContent = `Logado como: ${userId.substring(0, 8)}...`;
+        // CORREÇÃO: Verifica a flag antes de adicionar o listener
+        if (!initFailed && auth) { 
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    authStatus.textContent = `Logado como: ${userId.substring(0, 8)}...`;
 
-                // Definir os caminhos das coleções (privada para o usuário)
-                const userPath = `/artifacts/${appId}/users/${userId}`;
-                documentsCollectionRef = collection(db, `${userPath}/documentos`);
-                categoriesCollectionRef = collection(db, `${userPath}/categorias`);
-                
-                // 1. Carregar e ouvir categorias primeiro
-                loadCategories(); 
-                
-                // 2. Habilitar listeners de documentos e formulário principal
-                formSection.classList.remove('hidden');
-                archivedDocuments.classList.remove('hidden');
-                submitButton.disabled = false;
-                loadDocuments();
+                    // Definir os caminhos das coleções (privada para o usuário)
+                    const userPath = `/artifacts/${appId}/users/${userId}`;
+                    documentsCollectionRef = collection(db, `${userPath}/documentos`);
+                    categoriesCollectionRef = collection(db, `${userPath}/categorias`);
+                    
+                    // 1. Carregar e ouvir categorias primeiro
+                    loadCategories(); 
+                    
+                    // 2. Habilitar listeners de documentos e formulário principal
+                    formSection.classList.remove('hidden');
+                    archivedDocuments.classList.remove('hidden');
+                    submitButton.disabled = false;
+                    loadDocuments();
 
-                // Listeners para os filtros (agora dependentes do carregamento de categorias)
-                filterRef.addEventListener('input', renderDocuments);
-                filterDateStart.addEventListener('change', renderDocuments); 
-                filterDateEnd.addEventListener('change', renderDocuments);   
+                    // Listeners para os filtros (agora dependentes do carregamento de categorias)
+                    filterRef.addEventListener('input', renderDocuments);
+                    filterDateStart.addEventListener('change', renderDocuments); 
+                    filterDateEnd.addEventListener('change', renderDocuments);   
 
-                // Listener para a Aba Categorias
-                categoryForm.addEventListener('submit', addCategory);
+                    // Listener para a Aba Categorias
+                    categoryForm.addEventListener('submit', addCategory);
 
-                // Mostra a aba de arquivamento por padrão
-                showSection('archiving'); 
+                    // Mostra a aba de arquivamento por padrão
+                    showSection('archiving'); 
 
-            } else {
-                authStatus.textContent = "Autenticando...";
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
+                } else {
+                    authStatus.textContent = "Autenticando...";
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Erro na autenticação:", error);
+                        authStatus.textContent = "Falha na autenticação.";
+                        showMessage("Falha na autenticação: " + error.message, "error");
                     }
-                } catch (error) {
-                    console.error("Erro na autenticação:", error);
-                    authStatus.textContent = "Falha na autenticação.";
-                    showMessage("Falha na autenticação: " + error.message, "error");
                 }
-            }
-        });
+            });
+        } else if (!initFailed) {
+            console.error("Auth não foi inicializado (auth é nulo ou indefinido).");
+            authStatus.textContent = "Falha ao inicializar a autenticação.";
+        }
         
         // =======================================================
         // FUNÇÕES DE CATEGORIAS
