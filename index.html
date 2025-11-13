@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-R">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Arquivamento de Documentos</title>
     <!-- Carrega o Tailwind CSS -->
@@ -71,7 +71,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         
                         <div>
-                            <label for="doc-ref" class="block text-sm font-medium text-gray-700">Número da Nf</label>
+                            <!-- CORREÇÃO: Atualizado para N° da Nf -->
+                            <label for="doc-ref" class="block text-sm font-medium text-gray-700">N° da Nf</label>
                             <input type="text" id="doc-ref" name="doc-ref" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ex: 12345">
                         </div>
 
@@ -150,8 +151,6 @@
 
                 </div>
                 <!-- +++ FIM DOS FILTROS +++ -->
-
-                <!-- BOTÕES DE FILTRO REMOVIDOS -->
                 
 
                 <div id="documents-list" class="space-y-4">
@@ -209,27 +208,44 @@
             <!-- Conteúdo rolável -->
             <div class="overflow-y-auto pr-2">
                 <!-- Detalhes -->
+                <!-- MUDANÇA: Este 'ul' agora é para o MODO DE VISUALIZAÇÃO -->
                 <ul id="modal-doc-details-list" class="divide-y divide-gray-200 mb-6">
                     <!-- Conteúdo dinâmico (Ex: Setor, Descrição) -->
                 </ul>
                 
-                <!-- Lista de Anexos -->
-                <h4 class="text-xl font-semibold text-gray-800 mb-4">Anexos</h4>
-                <ul id="modal-doc-files-list" class="space-y-3 mb-6">
-                    <!-- Conteúdo dinâmico (lista de arquivos) -->
-                </ul>
-
-                <!-- NOVO: Seção para Adicionar Mais Anexos -->
-                <div class="mt-6 pt-6 border-t border-gray-200">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4">Adicionar Novos Anexos</h4>
-                    <div class="space-y-4">
-                        <input type="file" id="modal-add-files-input" multiple class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-3 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
-                        <button id="modal-add-files-btn" class="inline-flex justify-center py-2 px-5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
-                            Adicionar Anexos
-                        </button>
-                    </div>
+                <!-- MUDANÇA: Novo container para o MODO DE EDIÇÃO (escondido por padrão) -->
+                <div id="modal-doc-edit-form" class="space-y-4 mb-6 hidden">
+                    <!-- Campos de edição serão injetados aqui pelo JS -->
                 </div>
-                <!-- FIM DA NOVA SEÇÃO -->
+                
+
+                <!-- MUDANÇA: Container de Anexos (para esconder em modo de edição) -->
+                <div id="modal-attachments-container">
+                    <!-- Lista de Anexos -->
+                    <h4 class="text-xl font-semibold text-gray-800 mb-4">Anexos</h4>
+                    <ul id="modal-doc-files-list" class="space-y-3 mb-6">
+                        <!-- Conteúdo dinâmico (lista de arquivos) -->
+                    </ul>
+
+                    <!-- NOVO: Seção para Adicionar Mais Anexos -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Adicionar Novos Anexos</h4>
+                        <div class="space-y-4">
+                            <input type="file" id="modal-add-files-input" multiple class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-3 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                            <button id="modal-add-files-btn" class="inline-flex justify-center py-2 px-5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                Adicionar Anexos
+                            </button>
+                        </div>
+                    </div>
+                    <!-- FIM DA NOVA SEÇÃO -->
+                </div>
+            </div>
+            
+            <!-- NOVO: Footer do Modal com Botão Salvar -->
+            <div id="modal-footer" class="mt-6 pt-6 border-t border-gray-200 flex-shrink-0 text-right">
+                <button id="modal-save-btn" class="hidden inline-flex justify-center py-2 px-6 border border-transparent shadow-md text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                    Salvar Alterações
+                </button>
             </div>
 
         </div>
@@ -290,9 +306,7 @@
         const filterSectorSelect = document.getElementById('filter-sector');
         const filterDateStart = document.getElementById('filter-date-start');
         const filterDateEnd = document.getElementById('filter-date-end');
-        // NOVOS BOTÕES DE FILTRO
-        const filterApplyBtn = document.getElementById('filter-apply-btn');
-        const filterClearBtn = document.getElementById('filter-clear-btn');
+        // Botões de filtro removidos (listeners reativados)
 
 
         // NOVO: Elementos do Modal de Detalhes
@@ -302,6 +316,10 @@
         const modalDocTitle = document.getElementById('modal-doc-title');
         const modalDocDetailsList = document.getElementById('modal-doc-details-list');
         const modalDocFilesList = document.getElementById('modal-doc-files-list');
+        // NOVO: Elementos de Edição
+        const modalDocEditForm = document.getElementById('modal-doc-edit-form');
+        const modalAttachmentsContainer = document.getElementById('modal-attachments-container');
+        const modalSaveBtn = document.getElementById('modal-save-btn');
         // NOVO: Elementos do modal de adicionar arquivos
         const modalAddFilesInput = document.getElementById('modal-add-files-input'); // ADICIONADO
         const modalAddFilesBtn = document.getElementById('modal-add-files-btn'); // ADICIONADO
@@ -333,6 +351,9 @@
             
             // NOVO: Listener para adicionar mais arquivos no modal
             modalAddFilesBtn.addEventListener('click', handleAddMoreFiles);
+            
+            // NOVO: Listener para salvar alterações no modal
+            modalSaveBtn.addEventListener('click', handleSaveChanges);
 
             // Mostra a aba de arquivamento por padrão
             showSection('archiving'); 
@@ -388,34 +409,112 @@
         }
 
         // =======================================================
-        // FUNÇÕES MODAL DE DETALHES (ATUALIZADO)
+        // FUNÇÕES MODAL DE DETALHES (ATUALIZADO PARA EDIÇÃO)
         // =======================================================
         
-        function showDetailsModal(docData) {
-            // ATUALIZAÇÃO: Armazena o ID no modal para a função de adicionar arquivos
+        // ATUALIZAÇÃO: A função agora aceita um 'mode' ('view' ou 'edit')
+        function showDetailsModal(docData, mode = 'view') {
             detailsModalContent.dataset.currentDocId = docData.id; 
-            modalDocTitle.textContent = `Documento: ${docData.ref || 'Sem Número'}`;
             
-            const date = docData.createdAt ? docData.createdAt.toLocaleString('pt-BR') : 'Data indisponível';
-
-            // ATUALIZADO: Adiciona o número da OC
-            // CORREÇÃO: Alterando o texto da etiqueta para "N° da Nf"
-            const refHtml = docData.ref ? `<li class="py-2"><span class="font-semibold text-gray-600">N° da Nf:</span> ${docData.ref}</li>` : '';
-            const ocHtml = docData.oc ? `<li class="py-2"><span class="font-semibold text-gray-600">N° da OC:</span> ${docData.oc}</li>` : '';
-
-            // ATUALIZADO: Ordem ajustada como solicitado
-            modalDocDetailsList.innerHTML = `
-                ${refHtml}
-                ${ocHtml}
-                <li class="py-2"><span class="font-semibold text-gray-600">Setor:</span> ${docData.sector || 'Nenhum'}</li>
-                <li class="py-2"><span class="font-semibold text-gray-600">Descrição:</span> ${docData.desc || 'Nenhuma'}</li>
-                <li class="py-2"><span class="font-semibold text-gray-600">Arquivado em:</span> ${date}</li>
-            `;
-
-            // ATUALIZAÇÃO: Lógica de renderização da lista de arquivos movida para helper
-            renderModalFileList(docData);
+            // Renderiza o conteúdo (visualização ou formulário de edição)
+            renderModalDetailsList(docData, mode);
+            
+            // Renderiza a lista de arquivos (só no modo 'view')
+            if (mode === 'view') {
+                modalDocTitle.textContent = `Documento: ${docData.ref || 'Sem Número'}`;
+                modalAttachmentsContainer.classList.remove('hidden');
+                modalDocEditForm.classList.add('hidden');
+                modalDocDetailsList.classList.remove('hidden');
+                modalSaveBtn.classList.add('hidden');
+                renderModalFileList(docData);
+            } else {
+                modalDocTitle.textContent = `Editando Documento: ${docData.ref || 'Sem Número'}`;
+                modalAttachmentsContainer.classList.add('hidden'); // Esconde anexos no modo de edição
+                modalDocEditForm.classList.remove('hidden');
+                modalDocDetailsList.classList.add('hidden');
+                modalSaveBtn.classList.remove('hidden');
+            }
 
             detailsModal.classList.remove('hidden');
+        }
+
+        // NOVO: Função para renderizar a lista de detalhes (Visualização OU Edição)
+        function renderModalDetailsList(docData, mode) {
+            if (mode === 'view') {
+                const date = docData.createdAt ? docData.createdAt.toLocaleString('pt-BR') : 'Data indisponível';
+                const refHtml = docData.ref ? `<li class="py-2"><span class="font-semibold text-gray-600">N° da Nf:</span> ${docData.ref}</li>` : '';
+                const ocHtml = docData.oc ? `<li class="py-2"><span class="font-semibold text-gray-600">N° da OC:</span> ${docData.oc}</li>` : '';
+
+                modalDocDetailsList.innerHTML = `
+                    ${refHtml}
+                    ${ocHtml}
+                    <li class="py-2"><span class="font-semibold text-gray-600">Setor:</span> ${docData.sector || 'Nenhum'}</li>
+                    <li class="py-2"><span class="font-semibold text-gray-600">Descrição:</span> ${docData.desc || 'Nenhuma'}</li>
+                    <li class="py-2"><span class="font-semibold text-gray-600">Arquivado em:</span> ${date}</li>
+                `;
+            } 
+            else { // mode === 'edit'
+                
+                // Gera as opções do select de categoria
+                const categoryOptions = allCategories.map(cat => 
+                    `<option value="${cat.name}" ${cat.name === docData.sector ? 'selected' : ''}>
+                        ${cat.name}
+                    </option>`
+                ).join('');
+
+                modalDocEditForm.innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <label for="modal-edit-ref" class="block text-sm font-medium text-gray-700">N° da Nf</label>
+                            <input type="text" id="modal-edit-ref" value="${docData.ref || ''}" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label for="modal-edit-oc" class="block text-sm font-medium text-gray-700">N° da OC</label>
+                            <input type="text" id="modal-edit-oc" value="${docData.oc || ''}" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label for="modal-edit-sector" class="block text-sm font-medium text-gray-700">Setor / Categoria</label>
+                            <select id="modal-edit-sector" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white">
+                                <option value="" ${!docData.sector ? 'selected' : ''}>Nenhum / Geral</option>
+                                ${categoryOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="modal-edit-desc" class="block text-sm font-medium text-gray-700">Descrição / Fornecedor</label>
+                            <textarea id="modal-edit-desc" rows="3" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">${docData.desc || ''}</textarea>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // NOVO: Função para Salvar Alterações
+        async function handleSaveChanges() {
+            const docId = detailsModalContent.dataset.currentDocId;
+            if (!docId) {
+                showMessage("Erro: ID do documento não encontrado.", "error");
+                return;
+            }
+            
+            const doc = allDocuments.find(d => d.id === docId);
+            if (!doc) {
+                showMessage("Erro: Documento não encontrado na memória.", "error");
+                return;
+            }
+
+            // Pega os novos valores do formulário de edição
+            doc.ref = document.getElementById('modal-edit-ref').value;
+            doc.oc = document.getElementById('modal-edit-oc').value;
+            doc.sector = document.getElementById('modal-edit-sector').value;
+            doc.desc = document.getElementById('modal-edit-desc').value;
+
+            // Fecha o modal
+            detailsModal.classList.add('hidden');
+
+            // Re-renderiza a lista principal
+            renderDocuments();
+
+            showMessage("Documento atualizado com sucesso!", "success");
         }
         
         // NOVO: Função helper para renderizar a lista de arquivos no modal
@@ -745,8 +844,9 @@
 
             let attachmentsHtml = '';
             
+            // ... (código de anexos existente) ...
             if (docData.files && Array.isArray(docData.files) && docData.files.length > 0) {
-                // ... (código de anexos existente) ...
+                // ... (lógica de anexos) ...
             } else {
                  attachmentsHtml = '<span class="w-full sm:w-auto text-center py-2 px-4 mb-2 sm:mb-0 text-gray-400">Sem Anexos</span>';
             }
@@ -764,11 +864,21 @@
                         <p class="text-gray-700">${docData.desc || 'Sem descrição'}</p>
                         <p class="text-sm text-gray-500 mt-1">Arquivado em: ${date}</p>
                     </div>
+                    <!-- MUDANÇA: Botões agora em um 'space-x-2' e flex-col para mobile -->
                     <div class="flex-shrink-0 flex flex-col sm:flex-row sm:space-x-2 w-full sm:w-auto">
                         <button data-id="${docData.id}" class="view-doc-btn w-full sm:w-auto py-2 px-4 mb-2 sm:mb-0 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition duration-150">
                             Ver Documentação
                         </button>
                         
+                        <!-- NOVO BOTÃO DE EDITAR -->
+                        <button data-id="${docData.id}" class="edit-btn w-full sm:w-auto py-2 px-4 mb-2 sm:mb-0 border border-yellow-500 text-yellow-600 rounded-lg hover:bg-yellow-50 transition duration-150 flex items-center justify-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Editar</span>
+                        </button>
+                        <!-- FIM DO NOVO BOTÃO -->
+
                         <button data-id="${docData.id}" class="delete-btn w-full sm:w-auto py-2 px-4 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition duration-150">Excluir Documento</button>
                     </div>
                 </div>
@@ -805,7 +915,6 @@
                 
                 const confirmed = await showConfirmModal(
                     "Confirmar Exclusão de Documento", 
-                    // MUDANÇA: Removido "(neste modo demo)"
                     "Tem certeza que deseja excluir ESTE DOCUMENTO? A ação não poderá ser desfeita.",
                     'red'
                 );
@@ -816,12 +925,21 @@
             });
             
             // Botão Ver Documentação (chama o Modal de Detalhes)
-            // ATUALIZAÇÃO: Removida a verificação 'disabled' do botão
+            // ATUALIZAÇÃO: Agora chama com modo 'view'
             card.querySelector('.view-doc-btn').addEventListener('click', (e) => {
                 e.preventDefault();
                 const currentDocData = allDocuments.find(d => d.id === docData.id);
                 if (currentDocData) {
-                    showDetailsModal(currentDocData);
+                    showDetailsModal(currentDocData, 'view');
+                }
+            });
+
+            // NOVO: Listener do Botão Editar
+            card.querySelector('.edit-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                const currentDocData = allDocuments.find(d => d.id === docData.id);
+                if (currentDocData) {
+                    showDetailsModal(currentDocData, 'edit');
                 }
             });
 
