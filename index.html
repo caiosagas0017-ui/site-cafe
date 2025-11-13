@@ -1,1159 +1,1033 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checklist Financeiro</title>
-    <!-- Carrega o Tailwind CSS para um design moderno -->
+    <title>Sistema de Arquivamento de Documentos</title>
+    <!-- Carrega o Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Estilo para a fonte Inter */
+        /* Fonte Inter */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: "Inter", sans-serif;
         }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        /* * Sistema de Temas com Variáveis CSS
-         * As variáveis são definidas no :root e trocadas pelo JavaScript
-         */
-        
-        /* Tema padrão (Rosa/Verde) */
-        :root {
-            --color-primary: 236 72 153; /* pink-600 */
-            --color-primary-hover: 219 39 119; /* pink-700 */
-            --color-secondary: 22 163 74; /* green-600 */
-            --color-secondary-hover: 21 128 61; /* green-700 */
-            --color-accent-text: 190 24 93; /* pink-700 */
-            --color-calendar-today: 22 163 74; /* green-600 */
-            --color-calendar-today-ring: 134 239 172; /* green-300 */
-            --color-calendar-header: 22 101 53; /* green-900 */
-            --color-ring-focus: 236 72 153; /* pink-500 */
-            --color-text-nav: 253 232 238; /* pink-100 */
+        /* Estilo para a caixa de mensagem personalizada */
+        #message-box {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: top 0.5s ease-in-out;
+            z-index: 1000;
         }
-        
-        /* Tema Escuro (Define variáveis para o modo escuro) */
-        .theme-dark-lime {
-            --color-primary: 132 204 22; /* lime-500 */
-            --color-primary-hover: 163 230 53; /* lime-400 */
-            --color-secondary: 34 197 94; /* green-500 */
-            --color-secondary-hover: 74 222 128; /* green-400 */
-            --color-accent-text: 163 230 53; /* lime-400 */
-            --color-calendar-today: 132 204 22; /* lime-500 */
-            --color-calendar-today-ring: 190 242 100; /* lime-300 */
-            --color-calendar-header: 163 230 53; /* lime-400 */
-            --color-ring-focus: 132 204 22; /* lime-500 */
-            --color-text-nav: 220 252 231; /* green-100 */
+        #message-box.show {
+            top: 20px;
         }
-        
-        /* Aplicação das variáveis no Tailwind (via JS) */
-        .bg-var-primary { background-color: rgb(var(--color-primary) / 1); }
-        .bg-var-primary-hover:hover { background-color: rgb(var(--color-primary-hover) / 1); }
-        .bg-var-secondary { background-color: rgb(var(--color-secondary) / 1); }
-        .bg-var-secondary-hover:hover { background-color: rgb(var(--color-secondary-hover) / 1); }
-        
-        .text-var-accent-text { color: rgb(var(--color-accent-text) / 1); }
-        .text-var-secondary { color: rgb(var(--color-secondary) / 1); }
-        .text-var-calendar-header { color: rgb(var(--color-calendar-header) / 1); }
-        .text-var-nav { color: rgb(var(--color-text-nav) / 1); }
-        
-        .focus-ring-var-accent:focus { --tw-ring-color: rgb(var(--color-ring-focus) / 1); }
-
-        .tab-button.active {
-            border-bottom-color: rgb(var(--color-secondary) / 1);
-            color: rgb(var(--color-secondary) / 1);
-            font-weight: 600;
+        /* Estilo para o botão de aba ativa (Cor Esmeralda) */
+        .tab-btn.active {
+            background-color: rgb(5 150 105); /* emerald-600 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-
-        /* Estilo do seletor de cor */
-        input[type="color"] {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            width: 50px;
-            height: 50px;
-            padding: 0;
-            border: none;
-            background-color: transparent;
-            border-radius: 8px;
-            cursor: pointer;
+        /* Estilo para os Modais (para garantir que funcionem corretamente) */
+        #custom-modal.hidden, #details-modal.hidden {
+            display: none;
         }
-        input[type="color"]::-webkit-color-swatch-wrapper {
-            padding: 0;
-            border-radius: 8px;
-            border: 1px solid #cbd5e1; /* gray-300 */
+        #custom-modal:not(.hidden), #details-modal:not(.hidden) {
+            display: flex; /* Garante que o modal apareça quando a classe hidden é removida */
         }
-        input[type="color"]::-webkit-color-swatch {
-            border: none;
-            border-radius: 8px;
-        }
-        input[type="color"]::-moz-color-swatch {
-            border: none;
-            border-radius: 8px;
-        }
-
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-50 text-gray-800 p-4 md:p-8">
 
-    <!-- ===== NOVO: Tela de Bloqueio (PIN) ===== -->
-    <div id="pinLockScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-75">
-        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-sm text-center">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Acesso Restrito</h2>
-            <p class="text-gray-600 mb-6">Por favor, insira seu PIN para continuar.</p>
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-8 p-6 bg-white rounded-xl shadow-lg">
+            <h1 class="text-3xl font-bold text-center text-emerald-600">Sistema de Arquivamento de Documentos</h1>
+            <p class="text-center text-gray-600 mt-2">Arquive suas Notas Fiscais (NF), Ordens de Compra (OC) e Cotações.</p>
+            <div id="auth-status" class="text-center text-sm text-gray-500 mt-4">
+                Carregando...
+            </div>
+        </header>
+        
+        <!-- NOVA NAVEGAÇÃO POR ABAS -->
+        <nav class="flex space-x-2 p-1 bg-white rounded-xl shadow-lg mb-8">
+            <button data-section="archiving" class="tab-btn w-1/2 py-2 px-4 rounded-lg text-sm font-medium transition-colors active">Arquivamento</button>
+            <button data-section="categories" class="tab-btn w-1/2 py-2 px-4 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100">Cadastro de Categorias</button>
+        </nav>
+
+        <!-- Caixa de Mensagem Customizada -->
+        <div id="message-box" class="p-4 rounded-lg shadow-lg text-white">
+            <span id="message-text"></span>
+        </div>
+
+        <!-- SEÇÃO 1: ARQUIVAMENTO (Conteúdo Principal) -->
+        <section id="archiving-section">
+            <!-- Formulário para adicionar documentos -->
+            <section id="form-section" class="mb-8 p-6 bg-white rounded-xl shadow-lg hidden">
+                <h2 class="text-2xl font-semibold mb-6 border-b pb-3 text-emerald-600">Arquivar Novo Documento</h2>
+                <form id="archive-form" class="space-y-6">
+                    
+                    <!-- Nova Estrutura em Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <div class="md:col-span-2">
+                            <label for="doc-ref" class="block text-sm font-medium text-gray-700">Número (NF, OC, etc.)</label>
+                            <input type="text" id="doc-ref" name="doc-ref" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ex: 12345">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label for="doc-sector" class="block text-sm font-medium text-gray-700">Setor / Categoria</label>
+                            <!-- O conteúdo deste select será preenchido dinamicamente pelo JS -->
+                            <select id="doc-sector" name="doc-sector" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white" disabled>
+                                <option value="">Carregando categorias...</option>
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label for="doc-desc" class="block text-sm font-medium text-gray-700">Descrição / Fornecedor</label>
+                            <textarea id="doc-desc" name="doc-desc" rows="3" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ex: Compra de materiais para manutenção"></textarea>
+                        </div>
+                    </div>
+                    <!-- Fim do Grid -->
+
+                    <div>
+                        <label for="doc-file" class="block text-sm font-medium text-gray-700">Anexar Arquivo(s)</label>
+                        <input type="file" id="doc-file" name="doc-file" multiple class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-3 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                        <p class="mt-1 text-xs text-gray-500">Selecione um ou mais arquivos (PDF, XML, JPG, etc.) do seu computador.</p>
+                    </div>
+
+                    <!-- ADICIONADO ELEMENTO PARA MOSTRAR PROGRESSO (referenciado no JS) -->
+                    <div id="upload-progress" class="text-sm text-emerald-600 hidden"></div>
+
+                    <div class="text-right">
+                        <button type="submit" class="inline-flex justify-center py-3 px-6 border border-transparent shadow-md text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50" disabled>
+                            <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span id="button-text">Arquivar Documento</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Seção de Documentos Arquivados -->
+            <section id="archived-documents" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                <h2 class="text-2xl font-semibold mb-6 border-b pb-3 text-emerald-600">Documentos Arquivados</h2>
+                
+                <!-- +++ FILTROS +++ -->
+                <div id="filter-section" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div>
+                        <label for="filter-ref" class="block text-sm font-medium text-gray-700">Filtrar por Número</label>
+                        <input type="text" id="filter-ref" name="filter-ref" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Digite um número...">
+                    </div>
+                    
+                    <div>
+                        <label for="filter-sector" class="block text-sm font-medium text-gray-700">Filtrar por Setor</label>
+                        <!-- O conteúdo deste select será preenchido dinamicamente pelo JS -->
+                        <select id="filter-sector" name="filter-sector" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white" disabled>
+                            <option value="">Carregando...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="filter-date-start" class="block text-sm font-medium text-gray-700">Data Inicial</label>
+                        <input type="date" id="filter-date-start" name="filter-date-start" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
+                    </div>
+                    
+                    <div>
+                        <label for="filter-date-end" class="block text-sm font-medium text-gray-700">Data Final</label>
+                        <input type="date" id="filter-date-end" name="filter-date-end" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
+                    </div>
+
+                </div>
+                <!-- +++ FIM DOS FILTROS +++ -->
+
+                <div id="documents-list" class="space-y-4">
+                    <p id="no-documents" class="text-gray-500 text-center">Nenhum documento arquivado ainda.</p>
+                    <!-- Documentos do Firestore serão inseridos aqui -->
+                </div>
+            </section>
+        </section>
+        
+        <!-- SEÇÃO 2: CADASTRO DE CATEGORIAS -->
+        <section id="categories-section" class="p-6 bg-white rounded-xl shadow-lg hidden">
+            <h2 class="text-2xl font-semibold mb-6 border-b pb-3 text-emerald-600">Cadastro e Gestão de Categorias (Setores)</h2>
             
-            <form id="pinForm">
-                <input type="password" id="pinInput" maxlength="4" class="w-full p-4 text-center text-3xl tracking-[1em] border-gray-300 border rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2" placeholder="••••" required>
-                
-                <p id="pinErrorMessage" class="text-red-500 text-sm mt-2 hidden">PIN incorreto. Tente novamente.</p>
-                
-                <button type="submit" class="w-full p-3 mt-6 bg-var-primary text-white font-medium rounded-lg shadow-md bg-var-primary-hover transition-colors">
-                    Entrar
-                </button>
-            </form>
+            <div class="mb-8 p-4 border border-emerald-200 bg-emerald-50 rounded-lg">
+                <h3 class="text-lg font-medium mb-3 text-emerald-800">Adicionar Nova Categoria</h3>
+                <form id="category-form" class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3">
+                    <input type="text" id="new-category-name" class="flex-grow p-3 border border-gray-300 rounded-lg shadow-inner focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Nome da Categoria (Ex: Recursos Humanos)" required>
+                    <button type="submit" id="category-submit-btn" class="inline-flex justify-center py-3 px-6 border border-transparent shadow-md text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">Adicionar</button>
+                </form>
+            </div>
+
+            <h3 class="text-xl font-medium mb-4 border-b pb-2">Categorias Ativas</h3>
+            <ul id="categories-list" class="space-y-3">
+                <li class="p-3 bg-gray-50 rounded-lg text-gray-500">Carregando categorias...</li>
+            </ul>
+        </section>
+        
+    </div>
+
+    <!-- Custom Confirmation Modal (Modal de Confirmação) -->
+    <div id="custom-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
+            <h3 id="modal-title" class="text-xl font-bold text-gray-900 mb-4">Confirmação</h3>
+            <p id="modal-message" class="text-gray-700 mb-6">Você tem certeza desta ação?</p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-cancel-btn" class="py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition duration-150">Cancelar</button>
+                <button id="modal-confirm-btn" class="py-2 px-4 border border-transparent rounded-lg text-white bg-red-600 hover:bg-red-700 transition duration-150">Confirmar</button>
+            </div>
         </div>
     </div>
-    <!-- ===== Fim da Tela de Bloqueio ===== -->
 
-
-    <!-- Conteúdo Principal (Inicialmente escondido) -->
-    <div id="mainAppContent" class="container mx-auto max-w-4xl p-4 md:p-8 hidden">
-        <!-- Título com o Botão de Tema -->
-        <div class="flex justify-center items-center mb-8">
-            <h1 id="mainTitle" class="text-3xl font-bold text-center text-var-accent-text">
-                Meu Checklist Financeiro
-            </h1>
-            <!-- NOVO ÍCONE: SWATCH -->
-            <button id="themeToggle" class="ml-4 p-2 rounded-full text-var-accent-text hover:bg-gray-200 transition-colors focus:outline-none focus-ring-var-accent focus:ring-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4H7z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5a2 2 0 00-2 2v12a2 2 0 002 2h4a2 2 0 002-2V7a2 2 0 00-2-2h-4z" />
+    <!-- NOVO: Details Modal (Modal de Detalhes do Documento) -->
+    <div id="details-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div id="details-modal-content" class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 md:p-8 m-4">
+            <!-- Botão de Fechar -->
+            <button id="details-modal-close-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-        </div>
-
-        <!-- Container principal -->
-        <div class="bg-white shadow-xl rounded-lg overflow-hidden">
             
-            <!-- Abas de Navegação (COM SCROLL HORIZONTAL) -->
-            <nav id="navBar" class="bg-var-primary overflow-hidden">
-                <ul class="flex overflow-x-auto whitespace-nowrap">
-                    <!-- Aba Resumo -->
-                    <li>
-                        <button data-tab-target="resumo" class="tab-button bg-white text-var-secondary py-3 px-6 font-medium text-lg rounded-t-lg">
-                            Resumo
-                        </button>
-                    </li>
-                    <!-- Aba Contas Fixas -->
-                    <li>
-                        <button data-tab-target="contas-fixas" class="tab-button text-var-nav hover:text-white py-3 px-6 font-medium text-lg rounded-t-lg">
-                            Contas Fixas
-                        </button>
-                    </li>
-                    <!-- Aba Contas Variáveis -->
-                    <li>
-                        <button data-tab-target="contas-variaveis" class="tab-button text-var-nav hover:text-white py-3 px-6 font-medium text-lg rounded-t-lg">
-                            Contas do Mês
-                        </button>
-                    </li>
-                    <!-- NOVA ABA: Anotações -->
-                    <li>
-                        <button data-tab-target="anotacoes" class="tab-button text-var-nav hover:text-white py-3 px-6 font-medium text-lg rounded-t-lg">
-                            Anotações
-                        </button>
-                    </li>
-                </ul>
-            </nav>
-
-            <!-- Conteúdo das Abas -->
-            <div class="p-6 md:p-8">
-
-                <!-- ===== Conteúdo da Aba: RESUMO ===== -->
-                <div id="resumo" data-tab-content class="">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Visão Geral do Mês</h2>
-
-                    <!-- Bloco de Aviso de Vencimento (NOVO LAYOUT) -->
-                    <div id="dueDateWarning" class="hidden p-4 mb-6 bg-yellow-50 rounded-lg shadow-sm border border-yellow-200" role="alert">
-                        <div class="flex">
-                            <!-- Ícone de Lembrete (Sino) -->
-                            <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a3 3 0 01-5.714 0m5.714 0a3 3 0 00-5.714 0" />
-                                </svg>
-                            </div>
-                            <div class="ml-3 w-full">
-                                <h3 class="text-lg font-semibold text-yellow-800">Contas Próximas do Vencimento</h3>
-                                <div class="mt-2 text-sm text-yellow-700">
-                                    <ul id="warningList" class="list-disc list-inside space-y-1">
-                                        <!-- Avisos de vencimento serão inseridos aqui pelo JavaScript -->
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Fim do Bloco de Aviso -->
-
-
-                    <!-- Cards de Resumo -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Card: Resumo Contas Fixas -->
-                        <div class="bg-red-50 p-6 rounded-lg shadow-sm border border-red-200">
-                            <h3 class="text-lg font-semibold text-red-800 mb-2">Contas Fixas</h3>
-                            <div id="summaryTotalFixed" class="text-3xl font-bold text-red-600 mb-3">
-                                R$ 0,00
-                            </div>
-                            <div id="summaryFixedStatus" class="text-sm font-medium text-red-700">
-                                0 de 0 pagas
-                            </div>
-                        </div>
-
-                        <!-- Card: Resumo Contas Variáveis -->
-                        <div class="bg-yellow-50 p-6 rounded-lg shadow-sm border border-yellow-200">
-                            <h3 class="text-lg font-semibold text-yellow-800 mb-2">Contas Variáveis (Gastos)</h3>
-                            <div id="summaryTotalVariable" class="text-3xl font-bold text-yellow-600">
-                                R$ 0,00
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- NOVO: Card Total de Gastos -->
-                    <div class="mt-6 bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Total de Gastos no Mês</h3>
-                        <div id="summaryTotalSpent" class="text-4xl font-bold text-var-accent-text">
-                            R$ 0,00
-                        </div>
-                        <p class="text-sm font-medium text-gray-600">(Soma de Contas Fixas e Variáveis)</p>
-                    </div>
-                    <!-- FIM DO NOVO CARD -->
-
-                    <!-- NOVO: Post-it/Anotações Importantes na Visão Geral (Layout Profissional) -->
-                    <div id="importantNotesCard" class="hidden mt-8 p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200" role="alert">
-                        <div class="flex">
-                            <!-- Ícone de Bloco de Notas -->
-                            <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                </svg>
-                            </div>
-                            <div class="ml-3 w-full">
-                                <h3 class="text-lg font-semibold text-gray-800">Anotações Importantes</h3>
-                                <div class="mt-2 text-sm text-gray-700">
-                                    <p id="notesSummary" class="whitespace-pre-line"></p>
-                                </div>
-                                <button id="goToNotesTab" class="mt-2 text-sm text-var-accent-text hover:underline focus:outline-none font-medium">Ver todas as notas »</button>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Fim do Bloco de Anotações -->
-
-                    <!-- Bloco do Calendário -->
-                    <div class="my-8">
-                        <h3 class="text-xl font-semibold text-gray-700 mb-4">Calendário de Vencimentos</h3>
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-inner">
-                            <!-- Cabeçalho do Calendário (Mês) -->
-                            <div class="flex justify-between items-center mb-3">
-                                <h4 id="calendarMonthYear" class="text-lg font-medium text-var-calendar-header">
-                                    Carregando...
-                                </h4>
-                            </div>
-                            <!-- Dias da Semana -->
-                            <div class="grid grid-cols-7 gap-1 text-center text-xs sm:text-sm font-medium text-gray-500 mb-2">
-                                <div class="w-full">Dom</div>
-                                <div class="w-full">Seg</div>
-                                <div class="w-full">Ter</div>
-                                <div class="w-full">Qua</div>
-                                <div class="w-full">Qui</div>
-                                <div class="w-full">Sex</div>
-                                <div class="w-full">Sáb</div>
-                            </div>
-                            <!-- Dias do Calendário -->
-                            <div id="calendarDaysGrid" class="grid grid-cols-7 gap-1">
-                                <!-- Dias serão gerados pelo JS -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ===== Conteúdo da Aba: CONTAS FIXAS ===== -->
-                <div id="contas-fixas" data-tab-content class="hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-semibold text-gray-800">Checklist de Contas Fixas</h2>
-                    </div>
-                    <p class="text-gray-600 mb-6">Adicione suas contas mensais recorrentes (aluguel, luz, internet, etc.).</p>
-
-                    <!-- Formulário para adicionar conta fixa -->
-                    <form id="formFixedBill" class="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner flex flex-col md:flex-row md:items-end gap-4">
-                        <div class="flex-1">
-                            <label for="fixedName" class="block text-sm font-medium text-gray-700">Nome da Conta</label>
-                            <input type="text" id="fixedName" placeholder="Ex: Aluguel" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2" required>
-                        </div>
-                        <!-- Campo Adicionado: Dia do Vencimento -->
-                        <div class="flex-none w-full md:w-32">
-                            <label for="fixedDueDate" class="block text-sm font-medium text-gray-700">Dia do Venc.</label>
-                            <input type="number" id="fixedDueDate" min="1" max="31" placeholder="Ex: 10" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2">
-                        </div>
-                        <div class="flex-1">
-                            <label for="fixedAmount" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
-                            <input type="number" id="fixedAmount" step="0.01" placeholder="Ex: 1200.00" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2" required>
-                        </div>
-                        <button id="fixedAddButton" type="submit" class="w-full md:w-auto p-3 px-6 bg-var-primary text-white font-medium rounded-lg shadow-md bg-var-primary-hover transition-colors">
-                            Adicionar
-                        </button>
-                    </form>
-
-                    <!-- Lista de Contas Fixas -->
-                    <ul id="fixedBillsList" class="space-y-3">
-                        <!-- As contas fixas serão inseridas aqui pelo JavaScript -->
-                        <li class="text-center text-gray-500 italic py-4">Nenhuma conta fixa adicionada.</li>
-                    </ul>
-                </div>
-
-                <!-- ===== Conteúdo da Aba: CONTAS VARIÁVEIS ===== -->
-                <div id="contas-variaveis" data-tab-content class="hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-semibold text-gray-800">Lançamento de Contas do Mês</h2>
-                    </div>
-                    <p class="text-gray-600 mb-6">Adicione seus gastos diários (supermercado, iFood, gasolina, etc.).</p>
-
-                    <!-- Formulário para adicionar conta variável -->
-                    <form id="formVariableBill" class="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner flex flex-col md:flex-row md:items-end gap-4">
-                        <div class="flex-1">
-                            <label for="variableName" class="block text-sm font-medium text-gray-700">Nome do Gasto</label>
-                            <input type="text" id="variableName" placeholder="Ex: Supermercado" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2" required>
-                        </div>
-                        <div class="flex-1">
-                            <label for="variableAmount" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
-                            <input type="number" id="variableAmount" step="0.01" placeholder="Ex: 350.00" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2" required>
-                        </div>
-                        <button id="variableAddButton" type="submit" class="w-full md:w-auto p-3 px-6 bg-var-primary text-white font-medium rounded-lg shadow-md bg-var-primary-hover transition-colors">
-                            Adicionar
-                        </button>
-                    </form>
-
-                    <!-- Lista de Contas Variáveis -->
-                    <ul id="variableBillsList" class="space-y-3">
-                        <!-- Os gastos variáveis serão inseridos aqui pelo JavaScript -->
-                        <li class="text-center text-gray-500 italic py-4">Nenhum gasto variável adicionado.</li>
-                    </ul>
-                </div>
-
-                <!-- ===== Conteúdo da Aba: ANOTAÇÕES ===== -->
-                <div id="anotacoes" data-tab-content class="hidden">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Minhas Anotações</h2>
-                    <p class="text-gray-600 mb-4">Use este espaço para lembretes, planejamentos ou notas avulsas. O conteúdo é salvo automaticamente.</p>
-                    <textarea id="notesTextarea" rows="10" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus-ring-var-accent focus:ring-2 whitespace-pre-line"></textarea>
-                </div>
-
-            </div>
-        </div>
-        <footer class="text-center text-gray-500 text-sm mt-6">
-            Checklist Financeiro Interativo. Seus dados são salvos localmente no seu navegador.
-        </footer>
-    </div>
-
-    <!-- ===== Modal de Vencimentos ===== -->
-    <div id="dueBillsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <!-- Overlay (fundo escuro) -->
-        <div id="modalOverlay" class="absolute inset-0 bg-black opacity-50"></div>
-        
-        <!-- Conteúdo do Modal -->
-        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6 z-10">
-            <!-- Cabeçalho do Modal -->
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="modalTitle" class="text-xl font-semibold text-gray-800">Vencimentos</h3>
-                <button id="modalCloseButton" class="text-gray-400 hover:text-gray-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <!-- Corpo (Lista de Contas) -->
-            <ul id="modalBody" class="space-y-2">
-                <!-- Contas serão inseridas aqui pelo JavaScript -->
+            <h3 id="modal-doc-title" class="text-2xl font-bold text-emerald-600 mb-6 border-b pb-3">Detalhes do Documento</h3>
+            
+            <!-- Detalhes -->
+            <ul id="modal-doc-details-list" class="divide-y divide-gray-200 mb-6">
+                <!-- Conteúdo dinâmico (Ex: Setor, Descrição) -->
+            </ul>
+            
+            <!-- Lista de Anexos -->
+            <h4 class="text-xl font-semibold text-gray-800 mb-4">Anexos</h4>
+            <ul id="modal-doc-files-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                <!-- Conteúdo dinâmico (lista de arquivos) -->
             </ul>
         </div>
     </div>
-    <!-- Fim do Modal -->
 
-    <!-- ===== NOVO: Modal de Temas ===== -->
-    <div id="themeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <!-- Overlay (fundo escuro) -->
-        <div id="themeModalOverlay" class="absolute inset-0 bg-black opacity-50"></div>
+
+    <!-- Firebase -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            query, 
+            onSnapshot,
+            doc,
+            deleteDoc,
+            updateDoc, 
+            setLogLevel,
+            arrayRemove,
+            orderBy 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // IMPORTAÇÃO DO STORAGE
+        import { 
+            getStorage, 
+            ref, 
+            uploadBytes, 
+            getDownloadURL,
+            deleteObject
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // Configuração do Firebase
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        let app, auth, db, userId;
+        let storage; 
+        let documentsCollectionRef;
+        let categoriesCollectionRef;
+        let allDocuments = []; 
+        let allCategories = []; 
+        let documentsListener = null; 
+        let categoriesListener = null; 
+
+        // Elementos do DOM
+        const authStatus = document.getElementById('auth-status');
+        const submitButton = document.querySelector('#archive-form button[type="submit"]');
+        const buttonText = document.getElementById('button-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const uploadProgress = document.getElementById('upload-progress');
+        const documentsList = document.getElementById('documents-list');
+        const noDocuments = document.getElementById('no-documents');
         
-        <!-- Conteúdo do Modal -->
-        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg p-6 z-10">
-            <!-- Cabeçalho do Modal -->
-            <div class="flex justify-between items-center mb-6">
-                <h3 id="themeModalTitle" class="text-xl font-semibold text-gray-800">Escolha seu Tema</h3>
-                <button id="themeModalCloseButton" class="text-gray-400 hover:text-gray-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            
-            <!-- Corpo (Opções de Tema) -->
-            <div>
-                <h4 class="text-lg font-medium text-gray-700 mb-3">Temas Prontos</h4>
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <!-- Tema Rosa/Verde -->
-                    <button class="theme-preset-button p-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500" data-theme="pink-green">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-pink-600"></div>
-                            <div class="w-10 h-10 rounded-full bg-green-600"></div>
-                        </div>
-                        <span class="block text-left mt-2 font-medium text-gray-700">Rosa & Verde</span>
-                    </button>
-                    <!-- Tema Azul/Laranja -->
-                    <button class="theme-preset-button p-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500" data-theme="blue-orange">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-blue-700"></div>
-                            <div class="w-10 h-10 rounded-full bg-orange-600"></div>
-                        </div>
-                        <span class="block text-left mt-2 font-medium text-gray-700">Azul & Laranja</span>
-                    </button>
-                    <!-- Tema Roxo/Verde-Água -->
-                    <button class="theme-preset-button p-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500" data-theme="purple-teal">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-purple-600"></div>
-                            <div class="w-10 h-10 rounded-full bg-teal-500"></div>
-                        </div>
-                        <span class="block text-left mt-2 font-medium text-gray-700">Roxo & Verde-Água</span>
-                    </button>
-                    <!-- Tema Escuro/Lima -->
-                    <button class="theme-preset-button p-4 rounded-lg shadow-md bg-gray-800 focus:outline-none focus:ring-2 focus:ring-lime-500" data-theme="dark-lime">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-lime-500"></div>
-                            <div class="w-10 h-10 rounded-full bg-green-500"></div>
-                        </div>
-                        <span class="block text-left mt-2 font-medium text-white">Escuro & Lima</span>
-                    </button>
-                </div>
+        // Elementos do Modal de Confirmação
+        const customModal = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
 
-                <!-- REMOVIDA A SEÇÃO DE PERSONALIZAR CORES -->
-            </div>
-        </div>
-    </div>
-    <!-- Fim do Modal de Temas -->
+        // NOVO: Elementos do Modal de Detalhes
+        const detailsModal = document.getElementById('details-modal');
+        const detailsModalCloseBtn = document.getElementById('details-modal-close-btn');
+        const modalDocTitle = document.getElementById('modal-doc-title');
+        const modalDocDetailsList = document.getElementById('modal-doc-details-list');
+        const modalDocFilesList = document.getElementById('modal-doc-files-list');
 
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            
-            // --- LÓGICA DO PIN (NOVO) ---
-            const pinScreen = document.getElementById('pinLockScreen');
-            const mainContent = document.getElementById('mainAppContent');
-            const pinForm = document.getElementById('pinForm');
-            const pinInput = document.getElementById('pinInput');
-            const pinErrorMessage = document.getElementById('pinErrorMessage');
-            
-            const CORRECT_PIN = "1234";
+        // Elementos das Abas
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const sections = {
+            'archiving': document.getElementById('archiving-section'),
+            'categories': document.getElementById('categories-section'),
+        };
+        
+        // Elementos da Aba Arquivamento
+        const formSection = document.getElementById('form-section');
+        const archivedDocuments = document.getElementById('archived-documents');
+        const archiveForm = document.getElementById('archive-form');
+        const docSectorSelect = document.getElementById('doc-sector');
+        
+        // Elementos da Aba Categorias
+        const categoryForm = document.getElementById('category-form');
+        const newCategoryName = document.getElementById('new-category-name');
+        const categoriesList = document.getElementById('categories-list');
+        
+        // Elementos de Filtro
+        const filterRef = document.getElementById('filter-ref');
+        const filterSectorSelect = document.getElementById('filter-sector');
+        const filterDateStart = document.getElementById('filter-date-start');
+        const filterDateEnd = document.getElementById('filter-date-end');
 
-            pinForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const enteredPin = pinInput.value;
+
+        // Inicializar Firebase
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            storage = getStorage(app); 
+            setLogLevel('Debug'); 
+        } catch (e) {
+            console.error("Erro ao inicializar o Firebase:", e);
+            authStatus.textContent = "Erro ao conectar ao Firebase.";
+            showMessage("Erro ao inicializar: " + e.message, "error");
+        }
+        
+        // =======================================================
+        // FUNÇÃO CUSTOMIZADA DE MODAL
+        // =======================================================
+        function showConfirmModal(title, message, confirmColor = 'red') {
+            return new Promise((resolve) => {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+
+                // Limpa classes de cor antigas
+                modalConfirmBtn.className = modalConfirmBtn.className.split(' ').filter(c => !c.startsWith('bg-') && !c.startsWith('hover:bg-')).join(' ');
                 
-                if (enteredPin === CORRECT_PIN) {
-                    // PIN correto: esconde a tela de bloqueio e mostra o app
-                    pinScreen.classList.add('hidden');
-                    mainContent.classList.remove('hidden');
-                    // Inicia o app financeiro
-                    initializeApp();
+                let confirmClassString = `bg-${confirmColor}-600 hover:bg-${confirmColor}-700`;
+                if (confirmColor === 'red') {
+                     confirmClassString = 'bg-red-600 hover:bg-red-700'; // Default para vermelho (exclusão)
+                } else if (confirmColor === 'emerald') {
+                    // Usando emerald como cor alternativa para o modal (por exemplo, confirmação não-destrutiva)
+                    confirmClassString = 'bg-emerald-600 hover:bg-emerald-700';
+                }
+
+                // CORREÇÃO: Usar split e spread syntax para adicionar classes separadamente
+                modalConfirmBtn.classList.add(...confirmClassString.split(' '));
+                
+                customModal.classList.remove('hidden');
+
+                // Garante que os listeners sejam limpos antes de adicionar novos
+                const handleConfirm = () => {
+                    customModal.classList.add('hidden');
+                    modalConfirmBtn.removeEventListener('click', handleConfirm);
+                    modalCancelBtn.removeEventListener('click', handleCancel);
+                    resolve(true);
+                };
+
+                const handleCancel = () => {
+                    customModal.classList.add('hidden');
+                    modalConfirmBtn.removeEventListener('click', handleConfirm);
+                    modalCancelBtn.removeEventListener('click', handleCancel);
+                    resolve(false);
+                };
+
+                modalConfirmBtn.addEventListener('click', handleConfirm);
+                modalCancelBtn.addEventListener('click', handleCancel);
+            });
+        }
+
+        // =======================================================
+        // NOVO: FUNÇÃO MODAL DE DETALHES
+        // =======================================================
+        function showDetailsModal(docData) {
+            modalDocTitle.textContent = `Documento: ${docData.ref || 'Sem Número'}`;
+            
+            const date = docData.createdAt ? new Date(docData.createdAt.seconds * 1000).toLocaleString('pt-BR') : 'Data indisponível';
+
+            modalDocDetailsList.innerHTML = `
+                <li class="py-2"><span class="font-semibold text-gray-600">Setor:</span> ${docData.sector || 'Nenhum'}</li>
+                <li class="py-2"><span class="font-semibold text-gray-600">Descrição:</span> ${docData.desc || 'Nenhuma'}</li>
+                <li class="py-2"><span class="font-semibold text-gray-600">Arquivado em:</span> ${date}</li>
+            `;
+
+            modalDocFilesList.innerHTML = ''; // Limpa a lista
+            if (docData.files && docData.files.length > 0) {
+                docData.files.forEach(file => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-center justify-between py-3 px-4 border border-gray-200 rounded-lg bg-gray-50 space-x-4';
+                    li.innerHTML = `
+                        <span class="font-medium text-emerald-700 truncate" title="${file.fileName}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a3 3 0 003 3h4a3 3 0 003-3V7a3 3 0 00-3-3H8zm0 2h4a1 1 0 011 1v4a1 1 0 01-1 1H8a1 1 0 01-1-1V7a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            ${file.fileName}
+                        </span>
+                        <a href="${file.link}" target="_blank" rel="noopener noreferrer" class="py-2 px-4 border border-emerald-600 text-emerald-600 text-sm font-medium rounded-lg hover:bg-emerald-50 transition duration-150 flex-shrink-0">
+                            Visualizar
+                        </a>
+                    `;
+                    modalDocFilesList.appendChild(li);
+                });
+            } else {
+                modalDocFilesList.innerHTML = '<li class="text-gray-500">Nenhum anexo encontrado para este documento.</li>';
+            }
+
+            detailsModal.classList.remove('hidden');
+        }
+
+        // NOVO: Listeners para fechar o Modal de Detalhes
+        detailsModalCloseBtn.addEventListener('click', () => detailsModal.classList.add('hidden'));
+        detailsModal.addEventListener('click', (e) => {
+            if (e.target === detailsModal) { // Permite fechar clicando no fundo
+                detailsModal.classList.add('hidden');
+            }
+        });
+
+
+        // =======================================================
+        // FUNÇÕES DE UI E ABAS
+        // =======================================================
+        
+        function showSection(sectionId) {
+            // Esconde todas as seções
+            Object.values(sections).forEach(section => section.classList.add('hidden'));
+            // Mostra a seção desejada
+            sections[sectionId].classList.remove('hidden');
+
+            // Atualiza o estado visual dos botões
+            tabButtons.forEach(btn => {
+                if (btn.getAttribute('data-section') === sectionId) {
+                    btn.classList.add('active');
+                    btn.classList.remove('text-gray-700', 'hover:bg-gray-100');
                 } else {
-                    // PIN incorreto: mostra erro
-                    pinErrorMessage.classList.remove('hidden');
-                    pinInput.value = ''; // Limpa o campo
+                    btn.classList.remove('active');
+                    btn.classList.add('text-gray-700', 'hover:bg-gray-100');
                 }
             });
-
-            // Esconde o erro ao digitar novamente
-            pinInput.addEventListener('input', () => {
-                pinErrorMessage.classList.add('hidden');
+        }
+        
+        // Listener de Abas
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                showSection(btn.getAttribute('data-section'));
             });
-            // --- FIM DA LÓGICA DO PIN ---
+        });
 
+        // Autenticação
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                authStatus.textContent = `Logado como: ${userId.substring(0, 8)}...`;
 
-            // ===== INÍCIO DA APLICAÇÃO FINANCEIRA =====
-            // Todo o código anterior foi movido para dentro desta função
-            // para que só seja executado *depois* do PIN correto.
-            const initializeApp = () => {
-
-                // --- Mapa de Temas (Novos) ---
-                // Define as cores como strings RGB para as variáveis CSS
-                const themeMap = {
-                    'pink-green': {
-                        primary: '236 72 153',
-                        primaryHover: '219 39 119',
-                        secondary: '22 163 74',
-                        secondaryHover: '21 128 61',
-                        accentText: '190 24 93',
-                        calendarToday: '22 163 74',
-                        calendarTodayRing: '134 239 172',
-                        calendarHeader: '22 101 53',
-                        ringFocus: '236 72 153',
-                        textNav: '253 232 238', // pink-100
-                    },
-                    'blue-orange': {
-                        primary: '29 78 216', // blue-700
-                        primaryHover: '30 64 175', // blue-800
-                        secondary: '249 115 22', // orange-600
-                        secondaryHover: '234 88 12', // orange-700
-                        accentText: '37 99 235', // blue-600
-                        calendarToday: '249 115 22', // orange-600
-                        calendarTodayRing: '253 186 116', // orange-300
-                        calendarHeader: '29 78 216', // blue-700
-                        ringFocus: '251 146 60', // orange-400
-                        textNav: '219 234 254', // blue-100
-                    },
-                    'purple-teal': {
-                        primary: '147 51 234', // purple-600
-                        primaryHover: '126 34 206', // purple-700
-                        secondary: '13 148 136', // teal-600
-                        secondaryHover: '15 118 110', // teal-700
-                        accentText: '126 34 206', // purple-700
-                        calendarToday: '13 148 136', // teal-600
-                        calendarTodayRing: '107 231 204', // teal-300
-                        calendarHeader: '15 118 110', // teal-700
-                        ringFocus: '168 85 247', // purple-500
-                        textNav: '243 232 255', // purple-100
-                    },
-                    'dark-lime': {
-                        primary: '132 204 22', // lime-500
-                        primaryHover: '163 230 53', // lime-400
-                        secondary: '34 197 94', // green-500
-                        secondaryHover: '74 222 128', // green-400
-                        accentText: '163 230 53', // lime-400
-                        calendarToday: '132 204 22', // lime-500
-                        calendarTodayRing: '190 242 100', // lime-300
-                        calendarHeader: '163 230 53', // lime-400
-                        ringFocus: '132 204 22', // lime-500
-                        textNav: '240 253 244', // green-50
-                    }
-                };
-
-                // --- Estado da Aplicação ---
-                let state = {
-                    fixedBills: [],
-                    variableBills: [],
-                    notes: '',
-                    activeTab: 'resumo',
-                    theme: 'pink-green', // Tema padrão
-                    // REMOVIDO: customColors
-                };
-
-                // --- Seletores do DOM (Elementos) ---
-                const tabs = document.querySelectorAll('[data-tab-target]');
-                const summaryTotalFixedEl = document.getElementById('summaryTotalFixed');
-                const summaryFixedStatusEl = document.getElementById('summaryFixedStatus');
-                const summaryTotalVariableEl = document.getElementById('summaryTotalVariable'); 
-                const summaryTotalSpentEl = document.getElementById('summaryTotalSpent'); // NOVO SELETOR
-                const dueDateWarningEl = document.getElementById('dueDateWarning'); 
-                const warningListEl = document.getElementById('warningList'); 
-                const calendarMonthYearEl = document.getElementById('calendarMonthYear');
-                const calendarDaysGridEl = document.getElementById('calendarDaysGrid');
+                // Definir os caminhos das coleções (privada para o usuário)
+                const userPath = `/artifacts/${appId}/users/${userId}`;
+                documentsCollectionRef = collection(db, `${userPath}/documentos`);
+                categoriesCollectionRef = collection(db, `${userPath}/categorias`);
                 
-                // Modal de Vencimentos
-                const dueBillsModal = document.getElementById('dueBillsModal');
-                const modalOverlay = document.getElementById('modalOverlay');
-                const modalCloseButton = document.getElementById('modalCloseButton');
-                const modalTitle = document.getElementById('modalTitle');
-                const modalBody = document.getElementById('modalBody');
+                // 1. Carregar e ouvir categorias primeiro
+                loadCategories(); 
                 
-                // Formulários
-                const formFixedBill = document.getElementById('formFixedBill'); 
-                const fixedNameInput = document.getElementById('fixedName'); 
-                const fixedDueDateInput = document.getElementById('fixedDueDate'); 
-                const fixedAmountInput = document.getElementById('fixedAmount'); 
-                const fixedBillsListEl = document.getElementById('fixedBillsList'); 
-                const formVariableBill = document.getElementById('formVariableBill'); 
-                const variableNameInput = document.getElementById('variableName'); 
-                const variableAmountInput = document.getElementById('variableAmount'); 
-                const variableBillsListEl = document.getElementById('variableBillsList'); 
-                
-                // Anotações
-                const notesTextarea = document.getElementById('notesTextarea');
-                const notesCardEl = document.getElementById('importantNotesCard');
-                const notesSummaryEl = document.getElementById('notesSummary');
-                const goToNotesTabButton = document.getElementById('goToNotesTab');
-                
-                // Novos elementos de Tema
-                const themeToggleBtn = document.getElementById('themeToggle');
-                const themeModal = document.getElementById('themeModal');
-                const themeModalOverlay = document.getElementById('themeModalOverlay');
-                const themeModalCloseButton = document.getElementById('themeModalCloseButton');
-                const presetThemeButtons = document.querySelectorAll('.theme-preset-button');
-                // REMOVIDO: Seletores de cor e botão de aplicar
-                
+                // 2. Habilitar listeners de documentos e formulário principal
+                formSection.classList.remove('hidden');
+                archivedDocuments.classList.remove('hidden');
+                submitButton.disabled = false;
+                loadDocuments();
 
-                // --- Funções de Persistência (LocalStorage) ---
-                const saveState = () => { 
-                    localStorage.setItem('financeChecklistState', JSON.stringify(state));
-                };
+                // Listeners para os filtros (agora dependentes do carregamento de categorias)
+                filterRef.addEventListener('input', renderDocuments);
+                filterDateStart.addEventListener('change', renderDocuments); 
+                filterDateEnd.addEventListener('change', renderDocuments);   
 
-                const loadState = () => { 
-                    const savedState = localStorage.getItem('financeChecklistState');
-                    if (savedState) {
-                        const parsedState = JSON.parse(savedState);
-                        state.activeTab = parsedState.activeTab || 'resumo';
-                        state.notes = parsedState.notes || ''; 
-                        state.theme = parsedState.theme || 'pink-green'; // Carrega nome do tema
-                        // REMOVIDO: customColors
-                        
-                        state.fixedBills = parsedState.fixedBills.map(b => ({
-                            ...b,
-                            amount: parseFloat(b.amount) || 0,
-                            dueDate: b.dueDate ? parseInt(b.dueDate) : null,
-                            paid: b.paid || false
-                        }));
-                        state.variableBills = parsedState.variableBills.map(b => ({ 
-                            ...b,
-                            amount: parseFloat(b.amount) || 0
-                        }));
-                    }
-                };
+                // Listener para a Aba Categorias
+                categoryForm.addEventListener('submit', addCategory);
 
-                // --- Funções de Tema (NOVAS e ATUALIZADAS) ---
+                // Mostra a aba de arquivamento por padrão
+                showSection('archiving'); 
 
-                // REMOVIDAS: Funções hexToRgbString, darkenRgbString, lightenRgbString
-
-                // Função genérica para aplicar um conjunto de cores
-                const setThemeProperties = (themeData) => {
-                    const root = document.documentElement;
-                    root.style.setProperty('--color-primary', themeData.primary);
-                    root.style.setProperty('--color-primary-hover', themeData.primaryHover);
-                    root.style.setProperty('--color-secondary', themeData.secondary);
-                    root.style.setProperty('--color-secondary-hover', themeData.secondaryHover);
-                    root.style.setProperty('--color-accent-text', themeData.accentText);
-                    root.style.setProperty('--color-calendar-today', themeData.calendarToday);
-                    root.style.setProperty('--color-calendar-today-ring', themeData.calendarTodayRing);
-                    root.style.setProperty('--color-calendar-header', themeData.calendarHeader);
-                    root.style.setProperty('--color-ring-focus', themeData.ringFocus);
-                    root.style.setProperty('--color-text-nav', themeData.textNav);
-                    
-                    // Aplica classes de fundo (para modo escuro, etc.)
-                    document.body.className = "bg-gray-100"; // Reseta
-                    if (themeData.cssClass) {
-                        document.body.classList.add(themeData.cssClass);
-                    }
-                };
-                
-                // Aplica um tema (predefinido ou customizado)
-                const applyTheme = (themeName) => {
-                    let themeData;
-                    
-                    // REMOVIDO: Bloco 'if (themeName === 'custom')'
-                    
-                    // Pega dados do tema predefinido
-                    themeData = { ...themeMap[themeName], cssClass: themeName === 'dark-lime' ? 'bg-gray-900' : '' };
-                    
-                    
-                    setThemeProperties(themeData);
-                    state.theme = themeName; // Salva o nome do tema ativo
-                    
-                    // REMOVIDO: Lógica de atualizar seletores de cor
-                };
-
-                // --- Funções Auxiliares ---
-                const formatCurrency = (value) => { 
-                    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                };
-
-                // --- Função Principal de Renderização ---
-                const saveAndRender = () => { 
-                    saveState();
-                    render();
-                };
-
-                const render = () => { 
-                    applyTheme(state.theme); // Aplica o tema ANTES de renderizar listas e calendário
-
-                    // Calcula totais
-                    const totalFixed = state.fixedBills.reduce((sum, bill) => sum + bill.amount, 0); 
-                    const totalVariable = state.variableBills.reduce((sum, bill) => sum + bill.amount, 0);
-                    const totalSpent = totalFixed + totalVariable; // NOVO CÁLCULO
-                    const fixedPaidCount = state.fixedBills.filter(bill => bill.paid).length;
-                    const fixedTotalCount = state.fixedBills.length;
-
-                    // Atualiza o DOM (elementos da tela)
-                    summaryTotalFixedEl.textContent = formatCurrency(totalFixed);
-                    summaryTotalVariableEl.textContent = formatCurrency(totalVariable);
-                    summaryTotalSpentEl.textContent = formatCurrency(totalSpent); // NOVO UPDATE
-                    summaryFixedStatusEl.textContent = `${fixedPaidCount} de ${fixedTotalCount} pagas`;
-                
-                    // Atualiza a lista de Contas Fixas
-                    if (state.fixedBills.length === 0) { 
-                        fixedBillsListEl.innerHTML = '<li class="text-center text-gray-500 italic py-4">Nenhuma conta fixa adicionada.</li>';
+            } else {
+                authStatus.textContent = "Autenticando...";
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
                     } else {
-                        fixedBillsListEl.innerHTML = state.fixedBills.map(bill => {
-                            const isPaid = bill.paid;
-                            // Define as classes do botão: PENDENTE = Tema Primário, PAGA = Tema Secundário
-                            const buttonClasses = isPaid 
-                                ? "bg-var-secondary text-white" 
-                                : "bg-var-primary text-white";
-                            
-                            // ===== MUDANÇA RESPONSIVA =====
-                            return `
-                            <li data-id="${bill.id}" class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
-                                <!-- Lado Esquerdo -->
-                                <div class="flex items-center space-x-4">
-                                    <!-- Botão Pagar/Paga com Ícone -->
-                                    <button data-id="${bill.id}" class="toggle-paid w-28 text-sm font-medium py-2 px-4 rounded-md shadow-sm transition-colors duration-200 ${buttonClasses} hover:opacity-80 flex items-center justify-center space-x-1" aria-label="${isPaid ? 'Marcar como não paga' : 'Marcar como paga'}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                                            <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm3 0a1 1 0 011-1h1a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd" />
-                                        </svg>
-                                        <span>${isPaid ? 'Paga' : 'Pagar'}</span>
-                                    </button>
-                                    <div>
-                                        <span class="text-lg font-medium text-gray-800 ${isPaid ? 'line-through text-gray-500' : ''}">
-                                            ${bill.name}
-                                        </span>
-                                        <!-- Exibe o vencimento -->
-                                        ${bill.dueDate ? `<span class="block text-sm text-gray-500 ${isPaid ? 'line-through' : ''}">Venc. dia ${String(bill.dueDate).padStart(2, '0')}</span>` : ''}
-                                    </div>
-                                </div>
-                                <!-- Lado Direito -->
-                                <div class="flex items-center justify-between w-full sm:w-auto sm:space-x-4 mt-2 sm:mt-0">
-                                    <span class="text-lg font-semibold text-gray-700 ${isPaid ? 'line-through text-gray-500' : ''}">
-                                        ${formatCurrency(bill.amount)}
-                                    </span>
-                                    <button data-id="${bill.id}" class="delete-fixed text-gray-400 hover:text-red-500 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </li>
-                        `}).join('');
+                        await signInAnonymously(auth);
                     }
-
-                    // Atualiza a lista de Contas Variáveis
-                    if (state.variableBills.length === 0) { 
-                        variableBillsListEl.innerHTML = '<li class="text-center text-gray-500 italic py-4">Nenhum gasto variável adicionado.</li>';
-                    } else {
-                        variableBillsListEl.innerHTML = state.variableBills.map(bill => `
-                            <!-- ===== MUDANÇA RESPONSIVA ===== -->
-                            <li data-id="${bill.id}" class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
-                                <!-- Lado Esquerdo -->
-                                <div>
-                                    <span class="text-lg font-medium text-gray-800">${bill.name}</span>
-                                </div>
-                                <!-- Lado Direito -->
-                                <div class="flex items-center justify-between w-full sm:w-auto sm:space-x-4 mt-2 sm:mt-0">
-                                    <span class="text-lg font-semibold text-gray-700">
-                                        ${formatCurrency(bill.amount)}
-                                    </span>
-                                    <button data-id="${bill.id}" class="delete-variable text-gray-400 hover:text-red-500 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </li>
-                        `).join('');
-                    }
-
-                    // Atualiza Anotações na Aba Resumo
-                    if (state.notes.trim()) {
-                        notesCardEl.classList.remove('hidden');
-                        let summaryText = state.notes.trim();
-                        const maxLength = 200;
-                        if (summaryText.length > maxLength) {
-                            summaryText = summaryText.substring(0, maxLength).trim() + '...';
-                        }
-                        notesSummaryEl.textContent = summaryText;
-                    } else {
-                        notesCardEl.classList.add('hidden');
-                    }
-
-                    // Atualiza Anotações na Aba Anotações
-                    if (notesTextarea) {
-                        notesTextarea.value = state.notes;
-                    }
-
-                    // Atualiza Abas
-                    tabs.forEach(tab => { 
-                        const target = tab.dataset.tabTarget;
-                        const content = document.getElementById(target);
-                        if (target === state.activeTab) {
-                            tab.classList.add('bg-white', 'active', 'text-var-secondary');
-                            tab.classList.remove('text-var-nav', 'hover:text-white');
-                            content.classList.remove('hidden');
-                        } else {
-                            tab.classList.remove('bg-white', 'active', 'text-var-secondary');
-                            tab.classList.add('text-var-nav', 'hover:text-white');
-                            content.classList.add('hidden');
-                        }
-                    });
-
-                    // Atualiza Avisos de Vencimento
-                    const today = new Date().getDate(); 
-                    const upcomingBills = state.fixedBills.filter(bill => {
-                        if (bill.paid || !bill.dueDate) return false;
-                        const diff = bill.dueDate - today;
-                        return diff <= 3; 
-                    });
-
-                    if (upcomingBills.length > 0) {
-                        dueDateWarningEl.classList.remove('hidden');
-                        warningListEl.innerHTML = upcomingBills
-                            .sort((a, b) => a.dueDate - b.dueDate)
-                            .map(bill => {
-                                const diff = bill.dueDate - today;
-                                let text = '';
-                                if (diff < 0) {
-                                    text = `<span class="font-bold text-red-600">Vencida:</span> ${bill.name}`;
-                                } else if (diff === 0) {
-                                    text = `<span class="font-bold text-yellow-800">Vence Hoje:</span> ${bill.name}`;
-                                } else {
-                                    text = `Vence em ${diff} dia${diff > 1 ? 's' : ''}: ${bill.name}`;
-                                }
-                                return `<li>${text} (${formatCurrency(bill.amount)})</li>`;
-                            }).join('');
-                        
-                        // --- NOVO: Lógica de Notificação do Navegador ---
-                        // Chave para controlar a notificação por sessão
-                        const notificationKey = 'dueBillNotified';
-                        const alreadyNotified = sessionStorage.getItem(notificationKey);
-
-                        // Só notifica se ainda não o fez nesta sessão
-                        if (!alreadyNotified) {
-                            // 1. Verifica se o navegador suporta notificações
-                            if (!("Notification" in window)) {
-                                console.warn("Este navegador não suporta notificações.");
-                            } 
-                            // 2. Verifica se a permissão já foi concedida
-                            else if (Notification.permission === "granted") {
-                                const notificationBody = upcomingBills
-                                    .map(b => `${b.name} (${formatCurrency(b.amount)})`)
-                                    .join('\n');
-                                // Exibe a notificação
-                                new Notification("Contas Próximas do Vencimento!", {
-                                    body: notificationBody,
-                                    icon: "https://cdn-icons-png.flaticon.com/512/1656/1656914.png" // Ícone de sino
-                                });
-                                // Marca como notificado para esta sessão
-                                sessionStorage.setItem(notificationKey, "true");
-                            } 
-                            // 3. Se a permissão for 'default' (nem sim, nem não), pede permissão
-                            else if (Notification.permission !== "denied") {
-                                Notification.requestPermission().then((permission) => {
-                                    // Se o usuário permitir, exibe a notificação
-                                    if (permission === "granted") {
-                                        const notificationBody = upcomingBills
-                                            .map(b => `${b.name} (${formatCurrency(b.amount)})`)
-                                            .join('\n');
-                                        new Notification("Contas Próximas do Vencimento!", {
-                                            body: notificationBody,
-                                            icon: "https://cdn-icons-png.flaticon.com/512/1656/1656914.png"
-                                        });
-                                        // Marca como notificado para esta sessão
-                                        sessionStorage.setItem(notificationKey, "true");
-                                    }
-                                });
-                            }
-                            // Se a permissão foi 'denied', não faz nada.
-                        }
-                        // --- Fim da Lógica de Notificação ---
-
-                    } else {
-                        dueDateWarningEl.classList.add('hidden');
-                        // Limpa o 'lock' da notificação se não houver mais contas vencendo
-                        sessionStorage.removeItem('dueBillNotified');
-                    }
-
-                    // Chama a função para renderizar o calendário
-                    renderCalendar(state.fixedBills);
-
-                }; // Fim da função render()
-     
-                // --- Função: Renderizar Calendário ---
-                const renderCalendar = (fixedBills) => {
-                    const today = new Date();
-                    const month = today.getMonth(); 
-                    const year = today.getFullYear();
-                    const todayDate = today.getDate(); 
-
-                    const dueBillsByDay = {};
-                    fixedBills.forEach(bill => {
-                        if (bill.dueDate && !bill.paid) {
-                            if (!dueBillsByDay[bill.dueDate]) {
-                                dueBillsByDay[bill.dueDate] = [];
-                            }
-                            dueBillsByDay[bill.dueDate].push({ name: bill.name, amount: bill.amount });
-                        }
-                    });
-
-                    const monthName = today.toLocaleString('pt-BR', { month: 'long' });
-                    calendarMonthYearEl.textContent = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
-
-                    const firstDayOfMonth = new Date(year, month, 1).getDay();
-                    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-                    calendarDaysGridEl.innerHTML = '';
-
-                    // ===== MUDANÇA RESPONSIVA (h-16 md:h-20) =====
-                    for (let i = 0; i < firstDayOfMonth; i++) {
-                        calendarDaysGridEl.innerHTML += '<div class="h-16 md:h-20"></div>';
-                    }
-
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        const isToday = (day === todayDate);
-                        const billsOnThisDay = dueBillsByDay[day] || [];
-
-                        // ===== MUDANÇA RESPONSIVA (h-16 md:h-20) =====
-                        let cellClasses = 'p-2 h-16 md:h-20 text-center rounded-lg relative transition-all duration-200 flex flex-col items-center justify-start';
-                        let title = '';
-                        let billInfoHtml = '';
-
-                        // CORREÇÃO: Aplica as cores do tema ao dia de hoje no calendário
-                        if (isToday) {
-                            cellClasses += ' text-white font-bold ring-2';
-                            // Adiciona estilo inline para usar as variáveis CSS
-                            cellClasses += ' " style="background-color: rgb(var(--color-calendar-today)); border-color: rgb(var(--color-calendar-today-ring));';
-                        } else {
-                            cellClasses += ' bg-white text-gray-700 shadow-sm border border-gray-100';
-                        }
-
-                        if (billsOnThisDay.length > 0) {
-                            const totalAmountOnDay = billsOnThisDay.reduce((sum, bill) => sum + bill.amount, 0);
-                            const billTitles = billsOnThisDay.map(b => `${b.name} (${formatCurrency(b.amount)})`).join(', ');
-                            title = `title="${day}: ${billTitles}"`; 
-                            
-                            const firstBillName = billsOnThisDay[0].name;
-                            let textColor = isToday ? 'text-white' : 'text-red-600';
-
-                            // ===== MUDANÇA RESPONSIVA (dot no mobile, texto no desktop) =====
-                            
-                            // Padrão (Mobile): Ponto (mostra sempre, mas é escondido em 'md' se houver texto)
-                            billInfoHtml = `
-                                <span class="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full ${isToday ? 'bg-white' : 'bg-red-500'} md:hidden"></span>
-                            `;
-                            
-                            // Telas Médias+ (md): Texto completo
-                            let truncatedName = firstBillName.length > 9 ? firstBillName.substring(0, 9) + '...' : firstBillName;
-                            billInfoHtml += `
-                                <div class="hidden md:flex md:flex-col md:items-center md:justify-start mt-1 w-full px-1">
-                                    <span class="text-xs font-medium ${textColor} truncate w-full" title="${firstBillName}">${truncatedName}</span>
-                                    <span class="text-xs font-semibold ${textColor} truncate w-full">${formatCurrency(totalAmountOnDay)}</span>
-                                    ${billsOnThisDay.length > 1 ? `<span class="text-xs font-bold ${textColor}">+${billsOnThisDay.length - 1}</span>` : ''}
-                                </div>
-                            `;
-                            // ===== FIM DA MUDANÇA RESPONSIVA =====
-
-
-                            if (!isToday) {
-                                cellClasses += ' cursor-pointer border-2 border-red-400 font-bold hover:bg-red-50';
-                            } else {
-                                cellClasses += ' cursor-pointer hover:opacity-80'; 
-                            }
-                            
-                            calendarDaysGridEl.innerHTML += `
-                                <div class="${cellClasses}" ${title} data-day="${day}">
-                                    <span class="text-sm">${day}</span>
-                                    ${billInfoHtml}
-                                </div>
-                            `;
-
-                        } else {
-                            if (!isToday) {
-                                cellClasses += ' hover:bg-gray-100';
-                            }
-                            // CORREÇÃO: Removido o 'D' que estava aqui
-                            calendarDaysGridEl.innerHTML += `
-                                <div class="${cellClasses}" ${title}>
-                                    <span class="text-sm">${day}</span>
-                                </div>
-                        `;
-                    }
+                } catch (error) {
+                    console.error("Erro na autenticação:", error);
+                    authStatus.textContent = "Falha na autenticação.";
+                    showMessage("Falha na autenticação: " + error.message, "error");
                 }
-            };
+            }
+        });
+        
+        // =======================================================
+        // FUNÇÕES DE CATEGORIAS
+        // =======================================================
 
-            // --- Event Listeners (Tratadores de Eventos) ---
-            
-            // --- Modal de Temas (NOVOS) ---
-            const openThemeModal = () => themeModal.classList.remove('hidden');
-            const closeThemeModal = () => themeModal.classList.add('hidden');
+        function loadCategories() {
+            if (!categoriesCollectionRef) return;
+            if (categoriesListener) categoriesListener(); 
 
-            themeToggleBtn.addEventListener('click', openThemeModal);
-            themeModalCloseButton.addEventListener('click', closeThemeModal);
-            themeModalOverlay.addEventListener('click', closeThemeModal);
+            const q = query(categoriesCollectionRef, orderBy('name'));
+
+            categoriesListener = onSnapshot(q, (querySnapshot) => {
+                allCategories = []; 
+                querySnapshot.forEach((doc) => {
+                    allCategories.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Atualiza o <select> principal e o <select> de filtro
+                renderCategorySelects(allCategories);
+                
+                // Atualiza a lista na aba de Cadastro de Categorias
+                renderCategoriesList(allCategories);
+                
+                // Já que as categorias mudaram, renderiza os documentos novamente (para atualizar os filtros)
+                renderDocuments();
+                
+            }, (error) => {
+                console.error("Erro ao carregar categorias: ", error);
+                showMessage("Erro ao carregar categorias: " + error.message, "error");
+            });
+        }
+        
+        function renderCategorySelects(categories) {
+            // 1. SELECT principal (Formulário de Arquivamento)
+            docSectorSelect.innerHTML = '';
+            docSectorSelect.disabled = false;
+
+            let defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "Nenhum / Geral";
+            docSectorSelect.appendChild(defaultOption);
+
+            // 2. SELECT de Filtro
+            filterSectorSelect.innerHTML = '';
+            filterSectorSelect.disabled = false;
+
+            let filterAllOption = document.createElement('option');
+            filterAllOption.value = "";
+            filterAllOption.textContent = "Todos os Setores";
+            filterSectorSelect.appendChild(filterAllOption);
+
+            categories.forEach(category => {
+                // Adiciona ao Select Principal
+                let option = document.createElement('option');
+                option.value = category.name;
+                option.textContent = category.name;
+                docSectorSelect.appendChild(option);
+                
+                // Adiciona ao Select de Filtro
+                let filterOption = document.createElement('option');
+                filterOption.value = category.name;
+                filterOption.textContent = category.name;
+                filterSectorSelect.appendChild(filterOption);
+            });
             
-            // Botões de Tema Predefinido
-            presetThemeButtons.forEach(button => {
+            // Adiciona o listener para o filtro (só depois que o Select está carregado)
+            filterSectorSelect.removeEventListener('change', renderDocuments); // Evita duplicidade
+            filterSectorSelect.addEventListener('change', renderDocuments);
+        }
+
+        async function addCategory(e) {
+            e.preventDefault();
+            const name = newCategoryName.value.trim();
+
+            if (!name) {
+                showMessage("O nome da categoria não pode ser vazio.", "warning");
+                return;
+            }
+
+            try {
+                // Verifica se a categoria já existe (case-insensitive)
+                const exists = allCategories.some(c => c.name.toLowerCase() === name.toLowerCase());
+                if (exists) {
+                    showMessage("Esta categoria já existe.", "warning");
+                    return;
+                }
+                
+                await addDoc(categoriesCollectionRef, {
+                    name: name,
+                    createdAt: new Date()
+                });
+                
+                newCategoryName.value = '';
+                showMessage(`Categoria "${name}" adicionada com sucesso!`, "success");
+            } catch (error) {
+                console.error("Erro ao adicionar categoria: ", error);
+                showMessage("Erro ao adicionar categoria: " + error.message, "error");
+            }
+        }
+
+        async function deleteCategory(id, name) {
+             const confirmed = await showConfirmModal(
+                 "Confirmar Exclusão de Categoria", 
+                 `Tem certeza que deseja excluir a categoria "${name}"? Esta ação é irreversível e documentos arquivados com esta categoria ficarão sem um setor definido.`,
+                 'red' // Cor do botão de confirmação
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const docRef = doc(categoriesCollectionRef, id);
+                await deleteDoc(docRef);
+                showMessage(`Categoria "${name}" excluída com sucesso!`, "success");
+            } catch (error) {
+                console.error("Erro ao excluir categoria: ", error);
+                showMessage("Erro ao excluir categoria: " + error.message, "error");
+            }
+        }
+        
+        function renderCategoriesList(categories) {
+            categoriesList.innerHTML = '';
+
+            if (categories.length === 0) {
+                 categoriesList.innerHTML = '<li class="p-3 bg-gray-50 rounded-lg text-gray-500">Nenhuma categoria cadastrada.</li>';
+                 return;
+            }
+            
+            categories.forEach(category => {
+                const listItem = document.createElement('li');
+                listItem.className = 'flex justify-between items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm';
+                listItem.innerHTML = `
+                    <span class="font-medium text-gray-700">${category.name}</span>
+                    <button data-id="${category.id}" data-name="${category.name}" class="delete-category-btn text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 transition duration-150" title="Excluir Categoria">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+                categoriesList.appendChild(listItem);
+            });
+            
+            // Adicionar listeners aos botões de exclusão
+            categoriesList.querySelectorAll('.delete-category-btn').forEach(button => {
                 button.addEventListener('click', () => {
-                    const themeName = button.dataset.theme;
-                    state.theme = themeName; // Salva o nome do tema
-                    applyTheme(themeName);
-                    saveState(); // Salva a escolha do tema
-                    closeThemeModal();
+                    const id = button.getAttribute('data-id');
+                    const name = button.getAttribute('data-name');
+                    deleteCategory(id, name);
                 });
             });
+        }
 
-            // REMOVIDO: Botão de Aplicar Tema Customizado
 
-            // Navegação por Abas
-            tabs.forEach(tab => { 
-                tab.addEventListener('click', () => {
-                    state.activeTab = tab.dataset.tabTarget;
-                    saveAndRender(); 
-                });
-            });
+        // =======================================================
+        // FUNÇÕES DE DOCUMENTOS (RESTANTE DO CÓDIGO)
+        // =======================================================
 
-            // Adicionar Conta Fixa
-            formFixedBill.addEventListener('submit', (e) => { 
-                e.preventDefault();
-                const name = fixedNameInput.value.trim();
-                const amount = parseFloat(fixedAmountInput.value) || 0;
-                const dueDate = fixedDueDateInput.value ? parseInt(fixedDueDateInput.value) : null;
+        function loadDocuments() {
+            if (!documentsCollectionRef) return;
 
-                if (name && amount > 0) {
-                    state.fixedBills.push({
-                        id: Date.now(),
-                        name,
-                        amount,
-                        dueDate,
-                        paid: false
-                    });
-                    fixedNameInput.value = '';
-                    fixedAmountInput.value = '';
-                    fixedDueDateInput.value = '';
-                    saveAndRender();
-                }
-            });
-            
-            // Adicionar Conta Variável
-            formVariableBill.addEventListener('submit', (e) => { 
-                e.preventDefault();
-                const name = variableNameInput.value.trim();
-                const amount = parseFloat(variableAmountInput.value) || 0;
+            if (documentsListener) {
+                documentsListener(); 
+            }
+
+            const q = query(documentsCollectionRef);
+
+            documentsListener = onSnapshot(q, (querySnapshot) => {
                 
-                if (name && amount > 0) {
-                    state.variableBills.push({
-                        id: Date.now(),
-                        name,
-                        amount
-                    });
-                    variableNameInput.value = '';
-                    variableAmountInput.value = '';
-                    saveAndRender();
-                }
+                allDocuments = []; 
+                querySnapshot.forEach((doc) => {
+                    allDocuments.push({ id: doc.id, ...doc.data() });
+                });
+
+                renderDocuments();
+                
+            }, (error) => {
+                console.error("Erro ao carregar documentos: ", error);
+                showMessage("Erro ao carregar documentos: " + error.message, "error");
             });
+        }
 
-            // Eventos na lista de Contas Fixas (Toggle/Delete)
-            fixedBillsListEl.addEventListener('click', (e) => { 
-                const toggleButton = e.target.closest('.toggle-paid');
-                const deleteButton = e.target.closest('.delete-fixed');
+        function renderDocuments() {
+            documentsList.innerHTML = '';
 
-                // Marcar como Pago/Não Pago
-                if (toggleButton) {
-                    const id = parseInt(toggleButton.dataset.id);
-                    const bill = state.fixedBills.find(b => b.id === id);
-                    if (bill) {
-                        bill.paid = !bill.paid;
-                        saveAndRender();
+            const refFilter = filterRef.value.toLowerCase().trim();
+            const sectorFilter = filterSectorSelect.value;
+            const startDateStr = filterDateStart.value;
+            const endDateStr = filterDateEnd.value;
+
+            const startDateFilter = startDateStr ? new Date(startDateStr + 'T00:00:00') : null;
+            const endDateFilter = endDateStr ? new Date(endDateStr + 'T23:59:59') : null;
+
+
+            const filteredDocs = allDocuments.filter(docData => {
+                const refMatch = !refFilter || (docData.ref && docData.ref.toLowerCase().includes(refFilter));
+                const sectorMatch = !sectorFilter || docData.sector === sectorFilter;
+                
+                let dateMatch = true;
+
+                if (docData.createdAt) {
+                    const docDate = new Date(docData.createdAt.seconds * 1000);
+
+                    if (startDateFilter && docDate < startDateFilter) {
+                        dateMatch = false;
+                    }
+
+                    if (endDateFilter && docDate > endDateFilter) {
+                        dateMatch = false;
                     }
                 }
-                // Deletar Conta Fixa
-                if (deleteButton) {
-                    const id = parseInt(deleteButton.dataset.id);
-                    state.fixedBills = state.fixedBills.filter(b => b.id !== id);
-                    saveAndRender();
-                }
-            });
-
-            // Eventos na lista de Contas Variáveis (Delete)
-            variableBillsListEl.addEventListener('click', (e) => { 
-                const deleteButton = e.target.closest('.delete-variable');
-                // Deletar Conta Variável
-                if (deleteButton) {
-                    const id = parseInt(deleteButton.dataset.id);
-                    state.variableBills = state.variableBills.filter(b => b.id !== id);
-                    saveAndRender();
-                }
-            });
-
-            // Anotações (Salva 500ms após parar de digitar)
-            let notesTimer;
-            if (notesTextarea) {
-                notesTextarea.addEventListener('keyup', () => {
-                    clearTimeout(notesTimer);
-                    notesTimer = setTimeout(() => {
-                        state.notes = notesTextarea.value;
-                        saveState(); 
-                        // Atualiza o resumo do post-it na aba Resumo em tempo real
-                        if (state.activeTab !== 'resumo') {
-                            if (state.notes.trim()) {
-                                notesCardEl.classList.remove('hidden');
-                                let summaryText = state.notes.trim();
-                                const maxLength = 200;
-                                if (summaryText.length > maxLength) {
-                                    summaryText = summaryText.substring(0, maxLength).trim() + '...';
-                                }
-                                notesSummaryEl.textContent = summaryText;
-                            } else {
-                                notesCardEl.classList.add('hidden');
-                            }
-                        }
-                    }, 500);
-                });
-            }
-
-            // --- Event Listener para ir para a aba Anotações ---
-            if (goToNotesTabButton) {
-                goToNotesTabButton.addEventListener('click', () => {
-                    state.activeTab = 'anotacoes';
-                    saveAndRender();
-                });
-            }
-
-
-            // --- Event Listeners do Modal de Vencimentos ---
-
-            // Abre o modal ao clicar no dia
-            calendarDaysGridEl.addEventListener('click', (e) => {
-                const dayCell = e.target.closest('[data-day]'); 
-                if (!dayCell) return; 
-
-                const day = parseInt(dayCell.dataset.day);
                 
-                const billsOnThisDay = state.fixedBills.filter(bill => 
-                    bill.dueDate === day && !bill.paid
+                return refMatch && sectorMatch && dateMatch; 
+            });
+
+            if (allDocuments.length === 0) {
+                noDocuments.textContent = "Nenhum documento arquivado ainda.";
+                documentsList.appendChild(noDocuments);
+            } else if (filteredDocs.length === 0) {
+                noDocuments.textContent = "Nenhum documento corresponde aos filtros.";
+                documentsList.appendChild(noDocuments);
+            } else {
+                filteredDocs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+                filteredDocs.forEach(docData => {
+                    const card = createDocumentCard(docData);
+                    documentsList.appendChild(card);
+                });
+            }
+        }
+
+        async function deleteSingleFile(docId, file) {
+            if (!documentsCollectionRef || !storage) return;
+
+             const confirmed = await showConfirmModal(
+                 "Confirmar Exclusão de Anexo", 
+                 `Tem certeza que deseja excluir o anexo "${file.fileName}"? Esta ação é permanente.`,
+                 'red'
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                if (file.storagePath) {
+                    const fileRef = ref(storage, file.storagePath);
+                    await deleteObject(fileRef);
+                    showMessage(`Arquivo "${file.fileName}" excluído do Storage.`, "success");
+                }
+
+                const docRef = doc(documentsCollectionRef, docId);
+                
+                await updateDoc(docRef, {
+                    files: arrayRemove(file)
+                });
+
+                showMessage("Referência do arquivo removida do documento.", "success");
+                
+            } catch (error) {
+                console.error("Erro ao excluir arquivo: ", error);
+                
+                if (error.code === 'storage/object-not-found') {
+                    showMessage("A referência ao arquivo foi removida, mas ele já não existia no Storage.", "warning");
+                    try {
+                        const docRef = doc(documentsCollectionRef, docId);
+                        await updateDoc(docRef, {
+                            files: arrayRemove(file)
+                        });
+                    } catch(e) { 
+                        console.error("Erro ao remover referência do Firestore: ", e);
+                        showMessage("Erro ao remover anexo: " + e.message, "error");
+                    }
+                } else {
+                    showMessage("Erro ao excluir anexo: " + error.message, "error");
+                }
+            }
+        }
+
+        // NOVO: Função para definir cores específicas por setor
+        function getSectorColor(sectorName) {
+            if (!sectorName) sectorName = 'Geral';
+            const sName = sectorName.toLowerCase();
+
+            // 1. CORREÇÃO: Cores específicas solicitadas pelo usuário
+            if (sName.includes('farmácia') || sName.includes('farmacia')) {
+                return 'pink';
+            }
+            // (Você pode adicionar mais 'else if' aqui para outros setores)
+            // else if (sName.includes('engenharia')) {
+            //    return 'blue';
+            // }
+
+            // 2. Lógica de Hash para cores aleatórias (mas consistentes)
+            const colors = ['purple', 'orange', 'indigo', 'teal', 'cyan', 'green', 'yellow', 'emerald']; // Lista de cores do Tailwind
+            let hash = 0;
+            if (sectorName.length !== 0) {
+                for (let i = 0; i < sectorName.length; i++) {
+                    hash = sectorName.charCodeAt(i) + ((hash << 5) - hash);
+                }
+            }
+            const colorIndex = Math.abs(hash) % colors.length;
+            return colors[colorIndex];
+        }
+
+
+        function createDocumentCard(docData) {
+            const card = document.createElement('div');
+            card.className = 'p-4 border border-gray-200 rounded-lg shadow-sm bg-gray-50 flex flex-col justify-between items-start';
+            
+            // CORREÇÃO: Usando a nova função para obter a cor
+            const sectorName = docData.sector || 'Geral';
+            const baseColor = getSectorColor(sectorName);
+            
+            const sectorClass = `bg-${baseColor}-100 text-${baseColor}-800`;
+            const sectorHtml = docData.sector ? `<span class="inline-block rounded-full px-3 py-1 text-sm font-semibold ${sectorClass} mr-2 mb-2">${docData.sector}</span>` : '';
+
+
+            const date = docData.createdAt ? new Date(docData.createdAt.seconds * 1000).toLocaleString('pt-BR') : 'Data indisponível';
+
+            let attachmentsHtml = '';
+            
+            // Lógica para exibir o primeiro anexo como link (para economizar espaço)
+            if (docData.files && Array.isArray(docData.files) && docData.files.length > 0) {
+                const file = docData.files[0]; // Pega apenas o primeiro
+                const remaining = docData.files.length - 1;
+                
+                attachmentsHtml = `
+                    <div class="flex items-center space-x-2 mr-4 mb-2">
+                        <span class="py-2 px-3 border border-emerald-500 text-emerald-500 rounded-lg text-sm truncate max-w-[200px]" 
+                            title="${file.fileName || `Anexo 1`}">
+                            ${file.fileName || `Anexo 1`}
+                        </span>
+                        ${remaining > 0 ? `<span class="text-sm text-gray-500">+${remaining} outro(s)</span>` : ''}
+                    </div>`;
+            } 
+            else if (docData.link) {
+                 attachmentsHtml = `<span class="w-full sm:w-auto text-center py-2 px-4 mb-2 sm:mb-0 border border-emerald-500 text-emerald-500 rounded-lg">Anexo (Link Antigo)</span>`;
+            } else {
+                 attachmentsHtml = '<span class="w-full sm:w-auto text-center py-2 px-4 mb-2 sm:mb-0 text-gray-400">Sem Anexos</span>';
+            }
+
+            card.innerHTML = `
+                <div class="flex flex-col w-full sm:flex-row sm:justify-between sm:items-center">
+                    <div class="flex-1 mb-4 sm:mb-0">
+                        <div class="flex flex-wrap items-center">
+                            ${sectorHtml}
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">${docData.ref || 'Sem Número/Ref.'}</h3>
+                        <p class="text-gray-700">${docData.desc || 'Sem descrição'}</p>
+                        <p class="text-sm text-gray-500 mt-1">Arquivado em: ${date}</p>
+                    </div>
+                    <div class="flex-shrink-0 flex flex-col sm:flex-row sm:space-x-2 w-full sm:w-auto">
+                        <!-- MUDANÇA: O botão agora abre o Modal. A lógica de 'disabled' ainda é útil. -->
+                        <button data-id="${docData.id}" class="view-doc-btn w-full sm:w-auto py-2 px-4 mb-2 sm:mb-0 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition duration-150 disabled:opacity-50" ${(!docData.files || docData.files.length === 0) ? 'disabled' : ''}>
+                            Ver Documentação
+                        </button>
+                        
+                        <button data-id="${docData.id}" data-files-json="${encodeURIComponent(JSON.stringify(docData.files || []))}" data-storage-path="${docData.storagePath || ''}" class="delete-btn w-full sm:w-auto py-2 px-4 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition duration-150">Excluir Documento</button>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-gray-200 w-full">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Anexos:</p>
+                    <div class="flex flex-wrap items-center -ml-2 -mr-2">
+                        ${attachmentsHtml}
+                    </div>
+                </div>
+            `;
+
+            // Botão de Excluir Documento (chama o Modal de Confirmação)
+            card.querySelector('.delete-btn').addEventListener('click', async (e) => {
+                const id = e.currentTarget.getAttribute('data-id');
+                const filesJson = e.currentTarget.getAttribute('data-files-json');
+                const files = JSON.parse(decodeURIComponent(filesJson || '[]'));
+                const oldStoragePath = e.currentTarget.getAttribute('data-storage-path');
+                
+                const confirmed = await showConfirmModal(
+                    "Confirmar Exclusão de Documento", 
+                    "Tem certeza que deseja excluir ESTE DOCUMENTO INTEIRO? Isso também excluirá TODOS os anexos de forma permanente.",
+                    'red'
                 );
 
-                if (billsOnThisDay.length > 0) {
-                    modalTitle.textContent = `Vencimentos - Dia ${day}`;
-                    modalBody.innerHTML = billsOnThisDay.map(bill => `
-                        <li class="flex justify-between items-center p-3 rounded-md bg-gray-100">
-                            <span class="text-gray-800">${bill.name}</span>
-                            <span class="font-semibold text-red-600">${formatCurrency(bill.amount)}</span>
-                        </li>
-                    `).join('');
-                    
-                    dueBillsModal.classList.remove('hidden');
+                if (confirmed) {
+                    await deleteDocument(id, files, oldStoragePath);
                 }
             });
-
-            // Fecha o modal
-            const closeModal = () => {
-                dueBillsModal.classList.add('hidden');
-            };
-            modalCloseButton.addEventListener('click', closeModal);
-            modalOverlay.addEventListener('click', closeModal);
-
-
-            // --- Carga Inicial ---
-            loadState(); 
-            // Na carga inicial, aplica o tema salvo
-            applyTheme(state.theme || 'pink-green');
-            render(); // Renderiza o restante da UI
             
-            }; // --- Fim da função initializeApp ---
+            // MUDANÇA: Botão Ver Documentação (chama o Modal de Detalhes)
+            card.querySelector('.view-doc-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                // O docData está no escopo de createDocumentCard, então podemos usá-lo
+                showDetailsModal(docData);
+            });
 
-            // Inicialmente, não chamamos initializeApp()
-            // A chamada só acontece após o PIN correto ser inserido.
 
+            // Lógica de exclusão de anexo individual (ainda necessária no Modal de Detalhes, mas removida do Card)
+            // Vamos manter a lógica de exclusão de anexo individual, mas ela foi movida para o Modal de Detalhes
+            // No entanto, o código antigo ainda a tem aqui. Para simplificar, vou remover a referência a 'delete-file-btn' do card.
+            // A lista de anexos no card agora é apenas visual (mostra o primeiro + contagem).
+            
+            // O código antigo tinha botões de exclusão de anexo individual no card.
+            // A nova UI do card (acima) não os tem mais, então não precisamos dos listeners aqui.
+
+            return card;
+        }
+
+
+        archiveForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!documentsCollectionRef || !storage) {
+                showMessage("Banco de dados ou Storage não está pronto.", "error");
+                return;
+            }
+
+            setLoading(true);
+            uploadProgress.classList.remove('hidden');
+            uploadProgress.textContent = 'Iniciando...';
+
+            const fileInput = document.getElementById('doc-file');
+            const files = fileInput.files;
+
+            const docData = {
+                ref: document.getElementById('doc-ref').value,
+                sector: document.getElementById('doc-sector').value,
+                desc: document.getElementById('doc-desc').value,
+                createdAt: new Date(),
+                files: []
+            };
+
+            try {
+                if (files.length > 0) {
+                    uploadProgress.textContent = `Fazendo upload de ${files.length} arquivo(s)...`;
+                    
+                    const uploadPromises = [];
+                    
+                    for (const file of files) {
+                        const uniqueFileName = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+                        // Caminho de upload (mantendo o caminho privado do usuário)
+                        const storagePath = `artifacts/${appId}/users/${userId}/documentos/${uniqueFileName}`;
+                        const storageRef = ref(storage, storagePath);
+
+                        const uploadTask = uploadBytes(storageRef, file).then(snapshot => {
+                            return getDownloadURL(snapshot.ref).then(downloadURL => {
+                                return {
+                                    link: downloadURL,
+                                    storagePath: storagePath,
+                                    fileName: file.name
+                                };
+                            });
+                        });
+                        uploadPromises.push(uploadTask);
+                    }
+
+                    const uploadedFiles = await Promise.all(uploadPromises);
+                    docData.files = uploadedFiles;
+
+                    uploadProgress.textContent = `Upload de ${uploadedFiles.length} arquivo(s) completo!`;
+                
+                } else {
+                    uploadProgress.textContent = "Nenhum arquivo anexado. Salvando apenas os dados.";
+                }
+
+                await addDoc(documentsCollectionRef, docData);
+                
+                showMessage("Documento arquivado com sucesso!", "success");
+                archiveForm.reset();
+                fileInput.value = '';
+
+            } catch (error) {
+                console.error("Erro ao salvar documento ou fazer upload: ", error);
+                showMessage("Erro ao salvar: " + error.message, "error");
+            } finally {
+                setLoading(false);
+                uploadProgress.textContent = '';
+                uploadProgress.classList.add('hidden');
+            }
         });
-    </script>
 
+        async function deleteDocument(id, files, oldStoragePath) {
+            if (!documentsCollectionRef || !storage) return;
+            
+            if (files && files.length > 0) {
+                for (const file of files) {
+                    if (file.storagePath) {
+                        try {
+                            const fileRef = ref(storage, file.storagePath);
+                            await deleteObject(fileRef);
+                        } catch (error) {
+                            console.error(`Erro ao excluir ${file.storagePath}: `, error);
+                        }
+                    }
+                }
+            } else if (oldStoragePath) {
+                 try {
+                    const fileRef = ref(storage, oldStoragePath);
+                    await deleteObject(fileRef);
+                } catch (error) {
+                    console.error("Erro ao excluir arquivo antigo do Storage: ", error);
+                }
+            }
+
+            try {
+                const docRef = doc(documentsCollectionRef, id);
+                await deleteDoc(docRef);
+                showMessage("Documento excluído (e anexos) com sucesso!", "success");
+            } catch (error) {
+                console.error("Erro ao excluir documento: ", error);
+                showMessage("Erro ao excluir do banco de dados: " + error.message, "error");
+            }
+        }
+
+        // Funções de UI
+        function setLoading(isLoading) {
+            if (isLoading) {
+                submitButton.disabled = true;
+                loadingSpinner.classList.remove('hidden');
+                buttonText.textContent = 'Arquivando...';
+            } else {
+                submitButton.disabled = false;
+                loadingSpinner.classList.add('hidden');
+                buttonText.textContent = 'Arquivar Documento';
+            }
+        }
+
+        function showMessage(message, type = "success") {
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            
+            // Mensagens de sucesso são em verde
+            if (type === "error") {
+                messageBox.className = 'p-4 rounded-lg shadow-lg text-white bg-red-500';
+            } else if (type === "warning") {
+                 messageBox.className = 'p-4 rounded-lg shadow-lg text-white bg-yellow-500';
+            } else {
+                messageBox.className = 'p-4 rounded-lg shadow-lg text-white bg-emerald-500'; // Alterado para emerald
+            }
+            
+            messageText.textContent = message;
+            messageBox.classList.add('show');
+            
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
+        }
+
+    </script>
 </body>
 </html>
