@@ -210,14 +210,14 @@
 
     <!-- Firebase -->
     <script type="module">
-        // Importações do Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // Importações do Firebase (CORRIGIDO: Versão 12.5.0)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
         import { 
             getAuth, 
             signInAnonymously, 
             signInWithCustomToken, 
             onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
         import { 
             getFirestore, 
             collection, 
@@ -230,19 +230,29 @@
             setLogLevel,
             arrayRemove,
             orderBy 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // IMPORTAÇÃO DO STORAGE
+        } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+        // IMPORTAÇÃO DO STORAGE (CORRIGIDO: Versão 12.5.0)
         import { 
             getStorage, 
             ref, 
             uploadBytes, 
             getDownloadURL,
             deleteObject
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-storage.js";
 
-        // Configuração do Firebase
-        const firebaseConfig = JSON.parse(typeof FIREBASE_CONFIG_JSON !== 'undefined' ? FIREBASE_CONFIG_JSON : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // Configuração do Firebase (CORRIGIDO: Hardcoded com os valores fornecidos)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGQnZI9WGOd14HNUB7JgY0kfLgdEeL89Y",
+            authDomain: "arquivando-c75a4.firebaseapp.com",
+            projectId: "arquivando-c75a4",
+            storageBucket: "arquivando-c75a4.firebasestorage.app", // CORRIGIDO: O nome do bucket é 'firebasestorage.app'
+            messagingSenderId: "844271929713",
+            appId: "1:844271929713:web:d4a2a87de14ed1eaecced0",
+            measurementId: "G-43Q40K622J"
+        };
+        
+        // CORRIGIDO: O appId para os caminhos do Firestore/Storage é o projectId
+        const appId = firebaseConfig.projectId; 
 
         let app, auth, db, userId;
         let storage; 
@@ -303,7 +313,7 @@
 
 
         // Inicializar Firebase
-        let initFailed = false; // <-- CORREÇÃO: Adicionada flag
+        let initFailed = false; 
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
@@ -314,7 +324,7 @@
             console.error("Erro ao inicializar o Firebase:", e);
             authStatus.textContent = "Erro ao conectar ao Firebase.";
             showMessage("Erro ao inicializar: " + e.message, "error");
-            initFailed = true; // <-- CORREÇÃO: Define a flag em caso de erro
+            initFailed = true; 
         }
         
         // =======================================================
@@ -444,7 +454,7 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
-                    authStatus.textContent = `Logado como: ${userId.substring(0, 8)}...`;
+                    authStatus.textContent = `Logado como: ${userId}`; // Mostra o ID completo
 
                     // Definir os caminhos das coleções (privada para o usuário)
                     const userPath = `/artifacts/${appId}/users/${userId}`;
@@ -474,9 +484,11 @@
                 } else {
                     authStatus.textContent = "Autenticando...";
                     try {
+                        // Tenta usar o token do ambiente (Canvas)
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
+                            // Fallback para anônimo se o token não estiver presente (ex: Netlify)
                             await signInAnonymously(auth);
                         }
                     } catch (error) {
@@ -929,6 +941,7 @@
                     for (const file of files) {
                         const uniqueFileName = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
                         // Caminho de upload (mantendo o caminho privado do usuário)
+                        // CORRIGIDO: O caminho do Storage deve usar o appId (projectId)
                         const storagePath = `artifacts/${appId}/users/${userId}/documentos/${uniqueFileName}`;
                         const storageRef = ref(storage, storagePath);
 
