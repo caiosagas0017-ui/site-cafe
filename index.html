@@ -44,8 +44,9 @@
         <header class="mb-8 p-6 bg-white rounded-xl shadow-lg">
             <h1 class="text-3xl font-bold text-center text-emerald-600">Sistema de Arquivamento de Documentos</h1>
             <p class="text-center text-gray-600 mt-2">Arquive suas Notas Fiscais (NF), Ordens de Compra (OC) e Cotações.</p>
-            <div id="auth-status" class="text-center text-sm text-gray-500 mt-4">
-                Carregando...
+            <!-- MUDANÇA: Status de Autenticação agora é Modo Demo -->
+            <div id="auth-status" class="text-center text-sm text-yellow-600 mt-4 font-semibold">
+                Modo de Demonstração (Dados não serão salvos)
             </div>
         </header>
         
@@ -63,7 +64,7 @@
         <!-- SEÇÃO 1: ARQUIVAMENTO (Conteúdo Principal) -->
         <section id="archiving-section">
             <!-- Formulário para adicionar documentos -->
-            <section id="form-section" class="mb-8 p-6 bg-white rounded-xl shadow-lg hidden">
+            <section id="form-section" class="mb-8 p-6 bg-white rounded-xl shadow-lg">
                 <h2 class="text-2xl font-semibold mb-6 border-b pb-3 text-emerald-600">Arquivar Novo Documento</h2>
                 <form id="archive-form" class="space-y-6">
                     
@@ -100,7 +101,7 @@
                     <div id="upload-progress" class="text-sm text-emerald-600 hidden"></div>
 
                     <div class="text-right">
-                        <button type="submit" class="inline-flex justify-center py-3 px-6 border border-transparent shadow-md text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50" disabled>
+                        <button type="submit" class="inline-flex justify-center py-3 px-6 border border-transparent shadow-md text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
                             <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -112,7 +113,7 @@
             </section>
 
             <!-- Seção de Documentos Arquivados -->
-            <section id="archived-documents" class="bg-white rounded-xl shadow-lg p-6 hidden">
+            <section id="archived-documents" class="bg-white rounded-xl shadow-lg p-6">
                 <h2 class="text-2xl font-semibold mb-6 border-b pb-3 text-emerald-600">Documentos Arquivados</h2>
                 
                 <!-- +++ FILTROS +++ -->
@@ -145,7 +146,7 @@
 
                 <div id="documents-list" class="space-y-4">
                     <p id="no-documents" class="text-gray-500 text-center">Nenhum documento arquivado ainda.</p>
-                    <!-- Documentos do Firestore serão inseridos aqui -->
+                    <!-- Documentos (da memória) serão inseridos aqui -->
                 </div>
             </section>
         </section>
@@ -208,50 +209,18 @@
     </div>
 
 
-    <!-- Firebase -->
+    <!-- MUDANÇA: Lógica do Firebase removida. Script agora é local. -->
     <script type="module">
-        // Importações do Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInAnonymously, 
-            signInWithCustomToken, 
-            onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            query, 
-            onSnapshot,
-            doc,
-            deleteDoc,
-            updateDoc, 
-            setLogLevel,
-            arrayRemove,
-            orderBy 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // IMPORTAÇÃO DO STORAGE
-        import { 
-            getStorage, 
-            ref, 
-            uploadBytes, 
-            getDownloadURL,
-            deleteObject
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        // Importações do Firebase REMOVIDAS
 
-        // Configuração do Firebase
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        let app, auth, db, userId;
-        let storage; 
-        let documentsCollectionRef;
-        let categoriesCollectionRef;
+        // MUDANÇA: Variáveis globais agora são para arrays em memória
         let allDocuments = []; 
-        let allCategories = []; 
-        let documentsListener = null; 
-        let categoriesListener = null; 
+        let allCategories = [
+            // Adicionando categorias padrão para a demonstração
+            { id: '1', name: 'Farmácia', createdAt: new Date() },
+            { id: '2', name: 'Engenharia', createdAt: new Date() },
+            { id: '3', name: 'Manutenção', createdAt: new Date() }
+        ]; 
 
         // Elementos do DOM
         const authStatus = document.getElementById('auth-status');
@@ -302,18 +271,30 @@
         const filterDateEnd = document.getElementById('filter-date-end');
 
 
-        // Inicializar Firebase
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            storage = getStorage(app); 
-            setLogLevel('Debug'); 
-        } catch (e) {
-            console.error("Erro ao inicializar o Firebase:", e);
-            authStatus.textContent = "Erro ao conectar ao Firebase.";
-            showMessage("Erro ao inicializar: " + e.message, "error");
-        }
+        // MUDANÇA: Inicialização do App (Modo Demo)
+        // Usamos DOMContentLoaded para garantir que o HTML foi carregado
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Carregar e ouvir categorias
+            loadCategories(); 
+            
+            // 2. Habilitar listeners de documentos
+            loadDocuments();
+
+            // Listeners para os filtros (agora dependentes do carregamento de categorias)
+            filterRef.addEventListener('input', renderDocuments);
+            filterDateStart.addEventListener('change', renderDocuments); 
+            filterDateEnd.addEventListener('change', renderDocuments);   
+
+            // Listener para a Aba Categorias
+            categoryForm.addEventListener('submit', addCategory);
+
+            // Listener para o formulário principal
+            archiveForm.addEventListener('submit', archiveDocumentSubmit);
+
+            // Mostra a aba de arquivamento por padrão
+            showSection('archiving'); 
+        });
+
         
         // =======================================================
         // FUNÇÃO CUSTOMIZADA DE MODAL
@@ -330,16 +311,13 @@
                 if (confirmColor === 'red') {
                      confirmClassString = 'bg-red-600 hover:bg-red-700'; // Default para vermelho (exclusão)
                 } else if (confirmColor === 'emerald') {
-                    // Usando emerald como cor alternativa para o modal (por exemplo, confirmação não-destrutiva)
                     confirmClassString = 'bg-emerald-600 hover:bg-emerald-700';
                 }
 
-                // CORREÇÃO: Usar split e spread syntax para adicionar classes separadamente
                 modalConfirmBtn.classList.add(...confirmClassString.split(' '));
                 
                 customModal.classList.remove('hidden');
 
-                // Garante que os listeners sejam limpos antes de adicionar novos
                 const handleConfirm = () => {
                     customModal.classList.add('hidden');
                     modalConfirmBtn.removeEventListener('click', handleConfirm);
@@ -365,7 +343,8 @@
         function showDetailsModal(docData) {
             modalDocTitle.textContent = `Documento: ${docData.ref || 'Sem Número'}`;
             
-            const date = docData.createdAt ? new Date(docData.createdAt.seconds * 1000).toLocaleString('pt-BR') : 'Data indisponível';
+            // CORREÇÃO: docData.createdAt agora é um objeto Date, não um Timestamp do Firebase
+            const date = docData.createdAt ? docData.createdAt.toLocaleString('pt-BR') : 'Data indisponível';
 
             modalDocDetailsList.innerHTML = `
                 <li class="py-2"><span class="font-semibold text-gray-600">Setor:</span> ${docData.sector || 'Nenhum'}</li>
@@ -385,7 +364,8 @@
                             </svg>
                             ${file.fileName}
                         </span>
-                        <a href="${file.link}" target="_blank" rel="noopener noreferrer" class="py-2 px-4 border border-emerald-600 text-emerald-600 text-sm font-medium rounded-lg hover:bg-emerald-50 transition duration-150 flex-shrink-0">
+                        <!-- MUDANÇA: Link de visualização agora é um link '#' pois não há upload real -->
+                        <a href="#" target="_blank" rel="noopener noreferrer" class="py-2 px-4 border border-emerald-600 text-emerald-600 text-sm font-medium rounded-lg hover:bg-emerald-50 transition duration-150 flex-shrink-0" onclick="event.preventDefault(); showMessage('Visualização desabilitada no modo demo.', 'warning')">
                             Visualizar
                         </a>
                     `;
@@ -401,7 +381,7 @@
         // NOVO: Listeners para fechar o Modal de Detalhes
         detailsModalCloseBtn.addEventListener('click', () => detailsModal.classList.add('hidden'));
         detailsModal.addEventListener('click', (e) => {
-            if (e.target === detailsModal) { // Permite fechar clicando no fundo
+            if (e.target === detailsModal) {
                 detailsModal.classList.add('hidden');
             }
         });
@@ -412,12 +392,8 @@
         // =======================================================
         
         function showSection(sectionId) {
-            // Esconde todas as seções
             Object.values(sections).forEach(section => section.classList.add('hidden'));
-            // Mostra a seção desejada
             sections[sectionId].classList.remove('hidden');
-
-            // Atualiza o estado visual dos botões
             tabButtons.forEach(btn => {
                 if (btn.getAttribute('data-section') === sectionId) {
                     btn.classList.add('active');
@@ -429,126 +405,48 @@
             });
         }
         
-        // Listener de Abas
         tabButtons.forEach(btn => {
             btn.addEventListener('click', () => {
                 showSection(btn.getAttribute('data-section'));
             });
         });
 
-        // Autenticação
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                authStatus.textContent = `Logado como: ${userId.substring(0, 8)}...`;
-
-                // Definir os caminhos das coleções (privada para o usuário)
-                const userPath = `/artifacts/${appId}/users/${userId}`;
-                documentsCollectionRef = collection(db, `${userPath}/documentos`);
-                categoriesCollectionRef = collection(db, `${userPath}/categorias`);
-                
-                // 1. Carregar e ouvir categorias primeiro
-                loadCategories(); 
-                
-                // 2. Habilitar listeners de documentos e formulário principal
-                formSection.classList.remove('hidden');
-                archivedDocuments.classList.remove('hidden');
-                submitButton.disabled = false;
-                loadDocuments();
-
-                // Listeners para os filtros (agora dependentes do carregamento de categorias)
-                filterRef.addEventListener('input', renderDocuments);
-                filterDateStart.addEventListener('change', renderDocuments); 
-                filterDateEnd.addEventListener('change', renderDocuments);   
-
-                // Listener para a Aba Categorias
-                categoryForm.addEventListener('submit', addCategory);
-
-                // Mostra a aba de arquivamento por padrão
-                showSection('archiving'); 
-
-            } else {
-                authStatus.textContent = "Autenticando...";
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Erro na autenticação:", error);
-                    authStatus.textContent = "Falha na autenticação.";
-                    showMessage("Falha na autenticação: " + error.message, "error");
-                }
-            }
-        });
+        // MUDANÇA: Autenticação removida
         
         // =======================================================
-        // FUNÇÕES DE CATEGORIAS
+        // FUNÇÕES DE CATEGORIAS (MOCK)
         // =======================================================
 
         function loadCategories() {
-            if (!categoriesCollectionRef) return;
-            if (categoriesListener) categoriesListener(); 
-
-            const q = query(categoriesCollectionRef, orderBy('name'));
-
-            categoriesListener = onSnapshot(q, (querySnapshot) => {
-                allCategories = []; 
-                querySnapshot.forEach((doc) => {
-                    allCategories.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Atualiza o <select> principal e o <select> de filtro
-                renderCategorySelects(allCategories);
-                
-                // Atualiza a lista na aba de Cadastro de Categorias
-                renderCategoriesList(allCategories);
-                
-                // Já que as categorias mudaram, renderiza os documentos novamente (para atualizar os filtros)
-                renderDocuments();
-                
-            }, (error) => {
-                console.error("Erro ao carregar categorias: ", error);
-                showMessage("Erro ao carregar categorias: " + error.message, "error");
-            });
+            // Apenas renderiza as categorias do array global
+            renderCategorySelects(allCategories);
+            renderCategoriesList(allCategories);
         }
         
         function renderCategorySelects(categories) {
-            // 1. SELECT principal (Formulário de Arquivamento)
             docSectorSelect.innerHTML = '';
             docSectorSelect.disabled = false;
-
             let defaultOption = document.createElement('option');
             defaultOption.value = "";
             defaultOption.textContent = "Nenhum / Geral";
             docSectorSelect.appendChild(defaultOption);
 
-            // 2. SELECT de Filtro
             filterSectorSelect.innerHTML = '';
             filterSectorSelect.disabled = false;
-
             let filterAllOption = document.createElement('option');
             filterAllOption.value = "";
             filterAllOption.textContent = "Todos os Setores";
             filterSectorSelect.appendChild(filterAllOption);
 
             categories.forEach(category => {
-                // Adiciona ao Select Principal
                 let option = document.createElement('option');
                 option.value = category.name;
                 option.textContent = category.name;
-                docSectorSelect.appendChild(option);
-                
-                // Adiciona ao Select de Filtro
-                let filterOption = document.createElement('option');
-                filterOption.value = category.name;
-                filterOption.textContent = category.name;
-                filterSectorSelect.appendChild(filterOption);
+                docSectorSelect.appendChild(option.cloneNode(true));
+                filterSectorSelect.appendChild(option);
             });
             
-            // Adiciona o listener para o filtro (só depois que o Select está carregado)
-            filterSectorSelect.removeEventListener('change', renderDocuments); // Evita duplicidade
+            filterSectorSelect.removeEventListener('change', renderDocuments);
             filterSectorSelect.addEventListener('change', renderDocuments);
         }
 
@@ -561,46 +459,48 @@
                 return;
             }
 
-            try {
-                // Verifica se a categoria já existe (case-insensitive)
-                const exists = allCategories.some(c => c.name.toLowerCase() === name.toLowerCase());
-                if (exists) {
-                    showMessage("Esta categoria já existe.", "warning");
-                    return;
-                }
-                
-                await addDoc(categoriesCollectionRef, {
-                    name: name,
-                    createdAt: new Date()
-                });
-                
-                newCategoryName.value = '';
-                showMessage(`Categoria "${name}" adicionada com sucesso!`, "success");
-            } catch (error) {
-                console.error("Erro ao adicionar categoria: ", error);
-                showMessage("Erro ao adicionar categoria: " + error.message, "error");
+            // Verifica se a categoria já existe (case-insensitive)
+            const exists = allCategories.some(c => c.name.toLowerCase() === name.toLowerCase());
+            if (exists) {
+                showMessage("Esta categoria já existe.", "warning");
+                return;
             }
+            
+            // Adiciona ao array local
+            const newCategory = {
+                id: Date.now().toString(), // ID local
+                name: name,
+                createdAt: new Date()
+            };
+            allCategories.push(newCategory);
+            
+            newCategoryName.value = '';
+            showMessage(`Categoria "${name}" adicionada com sucesso!`, "success");
+            
+            // Atualiza a UI
+            loadCategories();
         }
 
         async function deleteCategory(id, name) {
              const confirmed = await showConfirmModal(
                  "Confirmar Exclusão de Categoria", 
-                 `Tem certeza que deseja excluir a categoria "${name}"? Esta ação é irreversível e documentos arquivados com esta categoria ficarão sem um setor definido.`,
-                 'red' // Cor do botão de confirmação
+                 `Tem certeza que deseja excluir a categoria "${name}"?`,
+                 'red'
             );
 
             if (!confirmed) {
                 return;
             }
 
-            try {
-                const docRef = doc(categoriesCollectionRef, id);
-                await deleteDoc(docRef);
-                showMessage(`Categoria "${name}" excluída com sucesso!`, "success");
-            } catch (error) {
-                console.error("Erro ao excluir categoria: ", error);
-                showMessage("Erro ao excluir categoria: " + error.message, "error");
-            }
+            // Remove do array local
+            allCategories = allCategories.filter(category => category.id !== id);
+            
+            showMessage(`Categoria "${name}" excluída com sucesso!`, "success");
+            
+            // Atualiza a UI
+            loadCategories();
+            // Atualiza os documentos (para remover filtros)
+            renderDocuments();
         }
         
         function renderCategoriesList(categories) {
@@ -610,6 +510,9 @@
                  categoriesList.innerHTML = '<li class="p-3 bg-gray-50 rounded-lg text-gray-500">Nenhuma categoria cadastrada.</li>';
                  return;
             }
+            
+            // Ordena por nome
+            categories.sort((a, b) => a.name.localeCompare(b.name));
             
             categories.forEach(category => {
                 const listItem = document.createElement('li');
@@ -625,7 +528,6 @@
                 categoriesList.appendChild(listItem);
             });
             
-            // Adicionar listeners aos botões de exclusão
             categoriesList.querySelectorAll('.delete-category-btn').forEach(button => {
                 button.addEventListener('click', () => {
                     const id = button.getAttribute('data-id');
@@ -637,31 +539,11 @@
 
 
         // =======================================================
-        // FUNÇÕES DE DOCUMENTOS (RESTANTE DO CÓDIGO)
+        // FUNÇÕES DE DOCUMENTOS (MOCK)
         // =======================================================
 
         function loadDocuments() {
-            if (!documentsCollectionRef) return;
-
-            if (documentsListener) {
-                documentsListener(); 
-            }
-
-            const q = query(documentsCollectionRef);
-
-            documentsListener = onSnapshot(q, (querySnapshot) => {
-                
-                allDocuments = []; 
-                querySnapshot.forEach((doc) => {
-                    allDocuments.push({ id: doc.id, ...doc.data() });
-                });
-
-                renderDocuments();
-                
-            }, (error) => {
-                console.error("Erro ao carregar documentos: ", error);
-                showMessage("Erro ao carregar documentos: " + error.message, "error");
-            });
+            renderDocuments();
         }
 
         function renderDocuments() {
@@ -683,7 +565,8 @@
                 let dateMatch = true;
 
                 if (docData.createdAt) {
-                    const docDate = new Date(docData.createdAt.seconds * 1000);
+                    // CORREÇÃO: docData.createdAt agora é um objeto Date
+                    const docDate = docData.createdAt; 
 
                     if (startDateFilter && docDate < startDateFilter) {
                         dateMatch = false;
@@ -704,7 +587,8 @@
                 noDocuments.textContent = "Nenhum documento corresponde aos filtros.";
                 documentsList.appendChild(noDocuments);
             } else {
-                filteredDocs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                // Ordena por data (mais recente primeiro)
+                filteredDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
                 filteredDocs.forEach(docData => {
                     const card = createDocumentCard(docData);
@@ -712,71 +596,19 @@
                 });
             }
         }
-
-        async function deleteSingleFile(docId, file) {
-            if (!documentsCollectionRef || !storage) return;
-
-             const confirmed = await showConfirmModal(
-                 "Confirmar Exclusão de Anexo", 
-                 `Tem certeza que deseja excluir o anexo "${file.fileName}"? Esta ação é permanente.`,
-                 'red'
-            );
-
-            if (!confirmed) {
-                return;
-            }
-
-            try {
-                if (file.storagePath) {
-                    const fileRef = ref(storage, file.storagePath);
-                    await deleteObject(fileRef);
-                    showMessage(`Arquivo "${file.fileName}" excluído do Storage.`, "success");
-                }
-
-                const docRef = doc(documentsCollectionRef, docId);
-                
-                await updateDoc(docRef, {
-                    files: arrayRemove(file)
-                });
-
-                showMessage("Referência do arquivo removida do documento.", "success");
-                
-            } catch (error) {
-                console.error("Erro ao excluir arquivo: ", error);
-                
-                if (error.code === 'storage/object-not-found') {
-                    showMessage("A referência ao arquivo foi removida, mas ele já não existia no Storage.", "warning");
-                    try {
-                        const docRef = doc(documentsCollectionRef, docId);
-                        await updateDoc(docRef, {
-                            files: arrayRemove(file)
-                        });
-                    } catch(e) { 
-                        console.error("Erro ao remover referência do Firestore: ", e);
-                        showMessage("Erro ao remover anexo: " + e.message, "error");
-                    }
-                } else {
-                    showMessage("Erro ao excluir anexo: " + error.message, "error");
-                }
-            }
-        }
+        
+        // REMOVIDO: deleteSingleFile (Não estava sendo usado pela UI)
 
         // NOVO: Função para definir cores específicas por setor
         function getSectorColor(sectorName) {
             if (!sectorName) sectorName = 'Geral';
             const sName = sectorName.toLowerCase();
 
-            // 1. CORREÇÃO: Cores específicas solicitadas pelo usuário
             if (sName.includes('farmácia') || sName.includes('farmacia')) {
                 return 'pink';
             }
-            // (Você pode adicionar mais 'else if' aqui para outros setores)
-            // else if (sName.includes('engenharia')) {
-            //    return 'blue';
-            // }
-
-            // 2. Lógica de Hash para cores aleatórias (mas consistentes)
-            const colors = ['purple', 'orange', 'indigo', 'teal', 'cyan', 'green', 'yellow', 'emerald']; // Lista de cores do Tailwind
+            
+            const colors = ['purple', 'orange', 'indigo', 'teal', 'cyan', 'green', 'yellow', 'emerald'];
             let hash = 0;
             if (sectorName.length !== 0) {
                 for (let i = 0; i < sectorName.length; i++) {
@@ -792,21 +624,19 @@
             const card = document.createElement('div');
             card.className = 'p-4 border border-gray-200 rounded-lg shadow-sm bg-gray-50 flex flex-col justify-between items-start';
             
-            // CORREÇÃO: Usando a nova função para obter a cor
             const sectorName = docData.sector || 'Geral';
             const baseColor = getSectorColor(sectorName);
             
             const sectorClass = `bg-${baseColor}-100 text-${baseColor}-800`;
             const sectorHtml = docData.sector ? `<span class="inline-block rounded-full px-3 py-1 text-sm font-semibold ${sectorClass} mr-2 mb-2">${docData.sector}</span>` : '';
 
-
-            const date = docData.createdAt ? new Date(docData.createdAt.seconds * 1000).toLocaleString('pt-BR') : 'Data indisponível';
+            // CORREÇÃO: docData.createdAt agora é um objeto Date
+            const date = docData.createdAt ? docData.createdAt.toLocaleString('pt-BR') : 'Data indisponível';
 
             let attachmentsHtml = '';
             
-            // Lógica para exibir o primeiro anexo como link (para economizar espaço)
             if (docData.files && Array.isArray(docData.files) && docData.files.length > 0) {
-                const file = docData.files[0]; // Pega apenas o primeiro
+                const file = docData.files[0];
                 const remaining = docData.files.length - 1;
                 
                 attachmentsHtml = `
@@ -817,9 +647,6 @@
                         </span>
                         ${remaining > 0 ? `<span class="text-sm text-gray-500">+${remaining} outro(s)</span>` : ''}
                     </div>`;
-            } 
-            else if (docData.link) {
-                 attachmentsHtml = `<span class="w-full sm:w-auto text-center py-2 px-4 mb-2 sm:mb-0 border border-emerald-500 text-emerald-500 rounded-lg">Anexo (Link Antigo)</span>`;
             } else {
                  attachmentsHtml = '<span class="w-full sm:w-auto text-center py-2 px-4 mb-2 sm:mb-0 text-gray-400">Sem Anexos</span>';
             }
@@ -835,12 +662,11 @@
                         <p class="text-sm text-gray-500 mt-1">Arquivado em: ${date}</p>
                     </div>
                     <div class="flex-shrink-0 flex flex-col sm:flex-row sm:space-x-2 w-full sm:w-auto">
-                        <!-- MUDANÇA: O botão agora abre o Modal. A lógica de 'disabled' ainda é útil. -->
                         <button data-id="${docData.id}" class="view-doc-btn w-full sm:w-auto py-2 px-4 mb-2 sm:mb-0 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition duration-150 disabled:opacity-50" ${(!docData.files || docData.files.length === 0) ? 'disabled' : ''}>
                             Ver Documentação
                         </button>
                         
-                        <button data-id="${docData.id}" data-files-json="${encodeURIComponent(JSON.stringify(docData.files || []))}" data-storage-path="${docData.storagePath || ''}" class="delete-btn w-full sm:w-auto py-2 px-4 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition duration-150">Excluir Documento</button>
+                        <button data-id="${docData.id}" class="delete-btn w-full sm:w-auto py-2 px-4 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition duration-150">Excluir Documento</button>
                     </div>
                 </div>
                 
@@ -855,143 +681,105 @@
             // Botão de Excluir Documento (chama o Modal de Confirmação)
             card.querySelector('.delete-btn').addEventListener('click', async (e) => {
                 const id = e.currentTarget.getAttribute('data-id');
-                const filesJson = e.currentTarget.getAttribute('data-files-json');
-                const files = JSON.parse(decodeURIComponent(filesJson || '[]'));
-                const oldStoragePath = e.currentTarget.getAttribute('data-storage-path');
                 
                 const confirmed = await showConfirmModal(
                     "Confirmar Exclusão de Documento", 
-                    "Tem certeza que deseja excluir ESTE DOCUMENTO INTEIRO? Isso também excluirá TODOS os anexos de forma permanente.",
+                    "Tem certeza que deseja excluir ESTE DOCUMENTO? A ação não poderá ser desfeita (neste modo demo).",
                     'red'
                 );
 
                 if (confirmed) {
-                    await deleteDocument(id, files, oldStoragePath);
+                    await deleteDocument(id); // Não precisa mais passar 'files'
                 }
             });
             
-            // MUDANÇA: Botão Ver Documentação (chama o Modal de Detalhes)
+            // Botão Ver Documentação (chama o Modal de Detalhes)
             card.querySelector('.view-doc-btn').addEventListener('click', (e) => {
                 e.preventDefault();
-                // O docData está no escopo de createDocumentCard, então podemos usá-lo
-                showDetailsModal(docData);
+                // Encontra o docData mais recente do array global
+                const currentDocData = allDocuments.find(d => d.id === docData.id);
+                if (currentDocData) {
+                    showDetailsModal(currentDocData);
+                }
             });
-
-
-            // Lógica de exclusão de anexo individual (ainda necessária no Modal de Detalhes, mas removida do Card)
-            // Vamos manter a lógica de exclusão de anexo individual, mas ela foi movida para o Modal de Detalhes
-            // No entanto, o código antigo ainda a tem aqui. Para simplificar, vou remover a referência a 'delete-file-btn' do card.
-            // A lista de anexos no card agora é apenas visual (mostra o primeiro + contagem).
-            
-            // O código antigo tinha botões de exclusão de anexo individual no card.
-            // A nova UI do card (acima) não os tem mais, então não precisamos dos listeners aqui.
 
             return card;
         }
 
 
-        archiveForm.addEventListener('submit', async (e) => {
+        // MUDANÇA: Lógica de submit agora é local (MOCK)
+        async function archiveDocumentSubmit(e) {
             e.preventDefault();
-            if (!documentsCollectionRef || !storage) {
-                showMessage("Banco de dados ou Storage não está pronto.", "error");
-                return;
-            }
 
             setLoading(true);
             uploadProgress.classList.remove('hidden');
-            uploadProgress.textContent = 'Iniciando...';
+            uploadProgress.textContent = 'Iniciando simulação...';
 
             const fileInput = document.getElementById('doc-file');
             const files = fileInput.files;
 
             const docData = {
+                id: Date.now().toString(), // ID local
                 ref: document.getElementById('doc-ref').value,
                 sector: document.getElementById('doc-sector').value,
                 desc: document.getElementById('doc-desc').value,
-                createdAt: new Date(),
+                createdAt: new Date(), // Data local
                 files: []
             };
 
             try {
                 if (files.length > 0) {
-                    uploadProgress.textContent = `Fazendo upload de ${files.length} arquivo(s)...`;
+                    uploadProgress.textContent = `Simulando upload de ${files.length} arquivo(s)...`;
                     
-                    const uploadPromises = [];
-                    
+                    // Simula a criação de objetos de arquivo
                     for (const file of files) {
-                        const uniqueFileName = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
-                        // Caminho de upload (mantendo o caminho privado do usuário)
-                        const storagePath = `artifacts/${appId}/users/${userId}/documentos/${uniqueFileName}`;
-                        const storageRef = ref(storage, storagePath);
-
-                        const uploadTask = uploadBytes(storageRef, file).then(snapshot => {
-                            return getDownloadURL(snapshot.ref).then(downloadURL => {
-                                return {
-                                    link: downloadURL,
-                                    storagePath: storagePath,
-                                    fileName: file.name
-                                };
-                            });
+                        docData.files.push({
+                            link: "#", // Link falso
+                            storagePath: `mock/${Date.now()}-${file.name.replace(/\s/g, '_')}`, // Caminho falso
+                            fileName: file.name
                         });
-                        uploadPromises.push(uploadTask);
                     }
-
-                    const uploadedFiles = await Promise.all(uploadPromises);
-                    docData.files = uploadedFiles;
-
-                    uploadProgress.textContent = `Upload de ${uploadedFiles.length} arquivo(s) completo!`;
+                    
+                    // Simula o tempo de upload
+                    await new Promise(resolve => setTimeout(resolve, 1000)); 
+                    
+                    uploadProgress.textContent = `Upload de ${files.length} arquivo(s) completo!`;
                 
                 } else {
                     uploadProgress.textContent = "Nenhum arquivo anexado. Salvando apenas os dados.";
                 }
 
-                await addDoc(documentsCollectionRef, docData);
+                // Adiciona ao array local
+                allDocuments.push(docData);
                 
-                showMessage("Documento arquivado com sucesso!", "success");
+                // Atualiza a UI
+                renderDocuments();
+                
+                showMessage("Documento arquivado (em modo demo) com sucesso!", "success");
                 archiveForm.reset();
                 fileInput.value = '';
 
             } catch (error) {
-                console.error("Erro ao salvar documento ou fazer upload: ", error);
-                showMessage("Erro ao salvar: " + error.message, "error");
+                console.error("Erro na simulação: ", error);
+                showMessage("Erro na simulação: " + error.message, "error");
             } finally {
                 setLoading(false);
                 uploadProgress.textContent = '';
                 uploadProgress.classList.add('hidden');
             }
-        });
+        }
 
-        async function deleteDocument(id, files, oldStoragePath) {
-            if (!documentsCollectionRef || !storage) return;
+        // MUDANÇA: Lógica de exclusão agora é local (MOCK)
+        async function deleteDocument(id) {
+            // A confirmação já foi feita no listener do botão
             
-            if (files && files.length > 0) {
-                for (const file of files) {
-                    if (file.storagePath) {
-                        try {
-                            const fileRef = ref(storage, file.storagePath);
-                            await deleteObject(fileRef);
-                        } catch (error) {
-                            console.error(`Erro ao excluir ${file.storagePath}: `, error);
-                        }
-                    }
-                }
-            } else if (oldStoragePath) {
-                 try {
-                    const fileRef = ref(storage, oldStoragePath);
-                    await deleteObject(fileRef);
-                } catch (error) {
-                    console.error("Erro ao excluir arquivo antigo do Storage: ", error);
-                }
-            }
+            // Remove do array local
+            allDocuments = allDocuments.filter(doc => doc.id !== id);
 
-            try {
-                const docRef = doc(documentsCollectionRef, id);
-                await deleteDoc(docRef);
-                showMessage("Documento excluído (e anexos) com sucesso!", "success");
-            } catch (error) {
-                console.error("Erro ao excluir documento: ", error);
-                showMessage("Erro ao excluir do banco de dados: " + error.message, "error");
-            }
+            // Atualiza a UI
+            renderDocuments();
+            
+            showMessage("Documento excluído (em modo demo) com sucesso!", "success");
         }
 
         // Funções de UI
@@ -1007,17 +795,17 @@
             }
         }
 
-        function showMessage(message, type = "success") {
+        // MUDANÇA: Adicionada 'window.showMessage' para acesso global (para links de demo)
+        window.showMessage = function(message, type = "success") {
             const messageBox = document.getElementById('message-box');
             const messageText = document.getElementById('message-text');
             
-            // Mensagens de sucesso são em verde
             if (type === "error") {
                 messageBox.className = 'p-4 rounded-lg shadow-lg text-white bg-red-500';
             } else if (type === "warning") {
                  messageBox.className = 'p-4 rounded-lg shadow-lg text-white bg-yellow-500';
             } else {
-                messageBox.className = 'p-4 rounded-lg shadow-lg text-white bg-emerald-500'; // Alterado para emerald
+                messageBox.className = 'p-4 rounded-lg shadow-lg text-white bg-emerald-500';
             }
             
             messageText.textContent = message;
