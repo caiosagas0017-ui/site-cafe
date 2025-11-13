@@ -805,7 +805,8 @@
                 
                 const confirmed = await showConfirmModal(
                     "Confirmar Exclusão de Documento", 
-                    "Tem certeza que deseja excluir ESTE DOCUMENTO? A ação não poderá ser desfeita (neste modo demo).",
+                    // MUDANÇA: Removido "(neste modo demo)"
+                    "Tem certeza que deseja excluir ESTE DOCUMENTO? A ação não poderá ser desfeita.",
                     'red'
                 );
 
@@ -902,7 +903,8 @@
             // Atualiza a UI
             renderDocuments();
             
-            showMessage("Documento excluído (em modo demo) com sucesso!", "success");
+            // MUDANÇA: Removido "(em modo demo)"
+            showMessage("Documento excluído com sucesso!", "success");
         }
 
         // Funções de UI
