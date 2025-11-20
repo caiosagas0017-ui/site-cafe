@@ -703,43 +703,6 @@
                 archiveForm.reset();
                 fileInput.value = '';
                 unction validarEEnviar(event) {
-    // Impede o envio padrão do formulário (recarregar a página)
-    event.preventDefault();
-
-    // --- INÍCIO DA CONFIGURAÇÃO ---
-    
-    // 1. Selecione os campos pelo ID do HTML do seu outro sistema
-    const campoNF = document.getElementById('id-do-campo-nf');       // Ex: 'doc-ref'
-    const campoSetor = document.getElementById('id-do-campo-setor'); // Ex: 'doc-sector'
-
-    // --- LÓGICA DE VALIDAÇÃO ---
-
-    // Validação 1: Verifica se o campo NF está vazio
-    if (!campoNF.value.trim()) {
-        // Substitua 'alert' pela sua função de mensagem customizada, se tiver
-        alert("Atenção: O campo N° da NF é obrigatório.");
-        
-        // Coloca o foco no campo para facilitar para o usuário
-        campoNF.focus();
-        
-        // O 'return' é o mais importante: ele CANCELA a função aqui.
-        // O código abaixo dele não será executado (não salvará).
-        return; 
-    }
-
-    // Validação 2: Verifica se o Setor foi selecionado
-    if (!campoSetor.value) {
-        alert("Atenção: Por favor, selecione um Setor.");
-        campoSetor.focus();
-        return; // Cancela a operação
-    }
-
-    // --- SUCESSO ---
-    // Se o código chegou até aqui, significa que passou pelas travas.
-    // Coloque sua lógica de salvar/enviar aqui embaixo.
-    console.log("Validação passou! Salvando dados...");
-}
-
             } catch (error) {
                 console.error("Erro na simulação: ", error);
                 showMessage("Erro na simulação: " + error.message, "error");
