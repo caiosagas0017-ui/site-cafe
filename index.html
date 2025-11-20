@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-R">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Arquivo de Documentos</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -560,7 +560,8 @@
             for (let i = 0; i < sectorName.length; i++) {
                 hash = sectorName.charCodeAt(i) + ((hash << 5) - hash);
             }
-            return colors[Math.abs(hash) % colors.length];
+            const colorIndex = Math.abs(hash) % colors.length;
+            return colors[colorIndex];
         }
 
 
@@ -662,6 +663,24 @@
 
         async function archiveDocumentSubmit(e) {
             e.preventDefault();
+
+            // +++ NOVA VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS +++
+            const refInput = document.getElementById('doc-ref');
+            const sectorInput = document.getElementById('doc-sector');
+
+            if (!refInput.value.trim()) {
+                showMessage("Atenção: É obrigatório preencher o N° da NF.", "warning");
+                refInput.focus(); 
+                return; 
+            }
+
+            if (!sectorInput.value) {
+                showMessage("Atenção: É obrigatório selecionar um Setor / Categoria.", "warning");
+                sectorInput.focus();
+                return; 
+            }
+            // +++ FIM DA VALIDAÇÃO +++
+
             setLoading(true);
             uploadProgress.classList.remove('hidden');
             uploadProgress.textContent = 'Iniciando simulação...';
