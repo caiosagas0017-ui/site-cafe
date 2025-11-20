@@ -364,7 +364,7 @@
             showSection('archiving'); 
         });
 
-        // Helper para ID único 
+        // Helper para ID único (Demo)
         const generateMockId = () => Math.random().toString(36).substring(2, 10);
 
         
@@ -702,7 +702,7 @@
                 showMessage("Documento arquivado com sucesso!", "success");
                 archiveForm.reset();
                 fileInput.value = '';
-                unction validarEEnviar(event) {
+
             } catch (error) {
                 console.error("Erro na simulação: ", error);
                 showMessage("Erro na simulação: " + error.message, "error");
