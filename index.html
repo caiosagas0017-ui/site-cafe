@@ -1,970 +1,666 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Arquivo de Documentos</title>
+    <title>DocFlow - Gestão Profissional de Arquivos</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Fonte Inter */
-        body {
-            font-family: "Inter", sans-serif;
+        body { font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.01em; }
+        
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+        /* --- Sidebar Premium & Estável --- */
+        #sidebar {
+            width: 280px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-right: 1px solid #f1f5f9;
+            overflow: hidden;
         }
-        /* Estilo para a caixa de mensagem personalizada */
-        #message-box {
-            position: fixed;
-            top: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            transition: top 0.5s ease-in-out;
-            z-index: 1000;
+
+        #sidebar.sidebar-collapsed {
+            width: 88px !important;
         }
-        #message-box.show {
-            top: 20px;
+
+        /* Animação de Texto sem "pulos" */
+        .sidebar-text {
+            display: inline-block;
+            white-space: nowrap;
+            transition: opacity 0.3s ease, transform 0.3s ease, max-width 0.3s ease;
+            max-width: 200px;
+            opacity: 1;
         }
-        /* ATUALIZADO: Cor da Aba Ativa (Esmeralda) */
-        .tab-btn.active {
-            background-color: rgb(5 150 105); /* emerald-600 */
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+        .sidebar-collapsed .sidebar-text {
+            opacity: 0;
+            max-width: 0;
+            transform: translateX(-10px);
+            pointer-events: none;
         }
-        /* Estilo para os Modais (para garantir que funcionem corretamente) */
-        #custom-modal.hidden, #details-modal.hidden {
-            display: none;
+
+        .sidebar-item {
+            margin: 0.25rem 0.75rem;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            border-radius: 1rem;
+            transition: all 0.2s ease;
+            color: #64748b;
+            cursor: pointer;
+            border: none;
+            background: transparent;
         }
-        #custom-modal:not(.hidden), #details-modal:not(.hidden) {
-            display: flex; /* Garante que o modal apareça quando a classe hidden é removida */
+
+        .sidebar-collapsed .sidebar-item {
+            justify-content: center;
+            padding: 0.75rem 0;
         }
-        /* CORREÇÃO: Força o z-index dos modais */
-        #details-modal { z-index: 50; }
-        #custom-modal  { z-index: 100; }
+
+        .sidebar-item.active {
+            background-color: #f0f7ff;
+            color: #2563eb;
+        }
+
+        .sidebar-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* User Profile Transition */
+        .user-profile {
+            padding: 0.75rem;
+            margin: 0 0.75rem 1rem 0.75rem;
+            background-color: #f8fafc;
+            border-radius: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-collapsed .user-profile {
+            background-color: transparent;
+            padding: 0.5rem 0;
+            justify-content: center;
+        }
+
+        /* Modern Card Styling */
+        .doc-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid #f1f5f9;
+        }
+        .doc-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05);
+            border-color: #e2e8f0;
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<!-- ATUALIZADO: Cor de fundo (gray-50) */ -->
-<body class="bg-gray-50 text-gray-800 p-4 md:p-8">
+<body class="bg-[#fbfcfd] text-slate-900 overflow-hidden h-screen flex">
 
-        <div class="max-w-6xl mx-auto"> <!-- Aumentado max-w para acomodar o novo layout -->
-        <header class="mb-8 p-6 bg-white rounded-xl shadow-lg">
-            <!-- ATUALIZADO: Cor do Título (Esmeralda) -->
-            <h1 class="text-3xl font-bold text-center text-emerald-600">Sistema de Arquivo de Documentos</h1>
-            <p class="text-center text-gray-600 mt-2">Arquive suas Notas Fiscais (NF), Ordens de Compra (OC) e Cotações. (Sistema Desenvolvido por Caio Sagas)</p>
-            <div id="auth-status" class="text-center text-sm text-yellow-600 mt-4 font-semibold">
-            </div>
-        </header>
-        
-        <nav class="flex space-x-2 p-1 bg-white rounded-xl shadow-lg mb-8">
-            <button data-section="archiving" class="tab-btn w-1/2 py-2 px-4 rounded-lg text-sm font-medium transition-colors active">Arquivo</button>
-            <button data-section="categories" class="tab-btn w-1/2 py-2 px-4 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100">Cadastro de Categorias</button>
-        </nav>
-
-        <div id="message-box" class="p-4 rounded-lg shadow-lg text-white">
-            <span id="message-text"></span>
-        </div>
-
-        <!-- SEÇÃO 1: ARQUIVAMENTO (Conteúdo Principal) -->
-        <section id="archiving-section">
-            <section id="form-section" class="mb-8 p-6 bg-white rounded-xl shadow-lg">
-                <!-- ATUALIZADO: Cor do Título (Esmeralda) -->
-                <h2 class="text-2xl font-semibold mb-6 border-b pb-3 text-emerald-600">Arquivar Novo Documento</h2>
-                <form id="archive-form" class="space-y-6">
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        
-                        <div>
-                            <label for="doc-ref" class="block text-sm font-medium text-gray-700">N° da NF</label>
-                            <!-- ATUALIZADO: Cores de Foco (Esmeralda) -->
-                            <input type="text" id="doc-ref" name="doc-ref" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ex: 12345">
-                        </div>
-
-                        <div>
-                            <label for="doc-oc" class="block text-sm font-medium text-gray-700">N° da OC</label>
-                            <!-- ATUALIZADO: Cores de Foco (Esmeralda) -->
-                            <input type="text" id="doc-oc" name="doc-oc" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ex: 9876">
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label for="doc-sector" class="block text-sm font-medium text-gray-700">Setor / Categoria</label>
-                            <!-- ATUALIZADO: Cores de Foco (Esmeralda) -->
-                            <select id="doc-sector" name="doc-sector" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white" disabled>
-                                <option value="">Carregando categorias...</option>
-                            </select>
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label for="doc-desc" class="block text-sm font-medium text-gray-700">Descrição / Fornecedor</label>
-                            <!-- ATUALIZADO: Cores de Foco (Esmeralda) -->
-                            <textarea id="doc-desc" name="doc-desc" rows="3" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ex: Compra de materiais para manutenção"></textarea>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="doc-file" class="block text-sm font-medium text-gray-700">Anexar Arquivo(s)</label>
-                        <!-- ATUALIZADO: Cores de Foco (Esmeralda) -->
-                        <input type="file" id="doc-file" name="doc-file" multiple class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-3 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
-                        <p class="mt-1 text-xs text-gray-500">Selecione um ou mais arquivos (PDF, XML, JPG, etc.) do seu computador.</p>
-                    </div>
-
-                    <div id="upload-progress" class="text-sm text-emerald-600 hidden"></div>
-
-                    <div class="text-right">
-                        <!-- ATUALIZADO: Cor do Botão (Esmeralda) -->
-                        <button type="submit" class="inline-flex justify-center py-3 px-6 border border-transparent shadow-md text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
-                            <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span id="button-text">Arquivar Documento</span>
-                        </button>
-                    </div>
-                </form>
-            </section>
-
-            <section id="archived-documents" class="bg-white rounded-xl shadow-lg p-6">
-                <!-- ATUALIZADO: Cor do Título (Esmeralda) -->
-                <h2 class="text-2xl font-semibold mb-6 border-b pb-3 text-emerald-600">Documentos Arquivados</h2>
-                
-                <div id="filter-section" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div>
-                        <label for="filter-ref" class="block text-sm font-medium text-gray-700">Filtrar por Número (NF ou OC)</label>
-                        <!-- ATUALIZADO: Cores de Foco (Esmeralda) -->
-                        <input type="text" id="filter-ref" name="filter-ref" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Digite um número...">
-                    </div>
-                    
-                    <div>
-                        <label for="filter-sector" class="block text-sm font-medium text-gray-700">Filtrar por Setor</label>
-                        <!-- ATUALIZADO: Cores de Foco (Esmeralda) -->
-                        <select id="filter-sector" name="filter-sector" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white" disabled>
-                            <option value="">Carregando...</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="filter-date-start" class="block text-sm font-medium text-gray-700">Data Inicial</label>
-                        <!-- ATUALIZADO: Cores de Foco (Esmeralda) -->
-                        <input type="date" id="filter-date-start" name="filter-date-start" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
-                    </div>
-                    
-                    <div>
-                        <label for="filter-date-end" class="block text-sm font-medium text-gray-700">Data Final</label>
-                        <!-- ATUALIZADO: Cores de Foco (Esmeralda) -->
-                        <input type="date" id="filter-date-end" name="filter-date-end" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
-                    </div>
-
+    <!-- Sidebar -->
+    <aside id="sidebar" class="z-50">
+        <div class="p-6 flex items-center justify-between min-h-[88px] overflow-hidden">
+            <div class="flex items-center gap-3 overflow-hidden">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex-shrink-0 flex items-center justify-center text-white shadow-lg shadow-blue-200/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                    </svg>
                 </div>
-                
-                <div id="documents-list" class="space-y-3">
-                    <p id="no-documents" class="text-gray-500 text-center">Nenhum documento arquivado ainda.</p>
-                </div>
-
-                <div id="pagination-container" class="flex justify-between items-center mt-6 pt-4 border-t border-gray-200 hidden">
-                    <button id="prev-page-btn" class="py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                        Anterior
-                    </button>
-                    <span id="page-info" class="text-sm font-medium text-gray-700">Página 1 de 1</span>
-                    <button id="next-page-btn" class="py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                        Próxima
-                    </button>
-                </div>
-
-            </section>
-        </section>
-        
-        <section id="categories-section" class="p-6 bg-white rounded-xl shadow-lg hidden">
-            <!-- ATUALIZADO: Cor (Esmeralda) -->
-            <h2 class="text-2xl font-semibold mb-6 border-b pb-3 text-emerald-600">Cadastro e Gestão de Categorias (Setores)</h2>
-            
-            <!-- ATUALIZADO: Cor (Esmeralda) -->
-            <div class="mb-8 p-4 border border-emerald-100 bg-emerald-50 rounded-lg">
-                <h3 class="text-lg font-medium mb-3 text-emerald-800">Adicionar Nova Categoria</h3>
-                <form id="category-form" class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3">
-                    <input type="text" id="new-category-name" class="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500" placeholder="Nome da Categoria (Ex: Recursos Humanos)" required>
-                    <button type="submit" id="category-submit-btn" class="inline-flex justify-center py-3 px-6 border border-transparent shadow-md text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">Adicionar</button>
-                </form>
+                <h1 class="font-extrabold text-xl tracking-tighter text-slate-800 sidebar-text">DocFlow<span class="text-blue-600">.</span></h1>
             </div>
-
-            <h3 class="text-xl font-medium mb-4 border-b pb-2">Categorias Ativas</h3>
-            <ul id="categories-list" class="space-y-3">
-                <li class="p-3 bg-gray-50 rounded-lg text-gray-500">Carregando categorias...</li>
-            </ul>
-        </section>
-        
-    </div>
-
-    <!-- Custom Confirmation Modal (Modal de Confirmação) -->
-    <div id="custom-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
-            <h3 id="modal-title" class="text-xl font-bold text-gray-900 mb-4">Confirmação</h3>
-            <p id="modal-message" class="text-gray-700 mb-6">Você tem certeza desta ação?</p>
-            <div class="flex justify-end space-x-3">
-                <button id="modal-cancel-btn" class="py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition duration-150">Cancelar</button>
-                <button id="modal-confirm-btn" class="py-2 px-4 border border-transparent rounded-lg text-white bg-red-600 hover:bg-red-700 transition duration-150">Confirmar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Details Modal (Modal de Detalhes do Documento) -->
-    <div id="details-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center">
-        <div id="details-modal-content" data-current-doc-id="" class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 md:p-8 m-4 max-h-[90vh] flex flex-col">
-            <button id="details-modal-close-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <button onclick="toggleSidebar()" class="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
             </button>
-            
-            <!-- ATUALIZADO: Cor (Esmeralda) -->
-            <h3 id="modal-doc-title" class="text-2xl font-bold text-emerald-600 mb-6 border-b pb-3 flex-shrink-0">Detalhes do Documento</h3>
-            
-            <div class="overflow-y-auto pr-2">
-                <ul id="modal-doc-details-list" class="divide-y divide-gray-200 mb-6">
-                </ul>
-                
-                <div id="modal-doc-edit-form" class="space-y-4 mb-6 hidden">
-                </div>
-                
-                <div id="modal-attachments-container">
-                    <h4 class="text-xl font-semibold text-gray-800 mb-4">Anexos</h4>
-                    <ul id="modal-doc-files-list" class="space-y-3 mb-6">
-                    </ul>
+        </div>
 
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Adicionar Novos Anexos</h4>
-                        <div class="space-y-4">
-                            <!-- ATUALIZADO: Cor (Esmeralda) -->
-                            <input type="file" id="modal-add-files-input" multiple class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-3 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
-                            <button id="modal-add-files-btn" class="inline-flex justify-center py-2 px-5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
-                                Adicionar Anexos
-                            </button>
+        <nav class="flex-1 py-4 space-y-1 overflow-y-auto custom-scroll overflow-x-hidden">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] px-8 mb-4 sidebar-text">Principal</p>
+            
+            <button onclick="switchView('all')" id="nav-all" class="sidebar-item active w-full group">
+                <div class="sidebar-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+                <span class="sidebar-text ml-3 font-semibold">Todos Arquivos</span>
+            </button>
+            
+            <button onclick="switchView('categories')" id="nav-categories" class="sidebar-item w-full group">
+                <div class="sidebar-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                </div>
+                <span class="sidebar-text ml-3 font-semibold">Categorias</span>
+            </button>
+            
+            <div class="pt-8">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] px-8 mb-4 sidebar-text">Filtros</p>
+                <div id="quickCategories" class="space-y-1"></div>
+            </div>
+        </nav>
+
+        <div class="user-profile">
+            <div class="w-9 h-9 flex-shrink-0 rounded-xl bg-white shadow-sm flex items-center justify-center text-blue-600 font-bold text-xs border border-slate-100" id="userInitial">AD</div>
+            <div class="flex flex-col min-w-0 sidebar-text">
+                <span class="text-xs font-bold text-slate-800 truncate leading-none mb-1">Utilizador Ativo</span>
+                <span class="text-[9px] text-emerald-500 font-bold uppercase tracking-tighter">Guardado na Nuvem</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <header class="h-20 glass-header border-b border-slate-100 flex items-center justify-between px-8 flex-shrink-0 z-40">
+            <div class="flex items-center gap-6 flex-1">
+                <div id="searchContainer" class="relative max-w-xl w-full group">
+                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-300 group-focus-within:text-blue-500 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Pesquisar por fornecedor, NF ou OC..." class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all outline-none">
+                </div>
+            </div>
+            <button onclick="toggleModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl text-sm font-bold flex items-center gap-2 transition-all shadow-xl shadow-blue-500/20 active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                <span>Novo Arquivo</span>
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 custom-scroll">
+            <!-- Loading -->
+            <div id="initialLoading" class="flex flex-col items-center justify-center h-full gap-4">
+                <div class="loading-spinner"></div>
+                <p class="text-sm font-bold text-slate-400 animate-pulse">Sincronizando com a Nuvem...</p>
+            </div>
+
+            <!-- Docs View -->
+            <div id="docsView" class="hidden">
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-10">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Arquivo Central</h2>
+                        <div class="flex items-center gap-3 text-slate-400 text-sm font-medium">
+                            <span class="flex items-center gap-1.5 bg-white border border-slate-100 px-3 py-1 rounded-full shadow-sm">
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                <span id="stat-total" class="text-slate-900 font-bold">0</span> Itens
+                            </span>
                         </div>
                     </div>
+                    
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-2 bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm">
+                            <div class="px-3">
+                                <label class="text-[9px] font-bold text-slate-400 uppercase block mb-0.5 tracking-wider">Intervalo de Datas</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="date" id="startDate" class="text-xs font-bold text-slate-600 outline-none bg-transparent" onchange="renderDocs()">
+                                    <span class="text-slate-200">/</span>
+                                    <input type="date" id="endDate" class="text-xs font-bold text-slate-600 outline-none bg-transparent" onchange="renderDocs()">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center overflow-hidden">
+                            <div class="pl-4 text-slate-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                            </div>
+                            <select id="filterCategory" onchange="renderDocs()" class="text-sm px-3 py-3 pr-10 outline-none font-bold text-slate-700 bg-transparent cursor-pointer appearance-none">
+                                <option value="all">Todas Categorias</option>
+                            </select>
+                        </div>
+                        <button onclick="resetFilters()" class="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                    </div>
                 </div>
-            </div>
-            
-            <div id="modal-footer" class="mt-6 pt-6 border-t border-gray-200 flex-shrink-0 text-right">
-                <!-- ATUALIZADO: Cor (Esmeralda) -->
-                <button id="modal-save-btn" class="hidden inline-flex justify-center py-2 px-6 border border-transparent shadow-md text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
-                    Salvar Alterações
-                </button>
+                <div id="docsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 mb-12"></div>
             </div>
 
+            <!-- Categories View -->
+            <div id="categoriesView" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div class="max-w-4xl">
+                    <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight mb-8">Gestão de Categorias</h2>
+                    <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm mb-10 flex flex-col md:flex-row gap-4 items-end">
+                        <div class="flex-1 w-full">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Nome</label>
+                            <input type="text" id="newCatInput" placeholder="Ex: Financeiro, Logística..." class="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all font-semibold">
+                        </div>
+                        <button onclick="addCategory()" class="bg-slate-900 text-white px-8 py-3.5 rounded-2xl font-bold hover:bg-blue-600 transition-all shadow-lg">Criar Categoria</button>
+                    </div>
+                    <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+
+            <div id="emptyState" class="hidden flex flex-col items-center justify-center py-32 text-center">
+                <div class="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mb-6 text-slate-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Sem arquivos encontrados</h3>
+                <button onclick="resetFilters()" class="mt-6 text-blue-600 font-bold hover:underline">Limpar filtros</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div id="modalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden border border-white/20">
+            <div class="p-8 border-b border-slate-50 flex justify-between items-center">
+                <h3 class="text-2xl font-extrabold text-slate-900 tracking-tight">Arquivar Novo</h3>
+                <button onclick="toggleModal()" class="p-2 text-slate-300 hover:text-slate-900 transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <form id="docForm" class="p-8 space-y-5">
+                <input type="text" id="provider" required placeholder="Fornecedor" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all font-semibold">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="nf" placeholder="N° Nota Fiscal" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white font-mono">
+                    <input type="text" id="oc" placeholder="N° OC" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white font-mono">
+                </div>
+                <select id="docCategory" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-semibold"></select>
+                <div class="group relative bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] p-6 text-center cursor-pointer hover:border-blue-400 transition-all" onclick="document.getElementById('fileInput').click()">
+                    <div class="flex items-center justify-center gap-3 text-slate-600">
+                        <div class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-slate-400 group-hover:text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 4v16m8-8H4" stroke-width="2.5"/></svg></div>
+                        <span class="text-sm font-bold">Escolher Ficheiros</span>
+                    </div>
+                    <input type="file" id="fileInput" class="hidden" multiple onchange="handleNewFileQueue(this)">
+                </div>
+                <div id="pendingFilesList" class="max-h-32 overflow-y-auto custom-scroll space-y-2"></div>
+                <div class="flex gap-4 pt-4">
+                    <button type="button" onclick="toggleModal()" class="flex-1 py-4 text-sm font-bold text-slate-400">Cancelar</button>
+                    <button type="submit" id="btnSubmitDoc" class="flex-1 py-4 text-sm bg-blue-600 text-white rounded-2xl font-extrabold shadow-xl disabled:opacity-50">Arquivar Tudo</button>
+                </div>
+            </form>
         </div>
     </div>
 
+    <!-- Modal Visualização -->
+    <div id="previewOverlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[150] flex items-center justify-center hidden p-4 lg:p-8">
+        <div class="bg-white w-full max-w-6xl h-full lg:h-[85vh] rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in duration-500 text-slate-800">
+            <div class="flex-1 bg-[#f8fafc] flex flex-col relative p-6">
+                <div class="flex-1 rounded-[2rem] bg-white flex flex-col items-center justify-center overflow-hidden shadow-inner border border-slate-100 relative">
+                    <div id="fileContent" class="w-full h-full flex flex-col items-center justify-center p-12 text-center animate-in fade-in duration-300"></div>
+                </div>
+                <div class="mt-6 flex justify-center gap-6">
+                    <button onclick="simulateAction('Imprimir')" class="w-14 h-14 bg-white border border-slate-200 rounded-2xl hover:bg-blue-600 hover:text-white shadow-sm flex items-center justify-center transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2-2v4" stroke-width="2"/></svg></button>
+                    <button onclick="simulateAction('Download')" class="w-14 h-14 bg-white border border-slate-200 rounded-2xl hover:bg-blue-600 hover:text-white shadow-sm flex items-center justify-center transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-width="2"/></svg></button>
+                </div>
+            </div>
+            <div class="w-full md:w-[28rem] bg-white border-l border-slate-50 flex flex-col overflow-hidden">
+                <div class="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+                    <h3 class="font-extrabold text-2xl text-slate-900 leading-none">Ficheiro</h3>
+                    <button onclick="closePreview()" class="p-2.5 text-slate-300 hover:text-slate-900 bg-white rounded-2xl shadow-sm transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scroll p-8 space-y-8">
+                    <div id="previewDetails" class="space-y-4"></div>
+                    <div class="pt-8 border-t border-slate-50">
+                        <div class="flex items-center justify-between mb-5">
+                            <h4 class="font-bold text-slate-800 text-xs uppercase tracking-widest">Itens Anexados</h4>
+                            <button onclick="triggerAttachNewItemViewer()" class="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-600 hover:text-white transition-all">+ Novo Item</button>
+                            <input type="file" id="viewerItemInput" class="hidden" onchange="handleViewerAttachment(this)">
+                        </div>
+                        <div id="attachmentsList" class="space-y-2.5"></div>
+                    </div>
+                </div>
+                <div class="p-8 border-t border-slate-50">
+                    <button onclick="closePreview()" class="w-full bg-slate-900 text-white py-4 rounded-[1.5rem] font-extrabold hover:bg-blue-600 transition-all shadow-xl">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[200] flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-[320px] rounded-[2rem] shadow-2xl p-6 text-center text-slate-800 border border-white/20">
+            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-800"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"/></svg></div>
+            <h3 class="text-lg font-extrabold text-slate-900 mb-1">Eliminar permanentemente?</h3>
+            <p class="text-slate-500 text-xs mb-6 px-2 leading-relaxed">Esta ação não poderá ser revertida.</p>
+            <div class="flex flex-col gap-2">
+                <button onclick="executeDelete()" class="w-full py-3 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-red-700 active:scale-95 transition-all text-slate-800">Eliminar Agora</button>
+                <button onclick="closeConfirmModal()" class="w-full py-3 bg-slate-50 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all text-slate-800">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-10 right-10 translate-y-32 opacity-0 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl transition-all duration-500 z-[300] flex items-center gap-4 border border-slate-800">
+        <div class="w-8 h-8 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center text-slate-800"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 14.14L8 12.586l-3.293-3.293a1 1 0 111.414-1.414L8 10.828l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div>
+        <div class="flex flex-col"><span class="text-sm font-bold mb-1">Sincronizado</span><span id="toastMsg" class="text-xs text-slate-400 font-medium text-slate-800">Sucesso!</span></div>
+    </div>
 
     <script type="module">
-        // =======================================================
-        // ESTADO GLOBAL (DEMO)
-        // =======================================================
-        let allDocuments = []; 
-        let allCategories = [
-            { id: '1', name: 'Farmácia', createdAt: new Date() },
-            { id: '2', name: 'Engenharia', createdAt: new Date() },
-            { id: '3', name: 'Manutenção', createdAt: new Date() }
-        ]; 
-        let currentPage = 1;
-        const itemsPerPage = 20;
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, updateDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
-        // =======================================================
-        // SELETORES DO DOM
-        // =======================================================
-        const authStatus = document.getElementById('auth-status');
-        const submitButton = document.querySelector('#archive-form button[type="submit"]');
-        const buttonText = document.getElementById('button-text');
-        const loadingSpinner = document.getElementById('loading-spinner');
-        const uploadProgress = document.getElementById('upload-progress');
-        const documentsList = document.getElementById('documents-list');
-        const noDocuments = document.getElementById('no-documents');
-        const customModal = document.getElementById('custom-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const modalCancelBtn = document.getElementById('modal-cancel-btn');
-        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        const sections = {
-            'archiving': document.getElementById('archiving-section'),
-            'categories': document.getElementById('categories-section'),
-        };
-        const archiveForm = document.getElementById('archive-form');
-        const docSectorSelect = document.getElementById('doc-sector');
-        const categoryForm = document.getElementById('category-form');
-        const newCategoryName = document.getElementById('new-category-name');
-        const categoriesList = document.getElementById('categories-list');
-        const filterRef = document.getElementById('filter-ref');
-        const filterSectorSelect = document.getElementById('filter-sector');
-        const filterDateStart = document.getElementById('filter-date-start');
-        const filterDateEnd = document.getElementById('filter-date-end');
-        const paginationContainer = document.getElementById('pagination-container');
-        const prevPageBtn = document.getElementById('prev-page-btn');
-        const nextPageBtn = document.getElementById('next-page-btn');
-        const pageInfo = document.getElementById('page-info');
-        const detailsModal = document.getElementById('details-modal');
-        const detailsModalContent = document.getElementById('details-modal-content'); 
-        const detailsModalCloseBtn = document.getElementById('details-modal-close-btn');
-        const modalDocTitle = document.getElementById('modal-doc-title');
-        const modalDocDetailsList = document.getElementById('modal-doc-details-list');
-        const modalDocFilesList = document.getElementById('modal-doc-files-list');
-        const modalDocEditForm = document.getElementById('modal-doc-edit-form');
-        const modalAttachmentsContainer = document.getElementById('modal-attachments-container');
-        const modalSaveBtn = document.getElementById('modal-save-btn');
-        const modalAddFilesInput = document.getElementById('modal-add-files-input'); 
-        const modalAddFilesBtn = document.getElementById('modal-add-files-btn'); 
+        // --- Configuração ---
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'docflow-v1';
 
-        // =======================================================
-        // INICIALIZAÇÃO
-        // =======================================================
-        document.addEventListener('DOMContentLoaded', () => {
-            loadCategories(); 
-            loadDocuments();
+        // --- Estado Global ---
+        let user = null;
+        let documents = [];
+        let categories = ['Financeiro', 'Suprimentos', 'Logística', 'Recursos Humanos'];
+        let pendingFiles = [];
+        let currentEditingDocId = null;
+        let currentPreviewedFileName = null;
+        let idToDelete = null;
+        let currentView = 'all'; // Variável restaurada
 
-            // Listeners dos Filtros
-            [filterRef, filterSectorSelect, filterDateStart, filterDateEnd].forEach(el => {
-                const event = el.tagName === 'SELECT' ? 'change' : 'input';
-                el.addEventListener(event, () => { 
-                    currentPage = 1; 
-                    renderDocuments(); 
-                });
-            });
-            
-            // Listeners da Paginação
-            prevPageBtn.addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    renderDocuments();
-                }
-            });
-            nextPageBtn.addEventListener('click', () => {
-                currentPage++;
-                renderDocuments();
-            });
+        const categoryPalette = [
+            { bg: 'bg-blue-600', text: 'text-white', light: 'bg-blue-50', gradient: 'from-blue-600 to-indigo-500' },
+            { bg: 'bg-amber-500', text: 'text-white', light: 'bg-amber-50', gradient: 'from-amber-500 to-orange-400' },
+            { bg: 'bg-emerald-600', text: 'text-white', light: 'bg-emerald-50', gradient: 'from-emerald-600 to-teal-400' },
+            { bg: 'bg-purple-600', text: 'text-white', light: 'bg-purple-50', gradient: 'from-purple-600 to-indigo-400' },
+            { bg: 'bg-rose-600', text: 'text-white', light: 'bg-rose-50', gradient: 'from-rose-600 to-pink-400' }
+        ];
 
-            // Delegação de Evento (Robusta) para Excluir Anexos
-            modalDocFilesList.addEventListener('click', (e) => {
-                const deleteBtn = e.target.closest('.delete-file-btn');
-                if (deleteBtn) {
-                    const fileIndex = parseInt(deleteBtn.dataset.index, 10);
-                    const docId = detailsModalContent.dataset.currentDocId;
-                    deleteSingleFile(docId, fileIndex);
-                }
-            });
+        // --- Funções Auxiliares (Definidas antes do uso para evitar ReferenceErrors) ---
+        function getCatTheme(catName) {
+            const index = categories.indexOf(catName);
+            return categoryPalette[index % categoryPalette.length] || categoryPalette[0];
+        }
 
-            // Listeners dos Formulários
-            categoryForm.addEventListener('submit', addCategory);
-            archiveForm.addEventListener('submit', archiveDocumentSubmit);
-            
-            // Listeners dos Modais
-            modalAddFilesBtn.addEventListener('click', handleAddMoreFiles);
-            modalSaveBtn.addEventListener('click', handleSaveChanges);
-            setupModalListeners();
+        function formatDate(s) { const [y,m,d] = s.split('-'); return `${d}/${m}/${y.slice(-2)}`; }
 
-            // Listeners das Abas
-            tabButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    showSection(btn.getAttribute('data-section'));
-                });
-            });
-            showSection('archiving'); 
+        function showToast(m) { 
+            const t = document.getElementById('toast'); document.getElementById('toastMsg').innerText = m; 
+            t.classList.remove('translate-y-32', 'opacity-0'); 
+            setTimeout(() => t.classList.add('translate-y-32', 'opacity-0'), 3000); 
+        }
+
+        const fileToBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
         });
 
-        // Helper para ID único (Demo)
-        const generateMockId = () => Math.random().toString(36).substring(2, 10);
+        // --- Renderização ---
+        function renderDocs() {
+            const container = document.getElementById('docsContainer');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const cat = document.getElementById('filterCategory').value;
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            const today = new Date().toISOString().split('T')[0];
 
-        
-        // =======================================================
-        // FUNÇÕES DE CATEGORIAS (MOCK)
-        // =======================================================
-
-        function loadCategories() {
-            renderCategorySelects(allCategories);
-            renderCategoriesList(allCategories);
-        }
-        
-        function renderCategorySelects(categories) {
-            docSectorSelect.innerHTML = '';
-            docSectorSelect.disabled = false;
-            let defaultOption = document.createElement('option');
-            defaultOption.value = "";
-            defaultOption.textContent = "Nenhum / Geral";
-            docSectorSelect.appendChild(defaultOption);
-
-            filterSectorSelect.innerHTML = '';
-            filterSectorSelect.disabled = false;
-            let filterAllOption = document.createElement('option');
-            filterAllOption.value = "";
-            filterAllOption.textContent = "Todos os Setores";
-            filterSectorSelect.appendChild(filterAllOption);
-
-            categories.forEach(category => {
-                let option = document.createElement('option');
-                option.value = category.name;
-                option.textContent = category.name;
-                docSectorSelect.appendChild(option.cloneNode(true));
-                filterSectorSelect.appendChild(option);
+            const filtered = documents.filter(d => {
+                const mSearch = (d.provider.toLowerCase().includes(search) || d.nf.toLowerCase().includes(search) || d.oc.toLowerCase().includes(search));
+                const mCat = (cat === 'all' || d.category === cat);
+                let mDate = true;
+                if (start && d.date < start) mDate = false;
+                if (end && d.date > end) mDate = false;
+                return mSearch && mCat && mDate;
             });
-        }
 
-        async function addCategory(e) {
-            e.preventDefault();
-            const name = newCategoryName.value.trim();
-            if (!name) {
-                showMessage("O nome da categoria não pode ser vazio.", "warning");
-                return;
-            }
-            if (allCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
-                showMessage("Esta categoria já existe.", "warning");
-                return;
-            }
-            allCategories.push({ id: Date.now().toString(), name: name, createdAt: new Date() });
-            newCategoryName.value = '';
-            showMessage(`Categoria "${name}" adicionada com sucesso!`, "success");
-            loadCategories();
-        }
-
-        async function deleteCategory(id, name) {
-             const confirmed = await showConfirmModal(
-                 "Confirmar Exclusão de Categoria", 
-                 `Tem certeza que deseja excluir a categoria "${name}"?`,
-                 'red'
-            );
-            if (!confirmed) return;
-            allCategories = allCategories.filter(category => category.id !== id);
-            showMessage(`Categoria "${name}" excluída com sucesso!`, "success");
-            loadCategories();
-            renderDocuments();
-        }
-        
-        function renderCategoriesList(categories) {
-            categoriesList.innerHTML = '';
-            if (categories.length === 0) {
-                 categoriesList.innerHTML = '<li class="p-3 bg-gray-50 rounded-lg text-gray-500">Nenhuma categoria cadastrada.</li>';
-                 return;
-            }
-            
-            categories.sort((a, b) => a.name.localeCompare(b.name));
-            
-            categories.forEach(category => {
-                const listItem = document.createElement('li');
-                listItem.className = 'flex justify-between items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm';
-                listItem.innerHTML = `
-                    <span class="font-medium text-gray-700">${category.name}</span>
-                    <button data-id="${category.id}" data-name="${category.name}" class="delete-category-btn text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 transition duration-150" title="Excluir Categoria">
-                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                `;
-                categoriesList.appendChild(listItem);
-            });
-            
-            categoriesList.querySelectorAll('.delete-category-btn').forEach(button => {
-                button.addEventListener('click', () => {
-                    const id = button.getAttribute('data-id');
-                    const name = button.getAttribute('data-name');
-                    deleteCategory(id, name);
-                });
-            });
-        }
-
-
-        // =======================================================
-        // FUNÇÕES DE DOCUMENTOS (MOCK)
-        // =======================================================
-
-        function loadDocuments() {
-            renderDocuments();
-        }
-
-        function renderDocuments() {
-            documentsList.innerHTML = '';
-
-            // 1. Filtragem
-            const refFilter = filterRef.value.toLowerCase().trim();
-            const sectorFilter = filterSectorSelect.value;
-            const startDateStr = filterDateStart.value;
-            const endDateStr = filterDateEnd.value;
-            const startDateFilter = startDateStr ? new Date(startDateStr + 'T00:00:00') : null;
-            const endDateFilter = endDateStr ? new Date(endDateStr + 'T23:59:59') : null;
-
-            const filteredDocs = allDocuments.filter(docData => {
-                const refMatch = !refFilter || 
-                                 (docData.ref && docData.ref.toLowerCase().includes(refFilter)) ||
-                                 (docData.oc && docData.oc.toLowerCase().includes(refFilter));
-                const sectorMatch = !sectorFilter || docData.sector === sectorFilter;
-                let dateMatch = true;
-                if (docData.createdAt) {
-                    const docDate = docData.createdAt; 
-                    if (startDateFilter && docDate < startDateFilter) dateMatch = false;
-                    if (endDateFilter && docDate > endDateFilter) dateMatch = false;
-                }
-                return refMatch && sectorMatch && dateMatch; 
-            });
-            
-            // 2. Ordenação
-            filteredDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-            // 3. Paginação
-            const totalItems = filteredDocs.length;
-            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-            if (currentPage < 1) currentPage = 1;
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const docsToShow = filteredDocs.slice(startIndex, endIndex);
-            
-            // 4. Renderização
-            if (allDocuments.length === 0) {
-                noDocuments.textContent = "Nenhum documento arquivado ainda.";
-                documentsList.appendChild(noDocuments);
-            } else if (docsToShow.length === 0) {
-                noDocuments.textContent = `Nenhum documento encontrado para os filtros aplicados.`;
-                documentsList.appendChild(noDocuments);
-            } else {
-                docsToShow.forEach(docData => {
-                    const card = createDocumentCard(docData);
-                    documentsList.appendChild(card);
-                });
-            }
-            
-            // 5. Atualiza Controles de Paginação
-            updatePaginationControls(totalPages);
-        }
-        
-        function updatePaginationControls(totalPages) {
-            if (totalPages <= 1) {
-                paginationContainer.classList.add('hidden');
-            } else {
-                paginationContainer.classList.remove('hidden');
-                pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
-                prevPageBtn.disabled = (currentPage === 1);
-                nextPageBtn.disabled = (currentPage === totalPages);
-            }
-        }
-
-        function getSectorColor(sectorName) {
-            if (!sectorName) sectorName = 'Geral';
-            const sName = sectorName.toLowerCase();
-            
-            // ATUALIZADO: Regra especial para "Farmácia" com cor mais forte
-            if (sName.includes('farmácia') || sName.includes('farmacia')) {
-                return { bg: 'bg-pink-600', text: 'text-white' };
-            }
-            
-            // ATUALIZADO: Paleta de cores mais forte e profissional
-            const colors = [
-                { bg: 'bg-emerald-600', text: 'text-white' },
-                { bg: 'bg-sky-600', text: 'text-white' },
-                { bg: 'bg-amber-600', text: 'text-white' },
-                { bg: 'bg-rose-600', text: 'text-white' },
-                { bg: 'bg-violet-600', text: 'text-white' },
-                { bg: 'bg-gray-600', text: 'text-white' },
-            ];
-            let hash = 0;
-            for (let i = 0; i < sectorName.length; i++) {
-                hash = sectorName.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const colorIndex = Math.abs(hash) % colors.length;
-            return colors[colorIndex];
-        }
-
-
-        function createDocumentCard(docData) {
-            const card = document.createElement('div');
-            card.className = 'w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col md:flex-row';
-            
-            const sectorName = docData.sector || 'Geral';
-            const sectorColors = getSectorColor(sectorName);
-            const sectorHtml = docData.sector ? `<span class="inline-block rounded-full px-3 py-1 text-xs font-semibold ${sectorColors.bg} ${sectorColors.text}">${docData.sector}</span>` : '';
-
-            const date = docData.createdAt ? docData.createdAt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'Data indisponível';
-            
-            let updatedDateHtml = '';
-            if (docData.updatedAt) {
-                const updatedDate = docData.updatedAt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-                updatedDateHtml = `<span class="italic text-yellow-600">(Editado em: ${updatedDate})</span>`;
-            }
-
-            const attachmentsCount = docData.files ? docData.files.length : 0;
-            // ATUALIZADO: Cor do Anexo (Esmeralda)
-            const attachmentColor = attachmentsCount > 0 ? 'text-emerald-500' : 'text-gray-400';
-
-            card.innerHTML = `
-                <!-- Informações Principais -->
-                <div class="flex-1 p-4 space-y-3">
-                    <!-- Linha 1: Refs + Setor -->
-                    <div class="flex justify-between items-start">
-                        <div class="flex-wrap">
-                            <span class="text-sm font-semibold text-gray-500">N° NF:</span>
-                            <!-- ATUALIZADO: Cor (Preto/Negrito) -->
-                            <span class="text-lg font-bold text-gray-900">${docData.ref || '--'}</span>
-                            ${docData.oc ? `
-                                <span class="text-sm font-semibold text-gray-500 ml-4">N° OC:</span>
-                                <!-- ATUALIZADO: Cor (Preto/Negrito) -->
-                                <span class="text-lg font-bold text-gray-900">${docData.oc}</span>
-                            ` : ''}
+            document.getElementById('emptyState').classList.toggle('hidden', filtered.length > 0 || documents.length === 0);
+            container.innerHTML = filtered.map(d => {
+                const theme = getCatTheme(d.category);
+                const isToday = d.date === today;
+                return `
+                <div class="doc-card bg-white p-7 rounded-[2rem] shadow-sm relative group overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r ${theme.gradient} opacity-80 transition-all"></div>
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-100 shadow-sm ${theme.light}">
+                            <span class="w-1.5 h-1.5 rounded-full ${theme.bg}"></span>
+                            <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-700">${d.category}</span>
                         </div>
-                        ${sectorHtml}
+                        <div class="flex items-center gap-2">
+                            ${isToday ? '<span class="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-tighter shadow-sm border border-emerald-100">Hoje</span>' : ''}
+                            <button onclick="deleteDoc('${d.id}')" class="p-2 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"/></svg></button>
+                        </div>
                     </div>
-                    <!-- Linha 2: Descrição -->
-                    <div>
-                        <p class="text-gray-800">${docData.desc || 'Sem descrição'}</p>
+                    <h4 class="font-extrabold text-slate-900 mb-6 text-xl leading-tight truncate group-hover:text-blue-600 transition-colors">${d.provider}</h4>
+                    <div class="space-y-3 mb-8">
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100/50"><span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Fiscal</span><span class="text-xs font-extrabold text-slate-700 font-mono">${d.nf || '---'}</span></div>
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100/50"><span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-slate-800 text-slate-800">Itens</span><span class="text-xs font-extrabold text-blue-600 font-bold">${d.attachments ? d.attachments.length : 0} Ficheiros</span></div>
                     </div>
-                    <!-- Linha 3: Datas e Anexos -->
-                    <div class="flex flex-wrap items-center text-sm text-gray-500 gap-x-4 gap-y-1 pt-3 border-t border-gray-100">
-                        <span>Arquivado em: ${date}</span>
-                        ${updatedDateHtml}
-                        <span class_="${attachmentColor} flex items-center font-medium">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.415a6 6 0 108.486 8.486L20.5 13" />
-                            </svg>
-                            ${attachmentsCount} Anexo(s)
-                        </span>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 italic">${formatDate(d.date)}</span>
+                        <button onclick="viewDoc('${d.id}')" class="bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-[11px] font-extrabold hover:${theme.bg} shadow-xl transition-all uppercase tracking-widest">Gerir</button>
                     </div>
-                </div>
-                
-                <!-- Botões de Ação -->
-                <div class="flex-shrink-0 flex flex-col justify-center space-y-2 p-3 bg-gray-50 border-t md:border-t-0 md:border-l border-gray-200 w-full md:w-auto">
-                    <!-- ATUALIZADO: Cor (Esmeralda) -->
-                    <button data-id="${docData.id}" class="view-doc-btn w-full text-center py-2 px-4 text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 transition duration-150">
-                        Ver Documentação
-                    </button>
-                    <button data-id="${docData.id}" class="edit-btn w-full text-center py-2 px-4 text-sm font-medium rounded-md text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition duration-150">
-                        Editar
-                    </button>
-                    <button data-id="${docData.id}" class="delete-btn w-full text-center py-2 px-4 text-sm font-medium rounded-md text-red-700 bg-white border border-red-200 hover:bg-red-50 hover:text-red-600 transition duration-150">
-                        Excluir
-                    </button>
-                </div>
-            `;
-
-            // Listeners dos botões do card
-            card.querySelector('.delete-btn').addEventListener('click', async (e) => {
-                const id = e.currentTarget.getAttribute('data-id');
-                const confirmed = await showConfirmModal(
-                    "Confirmar Exclusão de Documento", 
-                    "Tem certeza que deseja excluir ESTE DOCUMENTO? A ação não poderá ser desfeita.",
-                    'red'
-                );
-                if (confirmed) await deleteDocument(id);
-            });
-            
-            card.querySelector('.view-doc-btn').addEventListener('click', (e) => {
-                e.preventDefault();
-                const currentDocData = allDocuments.find(d => d.id === docData.id);
-                if (currentDocData) showDetailsModal(currentDocData, 'view');
-            });
-
-            card.querySelector('.edit-btn').addEventListener('click', (e) => {
-                e.preventDefault();
-                const currentDocData = allDocuments.find(d => d.id === docData.id);
-                if (currentDocData) showDetailsModal(currentDocData, 'edit');
-            });
-
-            return card;
+                </div>`}).join('');
+            document.getElementById('stat-total').innerText = documents.length;
         }
 
+        function updateCategoriesUI() {
+            document.getElementById('quickCategories').innerHTML = categories.map((c, i) => {
+                const theme = getCatTheme(c);
+                return `<button onclick="filterByQuickCategory('${c}')" class="group w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all text-left">
+                    <span class="w-2.5 h-2.5 rounded-full ${theme.bg} group-hover:scale-125 transition-transform"></span> 
+                    <span class="sidebar-text ml-3 truncate text-slate-800 font-semibold">${c}</span>
+                </button>`;
+            }).join('');
+            document.getElementById('filterCategory').innerHTML = '<option value="all">Todas Categorias</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('docCategory').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
 
-        async function archiveDocumentSubmit(e) {
+        function renderCategoriesList() {
+            document.getElementById('categoriesGrid').innerHTML = categories.map(c => {
+                const theme = getCatTheme(c);
+                return `
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 flex justify-between items-center group transition-all hover:shadow-xl hover:border-blue-100 shadow-sm text-slate-800">
+                    <div class="flex items-center gap-5 text-slate-800"><div class="w-12 h-12 rounded-2xl ${theme.light} flex items-center justify-center ${theme.bg.replace('bg-', 'text-')} font-extrabold border border-slate-100 shadow-inner text-slate-800">${c.substring(0, 2).toUpperCase()}</div><div><span class="font-extrabold text-lg block leading-none mb-1 text-slate-800 text-slate-800">${c}</span><span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-slate-800">Guardado na Nuvem</span></div></div>
+                    <button onclick="removeCategory('${c}')" class="text-slate-200 hover:text-red-500 transition-colors p-2 text-slate-800"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"/></svg></button>
+                </div>`}).join('');
+        }
+
+        function renderPendingFiles() {
+            const list = document.getElementById('pendingFilesList');
+            const btn = document.getElementById('btnSubmitDoc');
+            if (pendingFiles.length === 0) {
+                list.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center py-4">Nenhum item adicionado.</p>`;
+                btn.disabled = true;
+            } else {
+                btn.disabled = false;
+                list.innerHTML = pendingFiles.map((f, i) => `
+                    <div class="flex items-center justify-between bg-white border border-slate-100 p-2.5 rounded-xl text-[11px] font-bold text-slate-700 animate-in fade-in slide-in-from-left-2 shadow-sm">
+                        <span class="truncate">${f.name}</span>
+                        <button type="button" onclick="removePendingFile(${i})" class="text-slate-300 hover:text-red-500 p-1"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" stroke-width="2"/></svg></button>
+                    </div>`).join('');
+            }
+        }
+
+        // --- Firebase Auth & Setup ---
+        onAuthStateChanged(auth, (u) => {
+            if (!u) {
+                signInAnonymously(auth);
+            } else {
+                user = u;
+                document.getElementById('userInitial').innerText = u.uid.substring(0,2).toUpperCase();
+                setupDataSync();
+            }
+        });
+
+        function setupDataSync() {
+            if (!user) return;
+            const docsRef = collection(db, 'artifacts', appId, 'users', user.uid, 'documents');
+            onSnapshot(docsRef, (snapshot) => {
+                documents = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderDocs();
+                document.getElementById('initialLoading').classList.add('hidden');
+                document.getElementById('docsView').classList.remove('hidden');
+            });
+            const catsRef = collection(db, 'artifacts', appId, 'users', user.uid, 'categories');
+            onSnapshot(catsRef, (snapshot) => {
+                const cloudCats = snapshot.docs.map(d => d.data().name);
+                if (cloudCats.length > 0) categories = cloudCats;
+                updateCategoriesUI();
+                renderCategoriesList();
+            });
+        }
+
+        // --- Eventos da Janela (Exportar para Global) ---
+        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('sidebar-collapsed');
+        window.toggleModal = () => {
+            const m = document.getElementById('modalOverlay');
+            m.classList.toggle('hidden');
+            if(m.classList.contains('hidden')) {
+                document.getElementById('docForm').reset();
+                pendingFiles = [];
+                renderPendingFiles();
+            }
+        };
+
+        window.switchView = (view) => {
+            currentView = view; 
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+            const navBtn = document.getElementById(`nav-${view}`);
+            if(navBtn) navBtn.classList.add('active');
+            document.getElementById('docsView').classList.toggle('hidden', view !== 'all');
+            document.getElementById('categoriesView').classList.toggle('hidden', view !== 'categories');
+            if(view === 'all') renderDocs(); else renderCategoriesList();
+        };
+
+        window.handleNewFileQueue = (input) => {
+            const files = Array.from(input.files);
+            files.forEach(async (f) => {
+                if (f.size > 800000) return showToast("Ficheiro muito grande (>800KB)");
+                const base64Data = await fileToBase64(f);
+                if (!pendingFiles.some(p => p.name === f.name)) pendingFiles.push({ name: f.name, data: base64Data });
+                renderPendingFiles();
+            });
+            input.value = '';
+        };
+
+        window.removePendingFile = (idx) => { pendingFiles.splice(idx, 1); renderPendingFiles(); };
+
+        window.deleteDoc = (id) => { idToDelete = id; document.getElementById('confirmModal').classList.remove('hidden'); };
+        window.closeConfirmModal = () => { idToDelete = null; document.getElementById('confirmModal').classList.add('hidden'); };
+        window.executeDelete = async () => {
+            if (!user || !idToDelete) return;
+            await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'documents', idToDelete));
+            showToast("Documento eliminado.");
+            closeConfirmModal();
+        };
+
+        window.viewDoc = (id) => {
+            currentEditingDocId = id;
+            const docData = documents.find(d => d.id === id);
+            if (!docData) return;
+
+            const theme = getCatTheme(docData.category);
+            document.getElementById('previewDetails').innerHTML = `
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100 text-slate-800">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Fornecedor</label>
+                    <p class="text-lg font-extrabold text-slate-900 leading-tight">${docData.provider}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100"><label class="text-[9px] font-bold text-slate-400 block mb-1">NF</label><p class="text-sm font-mono font-extrabold text-blue-600">${docData.nf || '---'}</p></div>
+                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100"><label class="text-[9px] font-bold text-slate-400 block mb-1">OC</label><p class="text-sm font-mono font-extrabold text-amber-600">${docData.oc || '---'}</p></div>
+                </div>
+                <div class="bg-white border border-slate-100 p-5 rounded-2xl flex items-center justify-between shadow-sm">
+                    <div class="flex flex-col"><label class="text-[9px] font-bold text-slate-400 uppercase mb-1">Arquivado em</label><p class="text-sm font-bold text-slate-700">${formatDate(docData.date)}</p></div>
+                    <span class="text-[10px] font-extrabold px-4 py-1.5 rounded-full ${theme.bg} ${theme.text}">${docData.category}</span>
+                </div>`;
+            if (docData.attachments && docData.attachments.length > 0) updateFilePreview(docData.attachments[0], docData.provider);
+            document.getElementById('previewOverlay').classList.remove('hidden');
+        };
+
+        window.updateFilePreview = (fileObj, provider) => {
+            currentPreviewedFileName = fileObj.name;
+            const content = document.getElementById('fileContent');
+            const isImage = fileObj.data.startsWith('data:image');
+            content.innerHTML = isImage ? 
+                `<img src="${fileObj.data}" class="max-w-full max-h-full rounded-2xl shadow-xl">` :
+                `<div class="flex flex-col items-center animate-in fade-in">
+                    <div class="bg-red-50 text-red-500 w-32 h-44 rounded-3xl flex items-center justify-center mb-8 border-2 shadow-xl"><svg class="h-20 w-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" stroke-width="1.5"/></svg></div>
+                    <h4 class="font-extrabold text-slate-900 text-2xl mb-2">${fileObj.name}</h4>
+                    <p class="text-sm text-slate-400 font-bold uppercase">${provider}</p>
+                </div>`;
+            renderAttachmentsList(documents.find(d => d.id === currentEditingDocId));
+        };
+
+        function renderAttachmentsList(docData) {
+            const list = document.getElementById('attachmentsList');
+            if (!docData || !docData.attachments) return;
+            list.innerHTML = docData.attachments.map((file, i) => `
+                <div onclick="updateFilePreview(documents.find(d=>d.id==='${docData.id}').attachments[${i}], '${docData.provider}')" class="flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer ${file.name === currentPreviewedFileName ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-800 hover:bg-slate-50'}">
+                    <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" stroke-width="2"/></svg>
+                    <span class="text-xs font-extrabold truncate">${file.name}</span>
+                </div>`).join('');
+        }
+
+        window.closePreview = () => { document.getElementById('previewOverlay').classList.add('hidden'); currentEditingDocId = null; currentPreviewedFileName = null; };
+
+        window.triggerAttachNewItemViewer = () => document.getElementById('viewerItemInput').click();
+        window.handleViewerAttachment = async (input) => {
+            if (input.files[0] && currentEditingDocId) {
+                const base64 = await fileToBase64(input.files[0]);
+                const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'documents', currentEditingDocId);
+                const docData = documents.find(d => d.id === currentEditingDocId);
+                const newAttachments = [...(docData.attachments || []), { name: input.files[0].name, data: base64 }];
+                await updateDoc(docRef, { attachments: newAttachments });
+                showToast("Item anexado!");
+                updateFilePreview({ name: input.files[0].name, data: base64 }, docData.provider);
+                input.value = '';
+            }
+        };
+
+        window.addCategory = async () => {
+            const n = document.getElementById('newCatInput').value.trim();
+            if(!n || categories.includes(n)) return;
+            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'categories'), { name: n });
+            document.getElementById('newCatInput').value = '';
+            showToast("Categoria salva.");
+        };
+
+        window.removeCategory = async (name) => {
+            showToast("Apenas categorias sem documentos podem ser removidas.");
+        };
+
+        window.simulateAction = (act) => showToast(`${act} simulado.`);
+        window.filterByQuickCategory = (c) => { document.getElementById('filterCategory').value = c; window.switchView('all'); };
+        window.resetFilters = () => { 
+            document.getElementById('searchInput').value = ''; 
+            document.getElementById('filterCategory').value = 'all'; 
+            document.getElementById('startDate').value = ''; 
+            document.getElementById('endDate').value = ''; 
+            renderDocs(); 
+        };
+
+        document.getElementById('docForm').onsubmit = async (e) => {
             e.preventDefault();
-
-            // +++ NOVA VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS +++
-            const refInput = document.getElementById('doc-ref');
-            const sectorInput = document.getElementById('doc-sector');
-
-            if (!refInput.value.trim()) {
-                showMessage("Atenção: É obrigatório preencher o N° da NF.", "warning");
-                refInput.focus(); 
-                return; 
-            }
-
-            if (!sectorInput.value) {
-                showMessage("Atenção: É obrigatório selecionar um Setor / Categoria.", "warning");
-                sectorInput.focus();
-                return; 
-            }
-            // +++ FIM DA VALIDAÇÃO +++
-
-            setLoading(true);
-            uploadProgress.classList.remove('hidden');
-            uploadProgress.textContent = 'Iniciando simulação...';
-
-            const fileInput = document.getElementById('doc-file');
-            const files = fileInput.files;
-
-            const docData = {
-                id: Date.now().toString(),
-                ref: document.getElementById('doc-ref').value,
-                oc: document.getElementById('doc-oc').value,
-                sector: document.getElementById('doc-sector').value,
-                desc: document.getElementById('doc-desc').value,
-                createdAt: new Date(),
-                files: []
+            const btn = document.getElementById('btnSubmitDoc');
+            btn.disabled = true;
+            const now = new Date().toISOString().split('T')[0];
+            const newDoc = {
+                provider: document.getElementById('provider').value,
+                nf: document.getElementById('nf').value,
+                oc: document.getElementById('oc').value,
+                category: document.getElementById('docCategory').value,
+                date: now,
+                attachments: pendingFiles
             };
+            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'documents'), newDoc);
+            toggleModal();
+            showToast("Arquivo arquivado!");
+            btn.disabled = false;
+        };
 
-            try {
-                if (files.length > 0) {
-                    uploadProgress.textContent = `Simulando upload de ${files.length} arquivo(s)...`;
-                    for (const file of files) {
-                        docData.files.push({
-                            link: "#",
-                            storagePath: `mock/${generateMockId()}-${file.name.replace(/\s/g, '_')}`,
-                            fileName: file.name
-                        });
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 1000)); 
-                    uploadProgress.textContent = `Upload de ${files.length} arquivo(s) completo!`;
-                } else {
-                    uploadProgress.textContent = "Nenhum arquivo anexado. Salvando apenas os dados.";
-                }
-
-                allDocuments.push(docData);
-                currentPage = 1; // Volta para a pág 1
-                renderDocuments();
-                
-                showMessage("Documento arquivado com sucesso!", "success");
-                archiveForm.reset();
-                fileInput.value = '';
-
-            } catch (error) {
-                console.error("Erro na simulação: ", error);
-                showMessage("Erro na simulação: " + error.message, "error");
-            } finally {
-                setLoading(false);
-                uploadProgress.textContent = '';
-                uploadProgress.classList.add('hidden');
-            }
-        }
-
-        async function deleteDocument(id) {
-            allDocuments = allDocuments.filter(doc => doc.id !== id);
-            renderDocuments();
-            showMessage("Documento excluído com sucesso!", "success");
-        }
-
-        // =======================================================
-        // FUNÇÕES DE UI E MODAL
-        // =======================================================
-
-        function setLoading(isLoading) {
-            if (isLoading) {
-                submitButton.disabled = true;
-                loadingSpinner.classList.remove('hidden');
-                buttonText.textContent = 'Arquivando...';
-            } else {
-                submitButton.disabled = false;
-                loadingSpinner.classList.add('hidden');
-                buttonText.textContent = 'Arquivar Documento';
-            }
-        }
-
-        window.showMessage = function(message, type = "success") {
-            const messageBox = document.getElementById('message-box');
-            const messageText = document.getElementById('message-text');
-            
-            // ATUALIZADO: Cor de Sucesso (Esmeralda)
-            if (type === "error") {
-                messageBox.className = 'p-4 rounded-lg shadow-lg text-white bg-red-500';
-            } else if (type === "warning") {
-                 messageBox.className = 'p-4 rounded-lg shadow-lg text-white bg-yellow-500';
-            } else {
-                messageBox.className = 'p-4 rounded-lg shadow-lg text-white bg-emerald-500';
-            }
-            
-            messageText.textContent = message;
-            messageBox.classList.add('show');
-            setTimeout(() => { messageBox.classList.remove('show'); }, 3000);
-        }
-
-        function showSection(sectionId) {
-            Object.values(sections).forEach(section => {
-                if(section) section.classList.add('hidden');
-            });
-            if(sections[sectionId]) {
-                sections[sectionId].classList.remove('hidden');
-            }
-            tabButtons.forEach(btn => {
-                btn.classList.toggle('active', btn.getAttribute('data-section') === sectionId);
-            });
-        }
-        
-        function showConfirmModal(title, message, color = 'red') {
-            return new Promise((resolve) => {
-                modalTitle.textContent = title;
-                modalMessage.textContent = message;
-
-                // ATUALIZADO: Cor (Esmeralda)
-                modalConfirmBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-emerald-600', 'hover:bg-emerald-700');
-                if (color === 'red') {
-                    modalConfirmBtn.classList.add(...'bg-red-600 hover:bg-red-700'.split(' '));
-                } else {
-                    modalConfirmBtn.classList.add(...'bg-emerald-600 hover:bg-emerald-700'.split(' '));
-                }
-
-                customModal.classList.remove('hidden');
-                modalConfirmBtn.onclick = () => { customModal.classList.add('hidden'); resolve(true); };
-                modalCancelBtn.onclick = () => { customModal.classList.add('hidden'); resolve(false); };
-            });
-        }
-
-        function setupModalListeners() {
-            customModal.addEventListener('click', (e) => {
-                if (e.target === customModal) customModal.classList.add('hidden');
-            });
-            detailsModal.addEventListener('click', (e) => {
-                if (e.target === detailsModal) detailsModal.classList.add('hidden');
-            });
-            detailsModalCloseBtn.addEventListener('click', () => {
-                detailsModal.classList.add('hidden');
-            });
-        }
-
-        function showDetailsModal(docData, mode = 'view') {
-            detailsModalContent.dataset.currentDocId = docData.id;
-            modalDocTitle.textContent = `Detalhes: ${docData.ref || 'Documento'} (${docData.sector || 'Geral'})`;
-
-            renderModalDetailsList(docData, mode);
-            renderModalFileList(docData);
-
-            modalDocDetailsList.classList.toggle('hidden', mode === 'edit');
-            modalAttachmentsContainer.classList.toggle('hidden', mode === 'edit');
-            modalDocEditForm.classList.toggle('hidden', mode === 'view');
-            modalSaveBtn.classList.toggle('hidden', mode === 'view');
-
-            detailsModal.classList.remove('hidden');
-        }
-
-        function renderModalFileList(docData) {
-            modalDocFilesList.innerHTML = '';
-            if (docData.files && docData.files.length > 0) {
-                docData.files.forEach((file, index) => { 
-                    const li = document.createElement('li');
-                    li.className = 'flex items-center justify-between py-3 px-4 border border-gray-200 rounded-lg bg-gray-50 space-x-4';
-                    li.innerHTML = `
-                        <!-- ATUALIZADO: Cor (Esmeralda) -->
-                        <span class="font-medium text-emerald-700 truncate" title="${file.fileName}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a3 3 0 003 3h4a3 3 0 003-3V7a3 3 0 00-3-3H8zm0 2h4a1 1 0 011 1v4a1 1 0 01-1 1H8a1 1 0 01-1-1V7a1 1 0 011-1z" clip-rule="evenodd" />
-                            </svg>
-                            ${file.fileName}
-                        </span>
-                        <div class="flex-shrink-0 flex items-center space-x-2">
-                            <!-- ATUALIZADO: Cor (Esmeralda) -->
-                            <a href="#" target="_blank" rel="noopener noreferrer" class="py-2 px-4 border border-emerald-600 text-emerald-600 text-sm font-medium rounded-lg hover:bg-emerald-50 transition duration-150 flex-shrink-0" onclick="event.preventDefault(); showMessage('Visualização indisponível.', 'warning')">
-                                Visualizar
-                            </a>
-                            <button class="delete-file-btn text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 transition duration-150" data-index="${index}" title="Excluir Anexo">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                        </div>
-                    `;
-                    modalDocFilesList.appendChild(li);
-                });
-            } else {
-                modalDocFilesList.innerHTML = '<li class="text-gray-500">Nenhum anexo encontrado para este documento.</li>';
-            }
-        }
-
-        function renderModalDetailsList(docData, mode) {
-            if (mode === 'view') {
-                const date = docData.createdAt ? docData.createdAt.toLocaleString('pt-BR') : 'Data indisponível';
-                const refHtml = docData.ref ? `<li class="py-3"><span class="font-semibold text-gray-600">N° da NF:</span> ${docData.ref}</li>` : '';
-                const ocHtml = docData.oc ? `<li class="py-3"><span class="font-semibold text-gray-600">N° da OC:</span> ${docData.oc}</li>` : '';
-                const sectorHtml = docData.sector ? `<li class="py-3"><span class="font-semibold text-gray-600">Setor:</span> ${docData.sector}</li>` : '';
-                const descHtml = docData.desc ? `<li class="py-3"><span class="font-semibold text-gray-600">Descrição:</span> ${docData.desc}</li>` : '';
-                let updatedHtml = '';
-                if(docData.updatedAt) {
-                    updatedHtml = `<li class="py-3"><span class="font-semibold text-gray-600">Editado em:</span> ${docData.updatedAt.toLocaleString('pt-BR')}</li>`;
-                }
-                modalDocDetailsList.innerHTML = `${refHtml}${ocHtml}${sectorHtml}${descHtml}<li class="py-3"><span class="font-semibold text-gray-600">Arquivado em:</span> ${date}</li>${updatedHtml}`;
-            } else { // mode === 'edit'
-                let sectorOptionsHtml = allCategories
-                    .map(cat => `<option value="${cat.name}" ${docData.sector === cat.name ? 'selected' : ''}>${cat.name}</option>`)
-                    .join('');
-                modalDocEditForm.innerHTML = `
-                    <div class="space-y-4">
-                        <div>
-                            <label for="modal-edit-ref" class="block text-sm font-medium text-gray-700">N° da NF</label>
-                            <!-- ATUALIZADO: Cor (Esmeralda) -->
-                            <input type="text" id="modal-edit-ref" value="${docData.ref || ''}" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
-                        </div>
-                        <div>
-                            <label for="modal-edit-oc" class="block text-sm font-medium text-gray-700">N° da OC</label>
-                            <!-- ATUALIZADO: Cor (Esmeralda) -->
-                            <input type="text" id="modal-edit-oc" value="${docData.oc || ''}" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
-                        </div>
-                        <div>
-                            <label for="modal-edit-sector" class="block text-sm font-medium text-gray-700">Setor / Categoria</label>
-                            <!-- ATUALIZADO: Cor (Esmeralda) -->
-                            <select id="modal-edit-sector" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white">
-                                <option value="">Nenhum / Geral</option>
-                                ${sectorOptionsHtml}
-                            </select>
-                        </div>
-                        <div>
-                            <label for="modal-edit-desc" class="block text-sm font-medium text-gray-700">Descrição / Fornecedor</label>
-                            <!-- ATUALIZADO: Cor (Esmeralda) -->
-                            <textarea id="modal-edit-desc" rows="3" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">${docData.desc || ''}</textarea>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-        
-        async function handleAddMoreFiles() {
-            const docId = detailsModalContent.dataset.currentDocId;
-            const docData = allDocuments.find(d => d.id === docId);
-            if (!docData) return showMessage("Erro: Documento não encontrado.", "error");
-
-            const files = modalAddFilesInput.files;
-            if (files.length === 0) return showMessage("Nenhum arquivo selecionado.", "warning");
-
-            showMessage(`Simulando upload de ${files.length} novo(s) arquivo(s)...`, "success");
-            for (const file of files) {
-                docData.files.push({
-                    link: "#",
-                    storagePath: `mock/added-${generateMockId()}-${file.name.replace(/\s/g, '_')}`,
-                    fileName: file.name
-                });
-            }
-            modalAddFilesInput.value = '';
-            renderModalFileList(docData);
-            renderDocuments();
-        }
-
-        async function deleteSingleFile(docId, fileIndex) {
-            const docData = allDocuments.find(d => d.id === docId);
-            if (!docData) return showMessage("Erro: Documento não encontrado.", "error");
-            
-            const file = docData.files[fileIndex];
-            if (!file) return showMessage("Erro: Arquivo não encontrado no documento.", "error");
-
-            const confirmed = await showConfirmModal(
-                "Confirmar Exclusão de Anexo",
-                `Tem certeza que deseja excluir o anexo "${file.fileName}"?`,
-                'red'
-            );
-            if (!confirmed) return;
-
-            docData.files.splice(fileIndex, 1);
-            renderModalFileList(docData);
-            renderDocuments();
-            showMessage("Anexo excluído com sucesso!", "success");
-        }
-
-        async function handleSaveChanges() {
-            const docId = detailsModalContent.dataset.currentDocId;
-            const docData = allDocuments.find(d => d.id === docId);
-            if (!docData) return showMessage("Erro: Documento não encontrado.", "error");
-
-            docData.ref = document.getElementById('modal-edit-ref').value;
-            docData.oc = document.getElementById('modal-edit-oc').value;
-            docData.sector = document.getElementById('modal-edit-sector').value;
-            docData.desc = document.getElementById('modal-edit-desc').value;
-            docData.updatedAt = new Date(); 
-
-            detailsModal.classList.add('hidden');
-            renderDocuments();
-            showMessage("Documento atualizado com sucesso!", "success");
-        }
+        document.getElementById('searchInput').oninput = renderDocs;
 
     </script>
 </body>
