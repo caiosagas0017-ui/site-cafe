@@ -3,478 +3,361 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoRenomeador DocSync</title>
-    <!-- Tailwind CSS para estilização (mantendo a mesma estrutura do React) -->
+    <title>Renomeador Automático DocSync</title>
+    
+    <!-- Tailwind CSS para o visual -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- JSZip para compactação de arquivos na hora de baixar todos -->
+    
+    <!-- JSZip para baixar tudo em .ZIP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     
-    <!-- PDF.js para leitura real do conteúdo do PDF -->
+    <!-- PDF.js - Biblioteca principal e configuração do Worker -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
-        // Configuração obrigatória do Worker do PDF.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
     
+    <!-- Tesseract.js (Motor de IA/OCR para imagens escaneadas) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
     <style>
-        /* Pequenos ajustes para animações que o Tailwind puro precisa de config extra */
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .animate-spin { animation: spin 1s linear infinite; }
-        .toast-enter { transform: translateY(-100%); opacity: 0; }
-        .toast-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease; }
-        
-        /* Esconder scrollbar na tabela para ficar mais clean */
-        .table-container::-webkit-scrollbar { height: 8px; }
-        .table-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        /* Animação simples de loading */
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        /* Custom scrollbar para a tabela */
+        ::-webkit-scrollbar { height: 8px; width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-8">
+<body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8 min-h-screen">
 
-    <div id="toast-container" class="fixed top-4 right-4 z-50 pointer-events-none hidden">
-        <div id="toast" class="p-4 rounded-lg shadow-lg flex items-center gap-3 transition-all">
-            <span id="toast-icon"></span>
-            <span id="toast-msg" class="font-medium"></span>
-        </div>
+    <!-- Toast Notification (Oculto por padrão) -->
+    <div id="toast" class="fixed top-4 right-4 p-4 rounded-lg shadow-lg flex items-center gap-3 z-50 transition-all opacity-0 pointer-events-none transform translate-y-[-20px] duration-300">
+        <span id="toastIcon"></span>
+        <span id="toastMessage" class="font-medium"></span>
     </div>
 
     <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Header -->
         <header class="flex items-center gap-4 border-b border-slate-200 pb-6">
-            <div class="p-3 bg-blue-600 rounded-xl text-white shadow-sm" id="icon-header">
-                <!-- Ícone injetado via JS -->
+            <div class="p-3 bg-blue-600 rounded-xl text-white shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
             </div>
             <div>
                 <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">AutoRenomeador DocSync</h1>
-                <p class="text-slate-500 mt-1">Análise inteligente de Notas Fiscais e Ordens de Compra</p>
+                <p class="text-slate-500 mt-1">Análise inteligente (OCR) de Notas Fiscais e Ordens de Compra</p>
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <!-- Coluna da Esquerda: Configurações e Upload -->
+            <!-- Coluna Esquerda: Config & Upload -->
             <div class="lg:col-span-1 space-y-6">
                 
-                <!-- Configurações de Padrão -->
+                <!-- Configurações -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-                    <div class="flex items-center gap-2 mb-4 text-slate-800">
-                        <span id="icon-settings"></span>
-                        <h2 class="text-lg font-semibold">Padrões de Nomenclatura</h2>
+                    <div class="flex items-center gap-2 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        <h2 class="text-lg font-semibold">Regra de Nomenclatura</h2>
                     </div>
                     
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Formato do Nome do Arquivo</label>
-                            <input 
-                                type="text" 
-                                id="pattern-input"
-                                value="NF {nf} OC {oc}"
-                                class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-                            >
-                            <p class="text-xs text-slate-400 mt-1">Tags: {nf} para Nota Fiscal e {oc} para Ordem de Compra</p>
-                        </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Padrão do Nome do Arquivo</label>
+                        <input type="text" id="namePattern" value="NF {nf} OC {oc}" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
+                        <p class="text-xs text-slate-400 mt-1">Use <b>{nf}</b> para N. Fiscal e <b>{oc}</b> para Ordem.</p>
                     </div>
                 </div>
 
-                <!-- Dropzone de Arquivos -->
-                <div 
-                    id="dropzone"
-                    class="bg-white rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50 transition-all p-8 text-center cursor-pointer flex flex-col items-center justify-center min-h-[200px]"
-                >
-                    <div class="text-blue-500 mb-3" id="icon-upload"></div>
+                <!-- Dropzone -->
+                <div id="dropzone" class="bg-white rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50 transition-all p-8 text-center cursor-pointer flex flex-col items-center justify-center min-h-[200px]">
+                    <div class="text-blue-500 mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </div>
                     <h3 class="font-medium text-slate-700">Clique ou arraste arquivos aqui</h3>
-                    <p class="text-sm text-slate-500 mt-2">Suporta .PDF e .XML (NF-e)</p>
-                    <input type="file" id="file-input" multiple accept=".pdf,.xml" class="hidden">
+                    <p class="text-sm text-slate-500 mt-2">Suporta .PDF e .XML</p>
+                    <input type="file" id="fileInput" multiple accept=".pdf,.xml" class="hidden">
                 </div>
             </div>
 
-            <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-full min-h-[500px]">
-                
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                    <div>
+            <!-- Coluna Direita: Fila e Tabela -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Tabela Principal -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col min-h-[400px]">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                         <h2 class="text-lg font-semibold flex items-center gap-2">
                             Fila de Processamento
-                            <span id="file-count" class="bg-slate-100 text-slate-600 text-xs py-1 px-2 rounded-full font-medium">0 arquivos</span>
+                            <span id="fileCountBadge" class="bg-slate-100 text-slate-600 text-xs py-1 px-2 rounded-full font-medium">0 arquivos</span>
                         </h2>
+                        
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <button id="btnProcess" class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Analisar Documentos
+                            </button>
+                            
+                            <button id="btnDownloadZip" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Baixar em .ZIP
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div class="flex gap-2 w-full sm:w-auto">
-                        <button id="btn-process" disabled class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                            Analisar Documentos
-                        </button>
-                        <button id="btn-download-all" disabled class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                            <span id="icon-download-btn"></span> Baixar em .ZIP
-                        </button>
+
+                    <div class="flex-1 overflow-x-auto border border-slate-200 rounded-xl rounded-b-none">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-sm">
+                                    <th class="p-4 font-medium">Documento Original</th>
+                                    <th class="p-4 font-medium w-48">Dados (Edite se precisar)</th>
+                                    <th class="p-4 font-medium">Novo Nome</th>
+                                    <th class="p-4 font-medium text-center">Status</th>
+                                    <th class="p-4 font-medium text-center">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="divide-y divide-slate-100 text-sm">
+                                <tr>
+                                    <td colspan="5" class="p-12 text-center text-slate-400">
+                                        Nenhum documento na fila. Arraste PDFs para começar.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="bg-slate-50 border border-t-0 border-slate-200 p-4 rounded-b-xl flex justify-between text-xs text-slate-500">
+                        <span>Leitura real de PDF com IA (OCR) integrada.</span>
                     </div>
                 </div>
 
-                <!-- Tabela de Arquivos -->
-                <div class="flex-1 overflow-x-auto border border-slate-200 rounded-xl rounded-b-none table-container">
-                    <table class="w-full text-left border-collapse min-w-[600px]">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-sm">
-                                <th class="p-4 font-medium w-1/3">Documento Original</th>
-                                <th class="p-4 font-medium w-1/4">Dados Encontrados</th>
-                                <th class="p-4 font-medium w-1/4">Novo Nome Sugerido</th>
-                                <th class="p-4 font-medium text-center">Status</th>
-                                <th class="p-4 font-medium text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
-                            <!-- Conteúdo injetado via JavaScript -->
-                            <tr>
-                                <td colspan="5" class="p-12 text-center text-slate-400">
-                                    Nenhum documento na fila. Arraste seus PDFs ou XMLs para começar.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Painel de Logs de Ocorrências (Inicia Oculto) -->
+                <div id="logsPanel" class="bg-white rounded-2xl p-6 shadow-sm border border-orange-200 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-orange-700 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            Log de Ocorrências e Alertas
+                        </h2>
+                        <button id="btnClearLogs" class="text-sm text-slate-500 hover:text-slate-800 underline">Limpar Logs</button>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 max-h-48 overflow-y-auto font-mono text-xs text-slate-600" id="logsContainer">
+                        <!-- Logs aparecerão aqui -->
+                    </div>
                 </div>
-                
-                <!-- Rodapé da Tabela -->
-            <div class="bg-slate-50 border border-t-0 border-slate-200 p-4 rounded-b-xl flex justify-between text-xs text-slate-500">
-                <span id="process-stats">Processados: 0 / 0</span>
-                <span>Motor de Leitura Real (PDF.js) | Leitura NFe Real (XML)</span>
             </div>
         </div>
     </div>
-            </div>
-        </div>
 
-        <!-- Painel de Log de Erros -->
-        <div id="log-container" class="hidden bg-white border border-red-200 rounded-2xl shadow-sm overflow-hidden transition-all">
-            <div class="bg-red-50 border-b border-red-100 p-4 flex justify-between items-center">
-                <h3 class="text-red-800 font-semibold flex items-center gap-2">
-                    <span id="icon-alert-log" class="text-red-500"></span>
-                    Log de Ocorrências e Alertas
-                </h3>
-                <button id="btn-clear-logs" class="text-sm text-red-600 hover:text-red-800 font-medium px-3 py-1 rounded hover:bg-red-100 transition-colors">
-                    Limpar Logs
-                </button>
-            </div>
-            <div class="p-4 max-h-[200px] overflow-y-auto">
-                <ul id="log-list" class="space-y-2 text-sm text-slate-600 font-mono">
-                    <!-- Logs injetados via JS -->
-                </ul>
-            </div>
-        </div>
-
-    </div>
-
+    <!-- SCRIPT PRINCIPAL: LÓGICA DO APLICATIVO -->
     <script>
-        // Banco de ícones SVG (os mesmos do React)
-        const Icons = {
-            Upload: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>',
-            FileText: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
-            Settings: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
-            CheckCircle: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
-            Loader: '<svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>',
-            Download: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>',
-            Trash: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
-            AlertCircle: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+        const state = {
+            files: [],
+            isProcessing: false,
+            isZipping: false,
+            logs: []
         };
 
-        let files = [];
-        let isProcessing = false;
-        let isZipping = false;
-        let errorLogs = [];
-        
-        // Elementos do DOM
+        // Elementos DOM
         const dropzone = document.getElementById('dropzone');
-        const fileInput = document.getElementById('file-input');
-        const tableBody = document.getElementById('table-body');
-        const btnProcess = document.getElementById('btn-process');
-        const btnDownloadAll = document.getElementById('btn-download-all');
-        const patternInput = document.getElementById('pattern-input');
-        const toastContainer = document.getElementById('toast-container');
-        const toastEl = document.getElementById('toast');
-        const logContainer = document.getElementById('log-container');
-        const logList = document.getElementById('log-list');
-        const btnClearLogs = document.getElementById('btn-clear-logs');
+        const fileInput = document.getElementById('fileInput');
+        const tableBody = document.getElementById('tableBody');
+        const namePatternInput = document.getElementById('namePattern');
+        const btnProcess = document.getElementById('btnProcess');
+        const btnDownloadZip = document.getElementById('btnDownloadZip');
+        const fileCountBadge = document.getElementById('fileCountBadge');
+        
+        // Elementos do Log
+        const logsPanel = document.getElementById('logsPanel');
+        const logsContainer = document.getElementById('logsContainer');
+        const btnClearLogs = document.getElementById('btnClearLogs');
 
-        // Injetar ícones estáticos
-        document.getElementById('icon-header').innerHTML = Icons.FileText;
-        document.getElementById('icon-settings').innerHTML = Icons.Settings;
-        document.getElementById('icon-upload').innerHTML = Icons.Upload;
-        document.getElementById('icon-download-btn').innerHTML = Icons.Download;
-        document.getElementById('icon-alert-log').innerHTML = Icons.AlertCircle;
+        // Ícones SVG reutilizáveis
+        const icons = {
+            loader: `<svg class="spinner text-blue-500 w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>`,
+            check: `<svg class="text-emerald-500 w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
+            trash: `<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`
+        };
 
-        let toastTimeout;
-        function triggerToast(message, type = 'info') {
-            clearTimeout(toastTimeout);
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            toastMsg.textContent = message;
             
-            const toastIcon = document.getElementById('toast-icon');
-            const toastMsg = document.getElementById('toast-msg');
-            
-            toastMsg.innerText = message;
-            
-            // Estilizar baseado no tipo
-            toastEl.className = 'p-4 rounded-lg shadow-lg flex items-center gap-3 transition-all toast-active pointer-events-auto ';
-            if (type === 'success') {
-                toastEl.className += 'bg-green-100 text-green-800 border border-green-200';
-                toastIcon.innerHTML = Icons.CheckCircle;
-            } else if (type === 'warning') {
-                toastEl.className += 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-                toastIcon.innerHTML = Icons.AlertCircle;
-            } else {
-                toastEl.className += 'bg-blue-100 text-blue-800 border border-blue-200';
-                toastIcon.innerHTML = Icons.FileText;
-            }
+            toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg flex items-center gap-3 z-50 transition-all duration-300 transform translate-y-0 opacity-100 ${
+                type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 
+                type === 'warning' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                'bg-blue-100 text-blue-800 border border-blue-200'
+            }`;
 
-            toastContainer.classList.remove('hidden');
-            
-            // Ocultar após 3 segundos
-            toastTimeout = setTimeout(() => {
-                toastEl.classList.remove('toast-active');
-                toastEl.classList.add('toast-enter');
-                setTimeout(() => toastContainer.classList.add('hidden'), 300);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-20px]', 'opacity-0');
             }, 3000);
         }
 
-        // Sistema de Logs
-        function addErrorLog(fileName, message) {
-            const timestamp = new Date().toLocaleTimeString();
-            errorLogs.push({ time: timestamp, fileName, message });
+        function addLog(filename, message) {
+            const time = new Date().toLocaleTimeString();
+            const logEntry = `[${time}] <span class="font-bold text-slate-700">${filename}</span>: ${message}`;
+            state.logs.unshift(logEntry); // Adiciona no topo
             renderLogs();
         }
 
         function renderLogs() {
-            if (errorLogs.length === 0) {
-                logContainer.classList.add('hidden');
-                return;
+            if (state.logs.length > 0) {
+                logsPanel.classList.remove('hidden');
+                logsContainer.innerHTML = state.logs.map(log => `<div class="mb-1">${log}</div>`).join('');
+            } else {
+                logsPanel.classList.add('hidden');
             }
-            
-            logContainer.classList.remove('hidden');
-            logList.innerHTML = errorLogs.map(log => `
-                <li class="flex items-start gap-3 py-1 border-b border-slate-50 last:border-0">
-                    <span class="text-slate-400 shrink-0">[${log.time}]</span>
-                    <span class="font-semibold text-slate-700 truncate w-1/4 shrink-0" title="${log.fileName}">${log.fileName}:</span>
-                    <span class="text-red-600">${log.message}</span>
-                </li>
-            `).join('');
-            
-            // Auto scroll para o último log
-            logList.parentElement.scrollTop = logList.parentElement.scrollHeight;
         }
 
         btnClearLogs.addEventListener('click', () => {
-            errorLogs = [];
+            state.logs = [];
             renderLogs();
         });
-
-        dropzone.addEventListener('click', () => fileInput.click());
-        
-        dropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropzone.classList.add('border-blue-500', 'bg-blue-50');
-        });
-        
-        dropzone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('border-blue-500', 'bg-blue-50');
-        });
-        
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('border-blue-500', 'bg-blue-50');
-            handleFiles(e.dataTransfer.files);
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
-            // Reseta o input para permitir selecionar o mesmo arquivo duas vezes se apagado
-            e.target.value = ''; 
-        });
-
-        function handleFiles(fileList) {
-            const droppedFiles = Array.from(fileList);
-            const validFiles = droppedFiles.filter(f => 
-                f.type === 'text/xml' || 
-                f.type === 'application/pdf' ||
-                f.name.toLowerCase().endsWith('.xml') || 
-                f.name.toLowerCase().endsWith('.pdf')
-            );
-
-            if (validFiles.length !== droppedFiles.length) {
-                triggerToast('Apenas arquivos PDF e XML são suportados.', 'warning');
-            }
-
-            if (validFiles.length > 0) {
-                const newFiles = validFiles.map(file => ({
-                    id: Math.random().toString(36).substring(7),
-                    originalFile: file,
-                    originalName: file.name,
-                    status: 'pending', // pending, processing, done, error
-                    parsedData: null,
-                    newName: null
-                }));
-                files = [...files, ...newFiles];
-                renderTable();
-            }
-        }
 
         function generateNewName(parsedData, originalName) {
             if (!parsedData) return originalName;
             const extension = originalName.split('.').pop();
-            const pattern = patternInput.value;
+            const pattern = namePatternInput.value;
             
             let newName = pattern
-                .replace('{nf}', parsedData.nfNumero || '0000')
-                .replace('{oc}', parsedData.ocNumero || '0000');
-                
+                .replace('{nf}', parsedData.nfNumero || '')
+                .replace('{oc}', parsedData.ocNumero || '');
+            
+            // Limpa espaços duplos caso um dos números esteja vazio
+            newName = newName.replace(/\s+/g, ' ').trim();
+            
+            // Se o nome gerado ficar vazio, mantém o original para não sumir o arquivo
+            if (!newName) return originalName;
+
             return `${newName}.${extension}`;
         }
 
-        function updateUIState() {
-            document.getElementById('file-count').innerText = `${files.length} arquivos`;
-            
-            const doneCount = files.filter(f => f.status === 'done').length;
-            document.getElementById('process-stats').innerText = `Processados: ${doneCount} / ${files.length}`;
-            
-            const hasPending = files.some(f => f.status === 'pending');
-            
-            // Botão Processar
-            btnProcess.disabled = isProcessing || files.length === 0 || !hasPending;
-            if (isProcessing) {
-                btnProcess.innerHTML = `${Icons.Loader} Analisando...`;
-            } else {
-                btnProcess.innerHTML = 'Analisar Documentos';
-            }
-
-            // Botão Baixar ZIP
-            btnDownloadAll.disabled = doneCount === 0 || isZipping;
-            if (isZipping) {
-                btnDownloadAll.innerHTML = `${Icons.Loader} Compactando...`;
-            } else {
-                btnDownloadAll.innerHTML = `${Icons.Download} Baixar em .ZIP`;
-            }
-        }
-
         function renderTable() {
-            updateUIState();
+            fileCountBadge.textContent = `${state.files.length} arquivos`;
+            btnProcess.disabled = state.isProcessing || state.files.length === 0 || !state.files.some(f => f.status === 'pending');
+            btnDownloadZip.disabled = state.isZipping || !state.files.some(f => f.status === 'done');
 
-            if (files.length === 0) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="p-12 text-center text-slate-400">
-                            Nenhum documento na fila. Arraste seus PDFs ou XMLs para começar.
-                        </td>
-                    </tr>
-                `;
+            if (state.files.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400">Nenhum documento na fila. Arraste PDFs ou XMLs para começar.</td></tr>`;
                 return;
             }
 
-            tableBody.innerHTML = files.map(file => `
-                <tr class="hover:bg-slate-50/50 transition-colors" data-id="${file.id}">
-                    <td class="p-4 font-medium text-slate-700 truncate max-w-[200px]" title="${file.originalName}">
-                        ${file.originalName}
-                    </td>
+            tableBody.innerHTML = state.files.map(file => `
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="p-4 font-medium text-slate-700 truncate max-w-[150px]" title="${file.originalName}">${file.originalName}</td>
                     <td class="p-4">
-                        ${file.parsedData ? `
-                            <div class="flex flex-col gap-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold text-slate-500 w-6">NF:</span>
-                                    <input type="text" class="input-nf border border-slate-200 rounded px-2 py-1 text-sm w-24 focus:outline-none focus:border-blue-500 transition-colors" value="${file.parsedData.nfNumero}" placeholder="0000">
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold text-slate-500 w-6">OC:</span>
-                                    <input type="text" class="input-oc border border-slate-200 rounded px-2 py-1 text-sm w-24 focus:outline-none focus:border-blue-500 transition-colors" value="${file.parsedData.ocNumero}" placeholder="0000">
-                                </div>
+                        ${file.status === 'pending' || file.status === 'processing' ? '<span class="text-slate-300 italic text-xs">Aguardando...</span>' : `
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold text-slate-500 w-4">NF:</span>
+                                <input type="text" data-id="${file.id}" data-field="nfNumero" value="${file.parsedData?.nfNumero || ''}" class="data-input border border-slate-200 rounded px-1.5 py-0.5 text-xs w-20 focus:outline-none focus:border-blue-500 transition-colors bg-white shadow-sm" placeholder="Vazio">
                             </div>
-                        ` : `<span class="text-slate-400">-</span>`}
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold text-slate-500 w-4">OC:</span>
+                                <input type="text" data-id="${file.id}" data-field="ocNumero" value="${file.parsedData?.ocNumero || ''}" class="data-input border border-slate-200 rounded px-1.5 py-0.5 text-xs w-20 focus:outline-none focus:border-blue-500 transition-colors bg-white shadow-sm" placeholder="Vazio">
+                            </div>
+                        </div>
+                        `}
                     </td>
-                    <td class="p-4 text-emerald-600 font-medium truncate max-w-[250px] new-name-cell" title="${file.newName || ''}">
-                        ${file.newName || '<span class="text-slate-300 italic">Aguardando análise...</span>'}
+                    <td class="p-4 text-emerald-600 font-medium text-xs break-all" title="${file.newName || ''}">
+                        ${file.newName || '<span class="text-slate-300 italic font-normal">Sugerindo...</span>'}
                     </td>
                     <td class="p-4 text-center">
                         ${file.status === 'pending' ? '<span class="inline-block w-2 h-2 rounded-full bg-slate-300" title="Pendente"></span>' : ''}
-                        ${file.status === 'processing' ? `<span class="inline-flex text-blue-500">${Icons.Loader}</span>` : ''}
-                        ${file.status === 'done' ? `<span class="inline-flex text-green-500">${Icons.CheckCircle}</span>` : ''}
+                        ${file.status === 'processing' ? icons.loader : ''}
+                        ${file.status === 'done' ? icons.check : ''}
                     </td>
-                    <td class="p-4">
-                        <div class="flex justify-center gap-2">
-                            ${file.status === 'done' ? `
-                                <button class="btn-download p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Baixar Unitário">
-                                    ${Icons.Download}
-                                </button>
-                            ` : ''}
-                            <button class="btn-remove p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Remover">
-                                ${Icons.Trash}
-                            </button>
-                        </div>
+                    <td class="p-4 text-center">
+                        <button onclick="removeFile('${file.id}')" class="p-1.5 text-slate-300 hover:text-red-500 rounded transition-colors" title="Remover Arquivo">
+                            ${icons.trash}
+                        </button>
                     </td>
                 </tr>
             `).join('');
         }
 
-        // Usamos delegação de eventos para capturar clicks e inputs em elementos dinâmicos
+        window.removeFile = (id) => {
+            state.files = state.files.filter(f => f.id !== id);
+            renderTable();
+        };
+
+        // Listener global para os inputs dentro da tabela
         tableBody.addEventListener('input', (e) => {
-            const tr = e.target.closest('tr');
-            if (!tr) return;
-            const fileId = tr.dataset.id;
-            const file = files.find(f => f.id === fileId);
-            
-            if (e.target.classList.contains('input-nf')) {
-                file.parsedData.nfNumero = e.target.value;
-            } else if (e.target.classList.contains('input-oc')) {
-                file.parsedData.ocNumero = e.target.value;
-            }
-            
-            // Se foi alteração de NF ou OC, atualiza o nome visualmente sem recriar toda a tabela
-            if (e.target.classList.contains('input-nf') || e.target.classList.contains('input-oc')) {
-                file.newName = generateNewName(file.parsedData, file.originalName);
-                const nameCell = tr.querySelector('.new-name-cell');
-                nameCell.textContent = file.newName;
-                nameCell.title = file.newName;
+            if (e.target.classList.contains('data-input')) {
+                const id = e.target.getAttribute('data-id');
+                const field = e.target.getAttribute('data-field');
+                const value = e.target.value;
+
+                const file = state.files.find(f => f.id === id);
+                if (file && file.parsedData) {
+                    file.parsedData[field] = value;
+                    file.newName = generateNewName(file.parsedData, file.originalName);
+                    // Atualiza apenas a coluna do nome para não recarregar os inputs enquanto digita
+                    e.target.closest('tr').querySelector('td:nth-child(3)').textContent = file.newName;
+                }
             }
         });
 
-        tableBody.addEventListener('click', (e) => {
-            const btn = e.target.closest('button');
-            if (!btn) return;
-            
-            const tr = btn.closest('tr');
-            const fileId = tr.dataset.id;
-            
-            if (btn.classList.contains('btn-remove')) {
-                files = files.filter(f => f.id !== fileId);
-                renderTable();
-            } else if (btn.classList.contains('btn-download')) {
-                const fileObj = files.find(f => f.id === fileId);
-                downloadSingleFile(fileObj);
-            }
-        });
-
-        // Quando o usuário muda o padrão no input
-        patternInput.addEventListener('input', () => {
-            files.forEach(f => {
-                if (f.status === 'done' && f.parsedData) {
-                    f.newName = generateNewName(f.parsedData, f.originalName);
+        namePatternInput.addEventListener('input', () => {
+            state.files.forEach(file => {
+                if (file.status === 'done') {
+                    file.newName = generateNewName(file.parsedData, file.originalName);
                 }
             });
             renderTable();
         });
+
+        const handleFiles = (files) => {
+            const validFiles = Array.from(files).filter(f => 
+                f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf') ||
+                f.type === 'text/xml' || f.name.toLowerCase().endsWith('.xml')
+            );
+
+            if (validFiles.length !== files.length) {
+                showToast('Apenas arquivos PDF e XML são suportados.', 'warning');
+            }
+
+            validFiles.forEach(file => {
+                state.files.push({
+                    id: Math.random().toString(36).substring(7),
+                    originalFile: file,
+                    originalName: file.name,
+                    status: 'pending',
+                    parsedData: null,
+                    newName: null
+                });
+            });
+            renderTable();
+        };
+
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-blue-500', 'bg-blue-50'); });
+        dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('border-blue-500', 'bg-blue-50'); });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-blue-500', 'bg-blue-50');
+            handleFiles(e.dataTransfer.files);
+        });
+        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
         const parseXMLNFe = async (file) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
-                        const text = e.target.result;
                         const parser = new DOMParser();
-                        const xmlDoc = parser.parseFromString(text, "text/xml");
-                        const nNFNode = xmlDoc.getElementsByTagName("nNF")[0];
+                        const xmlDoc = parser.parseFromString(e.target.result, "text/xml");
+                        const nNF = xmlDoc.getElementsByTagName("nNF")[0]?.textContent || "";
                         
-                        if (!nNFNode) {
-                            addErrorLog(file.name, "Tag <nNF> não encontrada. O arquivo pode não ser uma NFe válida.");
-                            resolve({ type: 'XML', nfNumero: '', ocNumero: '' });
-                            return;
-                        }
+                        if (!nNF) addLog(file.name, "Atenção: Tag <nNF> não encontrada no XML. Digite a NF manualmente na tabela.");
                         
-                        resolve({ type: 'XML', nfNumero: nNFNode.textContent, ocNumero: '' });
+                        resolve({ type: 'XML', nfNumero: nNF, ocNumero: '' });
                     } catch (error) {
-                        console.error("Erro ao analisar XML:", error);
-                        addErrorLog(file.name, "Arquivo XML corrompido ou formato inválido.");
-                        resolve({ type: 'UNKNOWN', nfNumero: '', ocNumero: '' });
+                        addLog(file.name, "Erro fatal ao tentar ler o arquivo XML.");
+                        resolve({ type: 'ERROR', nfNumero: '', ocNumero: '' });
                     }
                 };
                 reader.readAsText(file);
@@ -488,7 +371,6 @@
                     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                     let fullText = '';
                     
-                    // Extrai o texto de todas as páginas
                     for (let i = 1; i <= pdf.numPages; i++) {
                         const page = await pdf.getPage(i);
                         const textContent = await page.getTextContent();
@@ -496,122 +378,123 @@
                         fullText += pageText + ' ';
                     }
 
-                    // Limpa o texto (remove espaços duplos) para facilitar o mapeamento
-                    const cleanText = fullText.replace(/\s+/g, ' ');
+                    let cleanText = fullText.replace(/\s+/g, ' ');
 
-                    // 1. Tentar encontrar a Nota Fiscal (NF)
-                    // Procura por "Nº 65000", "NF-e 65000", "Nota Fiscal 65000", etc.
-                    let nfNum = '';
-                    const nfMatch = cleanText.match(/(?:N[º°]|NF[-e]?|Nota Fiscal)\s*[:.-]?\s*(\d{4,9})/i);
-                    if (nfMatch) {
-                        nfNum = nfMatch[1];
+                    // VERIFICA SE É IMAGEM ESCANEADA (TEXTO VAZIO OU MUITO CURTO)
+                    const isScanned = cleanText.trim().length < 50;
+
+                    if (isScanned) {
+                        addLog(file.name, "🔍 PDF escaneado detectado. Iniciando IA (OCR) Tesseract. Isso pode demorar...");
+                        
+                        // Atualiza status visual pra usuário saber q OCR tá rodando
+                        showToast(`Lendo imagem: ${file.name}... Aguarde.`, 'info');
+                        fullText = ''; 
+                        
+                        // Limita a max 3 páginas pro navegador não travar
+                        const pagesToProcess = Math.min(pdf.numPages, 3);
+                        
+                        for (let i = 1; i <= pagesToProcess; i++) {
+                            const page = await pdf.getPage(i);
+                            const viewport = page.getViewport({ scale: 2.0 }); // Escala 2x pra IA enxergar melhor
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+                            
+                            await page.render({ canvasContext: context, viewport: viewport }).promise;
+                            
+                            // OCR Engine (Tesseract)
+                            const result = await Tesseract.recognize(canvas, 'por');
+                            fullText += result.data.text + ' ';
+                        }
+                        
+                        cleanText = fullText.replace(/\s+/g, ' ');
+                        addLog(file.name, "✅ Leitura da imagem concluída pela IA.");
                     }
 
-                    // 2. Tentar encontrar a Ordem de Compra (OC/SOC)
-                    // Procura por "Soc: 161676", "OC 161676" ou "Pedido 161676"
+                    // 1. Regex NF
+                    let nfNum = '';
+                    const nfMatch = cleanText.match(/(?:N[º°0O]|NF[-e]?|Nota Fiscal)\s*[:.-]?\s*(\d{4,9})/i);
+                    if (nfMatch) nfNum = nfMatch[1];
+
+                    // 2. Regex OC (SOC)
                     let ocNum = '';
-                    const ocMatch = cleanText.match(/(?:Soc|OC|Pedido|Ordem de Compra|Solicita[çc][ãa]o)\s*[:.-]?\s*(\d{5,9})/i);
+                    const ocMatch = cleanText.match(/(?:Soc|S0c|OC|0C|Pedido|Ordem de Compra|Solicita[çc][ãa]o)\s*[:.-]?\s*(\d{5,9})/i);
                     
                     if (ocMatch) {
                         ocNum = ocMatch[1];
-                    } else if (cleanText.toLowerCase().includes('soc')) {
-                        // Fallback caso a quebra de linha do PDF tenha separado a palavra "Soc" do número
-                        // Procura qualquer número de 6 dígitos (padrão de SOC no seu exemplo)
+                    } else {
+                        // Fallback: Procura um número isolado de 6 dígitos q não seja a NF
                         const fallbackOcMatch = cleanText.match(/\b(\d{6})\b/g);
                         if (fallbackOcMatch) {
-                            // Pega o primeiro número de 6 dígitos que seja diferente do número da NF
-                            ocNum = fallbackOcMatch.find(num => num !== nfNum) || fallbackOcMatch[0];
+                            ocNum = fallbackOcMatch.find(num => num !== nfNum) || '';
                         }
                     }
 
-                    // Validações e Logs caso não encontre
+                    // Avisos caso não encontre
                     if (!nfNum && !ocNum) {
-                        // Último recurso: tenta extrair do nome do arquivo (para imagens escaneadas)
-                        const numbersInName = file.name.match(/\d+/g);
-                        if (numbersInName && numbersInName.length >= 2) {
-                            nfNum = numbersInName[0].substring(0, 6);
-                            ocNum = numbersInName[1].substring(0, 6);
-                            addErrorLog(file.name, "Alerta: Dados extraídos do NOME do arquivo. O PDF parece ser uma imagem escaneada sem texto selecionável.");
-                        } else {
-                            addErrorLog(file.name, "Não foi possível encontrar a NF nem a OC no texto do documento.");
-                        }
-                    } else if (!nfNum) {
-                        addErrorLog(file.name, "Nota Fiscal não encontrada no documento. Apenas OC foi localizada.");
-                    } else if (!ocNum) {
-                        addErrorLog(file.name, "Ordem de Compra (OC/SOC) não encontrada no documento. Apenas NF localizada.");
+                        addLog(file.name, "Atenção: Nenhum número (NF/OC) encontrado. Verifique se a imagem está legível e digite manualmente.");
+                    } else {
+                        if (!nfNum) addLog(file.name, "NF não encontrada no texto. Digite manualmente se necessário.");
+                        if (!ocNum) addLog(file.name, "OC (Soc) não encontrada no texto. Digite manualmente se necessário.");
                     }
 
                     resolve({ type: 'PDF', nfNumero: nfNum, ocNumero: ocNum });
                 } catch (error) {
-                    console.error("Erro no PDF.js:", error);
-                    addErrorLog(file.name, "Erro ao processar o conteúdo do PDF. O arquivo pode estar protegido ou ser muito complexo.");
+                    console.error(error);
+                    addLog(file.name, "Erro fatal ao processar PDF: " + error.message);
                     resolve({ type: 'ERROR', nfNumero: '', ocNumero: '' });
                 }
             });
         };
 
         btnProcess.addEventListener('click', async () => {
-            const pendingFiles = files.filter(f => f.status === 'pending');
-            if (pendingFiles.length === 0) return;
+            state.isProcessing = true;
+            btnProcess.innerHTML = `${icons.loader} Analisando...`;
+            renderTable(); // Desabilita botoes
 
-            isProcessing = true;
-            renderTable(); // atualiza para mostrar loading no botão
-            
-            for (let i = 0; i < files.length; i++) {
-                if (files[i].status !== 'pending') continue;
+            for (let i = 0; i < state.files.length; i++) {
+                if (state.files[i].status !== 'pending') continue;
 
-                files[i].status = 'processing';
-                renderTable(); // mostra loading na linha
+                state.files[i].status = 'processing';
+                renderTable();
 
+                const file = state.files[i];
                 let parsedData;
-                const fileExt = files[i].originalName.toLowerCase().split('.').pop();
+                const ext = file.originalName.toLowerCase().split('.').pop();
 
-                if (fileExt === 'xml') {
-                    parsedData = await parseXMLNFe(files[i].originalFile);
+                if (ext === 'xml') {
+                    parsedData = await parseXMLNFe(file.originalFile);
                 } else {
-                    parsedData = await analyzePDFText(files[i].originalFile);
+                    parsedData = await analyzePDFText(file.originalFile);
                 }
 
-                files[i].parsedData = parsedData;
-                files[i].newName = generateNewName(parsedData, files[i].originalName);
-                files[i].status = 'done';
-                
+                file.parsedData = parsedData;
+                file.newName = generateNewName(parsedData, file.originalName);
+                file.status = 'done';
                 renderTable();
             }
 
-            isProcessing = false;
+            state.isProcessing = false;
+            btnProcess.innerHTML = 'Analisar Documentos';
             renderTable();
-            triggerToast('Processamento concluído com sucesso!', 'success');
+            showToast('Análise concluída!', 'success');
         });
 
-        function downloadSingleFile(fileObj) {
-            if (!fileObj.newName) return;
-            const url = URL.createObjectURL(fileObj.originalFile);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileObj.newName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        btnDownloadAll.addEventListener('click', async () => {
-            const doneFiles = files.filter(f => f.status === 'done');
+        btnDownloadZip.addEventListener('click', async () => {
+            const doneFiles = state.files.filter(f => f.status === 'done' && f.newName);
             if (doneFiles.length === 0) return;
-            
-            isZipping = true;
+
+            state.isZipping = true;
+            btnDownloadZip.innerHTML = `${icons.loader} Compactando...`;
             renderTable();
-            triggerToast('Gerando arquivo ZIP...', 'info');
+            showToast('Gerando arquivo ZIP...', 'info');
 
             try {
-                // JSZip já está carregado pelo script no <head>
                 const zip = new JSZip();
                 
                 doneFiles.forEach(fileObj => {
-                    if (fileObj.newName && fileObj.originalFile) {
-                        zip.file(fileObj.newName, fileObj.originalFile);
-                    }
+                    zip.file(fileObj.newName, fileObj.originalFile);
                 });
 
                 const content = await zip.generateAsync({ type: 'blob' });
@@ -625,15 +508,17 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                triggerToast('Download do ZIP concluído!', 'success');
+                showToast('Download do ZIP concluído!', 'success');
             } catch (error) {
-                console.error('Erro ao gerar ZIP:', error);
-                triggerToast('Erro ao gerar arquivo ZIP.', 'warning');
+                console.error(error);
+                showToast('Erro ao gerar arquivo ZIP.', 'warning');
             } finally {
-                isZipping = false;
+                state.isZipping = false;
+                btnDownloadZip.innerHTML = 'Baixar em .ZIP';
                 renderTable();
             }
         });
+
     </script>
 </body>
 </html>
