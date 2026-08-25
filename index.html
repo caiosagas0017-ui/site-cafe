@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Renomeador Automático DocSync</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Bibliotecas Necessárias (PDF, OCR e ZIP) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -18,7 +21,6 @@
         @keyframes toastIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes toastOut { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-100%); opacity: 0; } }
         
-        /* Loading spinner */
         .loader {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #3b82f6;
@@ -43,7 +45,7 @@
             </div>
             <div>
                 <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">AutoRenomeador DocSync</h1>
-                <p class="text-slate-500 mt-1">Análise inteligente (OCR) de Notas Fiscais e Ordens de Compra</p>
+                <p class="text-slate-500 mt-1">Análise inteligente de Notas Fiscais e Ordens de Compra</p>
             </div>
         </header>
 
@@ -51,7 +53,6 @@
             
             <!-- Coluna Esquerda: Config & Dropzone -->
             <div class="lg:col-span-1 space-y-6">
-                
                 <!-- Configurações -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                     <div class="flex items-center gap-2 mb-4">
@@ -71,13 +72,13 @@
                     <p class="text-sm text-slate-500 mt-1">.PDF ou .XML</p>
                     <input type="file" id="fileInput" multiple accept=".pdf,.xml" class="hidden">
                 </div>
-
             </div>
 
+            <!-- Coluna Direita: Tabela -->
             <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-full min-h-[500px]">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <h2 class="text-lg font-semibold flex items-center gap-2">
-                        Fila de Processamento <span id="fileCount" class="bg-slate-100 text-slate-600 text-xs py-1 px-2 rounded-full font-medium">0</span>
+                        Fila <span id="fileCount" class="bg-slate-100 text-slate-600 text-xs py-1 px-2 rounded-full font-medium">0</span>
                     </h2>
                     <div class="flex gap-2 w-full sm:w-auto">
                         <button id="btnProcess" disabled class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
@@ -107,11 +108,12 @@
                 </div>
             </div>
             
+            <!-- Log do Motor de IA -->
             <div class="lg:col-span-3 bg-amber-50 rounded-2xl p-6 shadow-sm border border-amber-200 hidden" id="logPanel">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold text-amber-800 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                        Log do Motor de IA
+                        Log de Alertas (Motor IA)
                     </h3>
                     <button id="btnClearLogs" class="text-amber-700 hover:bg-amber-100 px-3 py-1 rounded text-sm transition-colors">Limpar Logs</button>
                 </div>
@@ -123,13 +125,11 @@
     </div>
 
     <script>
-        // Configura o worker do PDF.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
         let filesData = [];
         let isProcessing = false;
         
-        // Elementos DOM
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
         const tableBody = document.getElementById('tableBody');
@@ -152,7 +152,6 @@
 
             toast.className = `toast-enter flex items-center gap-3 p-4 rounded-lg shadow-lg border ${bgClass}`;
             toast.innerHTML = `<span class="font-medium text-sm">${message}</span>`;
-            
             container.appendChild(toast);
             
             setTimeout(() => {
@@ -178,8 +177,10 @@
         function generateNewName(nf, oc, originalName) {
             const ext = originalName.split('.').pop();
             const pattern = namePatternInput.value;
-            let cleanNf = (nf || '0000').replace(/\s+/g, '');
-            let cleanOc = (oc || '0000').replace(/\s+/g, '');
+            
+            // Só preenche com 0000 se o usuário deixar completamente vazio no input
+            let cleanNf = (nf === '' || nf === null) ? '0000' : String(nf).replace(/\s+/g, '');
+            let cleanOc = (oc === '' || oc === null) ? '0000' : String(oc).replace(/\s+/g, '');
             
             let newName = pattern.replace('{nf}', cleanNf).replace('{oc}', cleanOc);
             return `${newName.trim()}.${ext}`;
@@ -187,7 +188,6 @@
 
         function renderTable() {
             fileCountSpan.innerText = filesData.length;
-            
             const pendingCount = filesData.filter(f => f.status === 'pending').length;
             const doneCount = filesData.filter(f => f.status === 'done').length;
             
@@ -243,7 +243,6 @@
 
         function handleFiles(files) {
             const validFiles = Array.from(files).filter(f => f.type === 'application/pdf' || f.type === 'text/xml' || f.name.toLowerCase().endsWith('.xml'));
-            
             if (validFiles.length !== files.length) showToast('Apenas PDFs e XMLs suportados.', 'warning');
             
             validFiles.forEach(file => {
@@ -267,7 +266,6 @@
 
         window.removeFile = (id) => { filesData = filesData.filter(f => f.id !== id); renderTable(); };
 
-        // Edição ao vivo na tabela
         tableBody.addEventListener('input', (e) => {
             if(e.target.tagName === 'INPUT') {
                 const id = e.target.getAttribute('data-id');
@@ -278,8 +276,6 @@
                 if(fileObj && fileObj.parsedData) {
                     fileObj.parsedData[field] = val;
                     fileObj.newName = generateNewName(fileObj.parsedData.nf, fileObj.parsedData.oc, fileObj.originalName);
-                    
-                    // Atualiza texto da td do novo nome direto no DOM pra ser instantâneo
                     const tr = e.target.closest('tr');
                     tr.querySelector('td:nth-child(3)').innerText = fileObj.newName;
                 }
@@ -303,7 +299,6 @@
                         const parser = new DOMParser();
                         const xmlDoc = parser.parseFromString(e.target.result, "text/xml");
                         const nNF = xmlDoc.getElementsByTagName("nNF")[0]?.textContent;
-                        
                         if(!nNF) addLog(file.name, "Tag <nNF> não encontrada no XML.");
                         resolve({ nf: nNF || '', oc: '' });
                     } catch (error) {
@@ -318,7 +313,6 @@
         async function processPDF(file) {
             return new Promise(async (resolve) => {
                 let fullText = "";
-                let isScanned = false;
                 let nfNum = "";
                 let ocNum = "";
 
@@ -333,53 +327,35 @@
                         fullText += pageText + ' ';
                     }
 
-                    // Se não tiver texto nenhum, é imagem escaneada.
+                    // Verifica se é imagem escaneada
                     if (fullText.trim().length < 50) {
-                        isScanned = true;
-                    }
-
-                    // Se for imagem, aciona o motor de OCR Inteligente (Tesseract)
-                    if (isScanned) {
-                        addLog(file.name, "🔍 PDF escaneado detectado. Iniciando IA (OCR) Tesseract. Isso pode demorar...");
+                        addLog(file.name, "🔍 PDF escaneado detectado. Iniciando IA de OCR (Tesseract). Isso pode demorar...");
                         showToast(`Lendo imagem: ${file.name}... Aguarde.`, 'info');
                         
                         fullText = ""; 
-                        
-                        // Renderiza a página para o OCR ler
                         const page = await pdf.getPage(1);
-                        const viewport = page.getViewport({ scale: 3.0 }); // Alta resolução
+                        const viewport = page.getViewport({ scale: 3.0 }); // Zoom pra IA ler melhor
                         const canvas = document.createElement('canvas');
                         const context = canvas.getContext('2d');
                         canvas.height = viewport.height;
                         canvas.width = viewport.width;
                         
-                        // Filtro de Alto Contraste
-                        context.filter = 'contrast(1.4) grayscale(1)';
+                        context.filter = 'contrast(1.4) grayscale(1)'; // Alto contraste
                         await page.render({ canvasContext: context, viewport: viewport }).promise;
                         
-                        // Aciona Tesseract
                         const result = await Tesseract.recognize(canvas, 'por');
                         fullText = result.data.text;
                         addLog(file.name, "✅ Leitura da imagem concluída pela IA.");
                     }
 
-                    // PREPARAÇÃO DE TEXTO
+                    // PREPARAÇÃO DO TEXTO
                     const textForNF = fullText.replace(/[\-\|]/g, ' '); 
                     
-                    // --- CÉREBRO DICIONÁRIO: BUSCA DA NOTA FISCAL ---
                     const regrasNF = [
-                        // Tipo 1: Chave de Acesso (Infalível se achar os 44 números)
                         { r: /(?:CHAVE DE ACESSO[:\s]*|)\b(\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?(\d{9})\s?\d{1}\s?\d{8}\s?\d{1})\b/i, id: 'chave' },
-                        // Tipo 1.5: Padrão Nacional NFS-e (Ignora palavras intrometidas de até 45 letras da IA)
-                        { r: /N[ÚU]MERO\s+(?:DA\s+)?NFS?-?[eE]?[^\d]{0,45}\b([IL1]?\s?\d{1,9})\b/i, id: 'forte' },
-                        // Tipo 2: Palavras Fortes (NFS-e, DANFE)
-                        { r: /N[ÚU]MERO\s*(?:DA\s*)?NFS?-?[eE]?\s*[:\.\-]?\s*([IL1]?\s?\d{1,9})/i, id: 'forte' },
-                        { r: /NFS?-?[eE]?\s*[:\.\-]?\s*([IL1]?\s?\d{1,9})/i, id: 'forte' },
-                        { r: /DANFE.*?\s+([IL1]?\s?\d{1,9})/i, id: 'forte' },
-                        // Tipo 3: Genéricas
-                        { r: /(?:NF-?[E]?|NOTA FISCAL(?: DE SERVI[CÇ]O)?)\s*[:\.\-]?\s*([IL1]?\s?\d{1,9})/i, id: 'generica' },
-                        // Tipo 4: Apenas Nº
-                        { r: /\bN[º°\.]?\s*([IL1]?\s?\d{1,9})\b/i, id: 'simples' }
+                        { r: /N[ÚU]MERO\s+(?:DA\s+)?NFS?-?[eE]?(?:[^0-9]{0,45}?)\b([1-9]\d{0,8})\b/i, id: 'forte' }, // Ignora data de competência
+                        { r: /(?:N[ÚU]MERO\s*(?:DA\s*)?NFS?-?[eE]?|NFS?-?[eE]?|DANFE|NOTA FISCAL(?: DE SERVI[CÇ]O)?)\s*[:\.\-]?\s*([IL1]?\s?\d{1,9})\b/i, id: 'forte' },
+                        { r: /\bN[º°\.]\s*([IL1]?\s?\d{1,9})\b/i, id: 'simples' } // Exige o símbolo º ou . para não pegar N perdido
                     ];
 
                     for (let regra of regrasNF) {
@@ -388,51 +364,60 @@
                             let extracted = regra.id === 'chave' ? match[2] : match[1];
                             extracted = extracted.replace(/[\s\.]/g, '').replace(/^[IL]/i, '1');
                             
-                            // MOTOR ANTI-ENDEREÇO (Para regras não-chave)
-                            if (regra.id === 'simples' || regra.id === 'generica') {
+                            let parsedNum = parseInt(extracted, 10);
+                            
+                            // FILTRO ANTI-ZERO: Se o número for 0 (Zero) ou NaN, ele rejeita e continua a busca!
+                            if (isNaN(parsedNum) || parsedNum === 0) continue; 
+                            
+                            // MOTOR ANTI-ENDEREÇO
+                            if (regra.id === 'simples') {
                                 const index = match.index;
                                 const textoAoRedor = textForNF.substring(Math.max(0, index - 40), index + 40).toUpperCase();
                                 if(textoAoRedor.includes('RUA') || textoAoRedor.includes('AV ') || textoAoRedor.includes('CEP') || textoAoRedor.includes('BAIRRO')) {
-                                    addLog(file.name, `Rejeitou o nº ${extracted} pois parece ser de um Endereço (CEP/Rua).`);
-                                    continue; // Pula e tenta a próxima regra
+                                    addLog(file.name, `Rejeitou o nº ${parsedNum} pois parece ser de um Endereço (CEP/Rua).`);
+                                    continue;
                                 }
                             }
                             
-                            nfNum = parseInt(extracted, 10).toString(); // Limpa zeros a esquerda
-                            if(nfNum !== 'NaN') break;
+                            nfNum = parsedNum.toString(); // Salva o número final limpo
+                            break; 
                         }
                     }
 
-                    // Tática Zeros de Sobrevivência (Caso falhe todas as regras)
+                    // Tática Sobrevivência: Busca apenas zeros seguidos se tudo falhar
                     if (!nfNum) {
-                        const zeroMatch = textForNF.match(/\b0{3,}[IL1]?\s?(\d{1,6})\b/);
+                        const zeroMatch = textForNF.match(/\b0{3,}[IL1]?\s?([1-9]\d{0,6})\b/);
                         if (zeroMatch) {
-                            nfNum = parseInt(zeroMatch[1].replace(/\s/g, '').replace(/^[IL]/i, '1'), 10).toString();
+                            let parsedNum = parseInt(zeroMatch[1].replace(/\s/g, '').replace(/^[IL]/i, '1'), 10);
+                            if (!isNaN(parsedNum) && parsedNum !== 0) {
+                                nfNum = parsedNum.toString();
+                            }
                         }
                     }
 
-                    // --- CÉREBRO DICIONÁRIO: BUSCA DA ORDEM DE COMPRA (SOC) ---
-                    // Ignora traços e pontos no meio
-                    const textForOC = fullText.replace(/[\-\.]/g, ''); 
+                    const textForOC = fullText.replace(/[\-\.]/g, ''); // Ignora traços e pontos no meio
                     
                     const regrasOC = [
-                        // Prioridade 1: Ord. Compra (Não adiciona 1)
-                        { r: /(?:Ord\s*Compra|Ordem\s*de\s*Compra|Ord,??\s*Compra)\s*[:]?\s*([IL1]?\s?\d{4,6})/i, id: 'ord_compra' },
-                        // Prioridade 2: SOC / Pedido (Comporta a regra de adicionar 1)
-                        { r: /(?:SOC|PEDIDO)\s*[:]?\s*([IL1]?\s?\d{4,6})/i, id: 'soc' }
+                        // Prioridade 1: SOC (Se vier com 5, ele vai adicionar o 1)
+                        { r: /(?:SOC|PEDIDO)\s*[:]?\s*([IL1]?\s?\d{4,6})\b/i, id: 'soc' },
+                        // Prioridade 2: Ord. Compra (NÃO adiciona 1 automático)
+                        { r: /(?:Ord\s*Compra|Ordem\s*de\s*Compra|Ord,??\s*Compra)\s*[:]?\s*([IL1]?\s?\d{4,6})\b/i, id: 'ord_compra' }
                     ];
 
                     for (let regra of regrasOC) {
                         const match = textForOC.match(regra.r);
                         if (match) {
-                            let extracted = match[1].replace(/[\s\.]/g, '').replace(/^[IL]/i, '1');
+                            let extracted = match[1].replace(/[\s]/g, '').replace(/^[IL]/i, '1');
+                            let parsedNum = parseInt(extracted, 10);
                             
-                            // Super Correção para SOC de 5 dígitos (A IA cortou o '1')
+                            if (isNaN(parsedNum) || parsedNum === 0) continue; // Filtro Anti-Zero
+
+                            // Super Correção SOC (Só para o modelo SOC)
                             if (regra.id === 'soc' && extracted.length === 5) {
                                 ocNum = "1" + extracted;
                                 addLog(file.name, `🛠️ IA corrigiu SOC cortada: ${extracted} -> ${ocNum}`);
                             } else {
-                                ocNum = extracted;
+                                ocNum = extracted; // Modelo Ord. Compra fica intocado!
                             }
                             break;
                         }
