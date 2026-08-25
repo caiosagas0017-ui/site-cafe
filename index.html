@@ -11,9 +11,7 @@
     :root {
       --primary: #1e40af;
       --success: #059669;
-      --warning: #d97706;
       --danger: #dc2626;
-      --gray: #64748b;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -67,7 +65,6 @@
       font-weight: 600;
       font-size: 0.9rem;
       cursor: pointer;
-      transition: 0.15s;
     }
     .btn:hover { background: #1d4ed8; }
     .btn:disabled { background: #94a3b8; cursor: not-allowed; }
@@ -146,6 +143,7 @@
     .badge-nf { background: #dbeafe; color: #1e40af; }
     .badge-oc { background: #d1fae5; color: #065f46; }
     .badge-soc { background: #fce7f3; color: #9d174d; }
+    .badge-mixed { background: #e0e7ff; color: #3730a3; }
     .badge-unknown { background: #f1f5f9; color: #64748b; }
     .badge-error { background: #fee2e2; color: #991b1b; }
     .badge-high { background: #d1fae5; color: #065f46; }
@@ -155,14 +153,14 @@
     .filename {
       font-family: ui-monospace, monospace;
       font-size: 0.82rem;
-      max-width: 180px;
+      max-width: 170px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .newname-input {
       width: 100%;
-      max-width: 280px;
+      max-width: 290px;
       padding: 0.35rem 0.5rem;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
@@ -172,8 +170,7 @@
     .info-small {
       font-size: 0.78rem;
       color: #64748b;
-      margin-top: 0.25rem;
-      line-height: 1.35;
+      line-height: 1.4;
     }
     canvas { display: none; }
   </style>
@@ -182,13 +179,13 @@
   <div class="container">
     <header>
       <h1>Renomeador Inteligente</h1>
-      <p>NF • OC • SOC (Benner) — Processamento 100% local</p>
+      <p>NF + OC + SOC (Benner) — Dados salvos localmente (localStorage)</p>
     </header>
 
     <div class="content">
       <div class="upload-area" id="dropZone">
         <p style="font-size: 1.15rem; margin-bottom: 0.4rem; font-weight: 600;">Arraste seus arquivos aqui</p>
-        <p style="color: #64748b; font-size: 0.9rem;">PDF, XML ou imagens • Pode enviar muitos de uma vez</p>
+        <p style="color: #64748b; font-size: 0.9rem;">PDF, XML ou imagens • Histórico salvo automaticamente</p>
         <input type="file" id="fileInput" accept=".pdf,.xml,image/*" multiple>
         <br>
         <button class="btn" style="margin-top: 1.1rem;" onclick="document.getElementById('fileInput').click()">
@@ -203,8 +200,12 @@
         <div class="results-header">
           <h3>Arquivos analisados</h3>
           <div class="header-buttons">
-            <button class="btn btn-purple btn-sm" id="btnDownloadAll" style="display:none;">Baixar todos em ZIP</button>
-            <button class="btn btn-danger btn-sm" id="btnClearList" style="display:none;">Limpar lista</button>
+            <button class="btn btn-purple btn-sm" id="btnDownloadAll" style="display:none;">
+              Baixar todos em ZIP
+            </button>
+            <button class="btn btn-danger btn-sm" id="btnClearList" style="display:none;">
+              Limpar lista
+            </button>
           </div>
         </div>
 
@@ -230,9 +231,33 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+    // ====================== BANCO LOCAL (localStorage) ======================
+    const DB_KEY = 'renomeador_nf_oc_db';
+
+    function loadDB() {
+      try {
+        const data = localStorage.getItem(DB_KEY);
+        return data ? JSON.parse(data) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveDB(data) {
+      try {
+        localStorage.setItem(DB_KEY, JSON.stringify(data));
+      } catch (e) {
+        console.warn('Não foi possível salvar no localStorage', e);
+      }
+    }
+
+    function clearDB() {
+      localStorage.removeItem(DB_KEY);
+    }
+
     // ====================== ESTADO ======================
     let isProcessing = false;
-    let successfulFiles = []; // { file, newName, id }
+    let successfulFiles = []; // arquivos da sessão atual (com File real)
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -259,7 +284,17 @@
       if (fileInput.files.length) startBatch(fileInput.files);
     });
 
-    // ====================== UTILITÁRIOS ======================
+    // Carrega histórico ao abrir a página
+    window.addEventListener('DOMContentLoaded', () => {
+      const history = loadDB();
+      if (history.length > 0) {
+        resultsDiv.style.display = 'block';
+        btnClearList.style.display = 'inline-block';
+        history.forEach(item => addHistoryRow(item));
+        setStatus(`Histórico carregado: ${history.length} arquivo(s) salvos localmente.`, 'success');
+      }
+    });
+
     function setStatus(msg, type) {
       statusEl.textContent = msg;
       statusEl.className = type;
@@ -276,7 +311,7 @@
 
     function getExtension(filename) {
       const parts = filename.split('.');
-      return parts.length > 1 ? parts.pop().toLowerCase() : '';
+      return parts.length > 1 ? parts.pop().toLowerCase() : 'pdf';
     }
 
     function fileToDataUrl(file) {
@@ -301,13 +336,11 @@
     async function extractTextFromFile(file) {
       const ext = getExtension(file.name);
 
-      // XML → leitura direta
-      if (ext === 'xml' || file.type === 'text/xml' || file.type === 'application/xml') {
+      if (ext === 'xml' || file.type.includes('xml')) {
         const text = await fileToText(file);
         return { text, isXml: true };
       }
 
-      // PDF → OCR nas páginas 1 e 2
       if (file.type === 'application/pdf' || ext === 'pdf') {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -333,7 +366,6 @@
         return { text: fullText, isXml: false };
       }
 
-      // Imagem
       if (file.type.startsWith('image/')) {
         const dataUrl = await fileToDataUrl(file);
         const { data: { text } } = await Tesseract.recognize(dataUrl, 'por+eng');
@@ -343,37 +375,25 @@
       throw new Error('Formato não suportado');
     }
 
-    // ====================== INTELIGÊNCIA DE IDENTIFICAÇÃO ======================
+    // ====================== INTELIGÊNCIA ======================
     function analyzeDocument(text, isXml) {
       const result = {
-        type: 'unknown',          // nf | oc | soc | unknown
-        confidence: 'low',        // high | medium | low
+        type: 'unknown',
+        confidence: 'low',
         score: 0,
-        fields: {
-          numero: null,
-          serie: null,
-          data: null,
-          emitente: null,
-          destinatario: null,
-          fornecedor: null,
-          comprador: null,
-          valor: null,
-          chave: null,
-          cnpj: null,
-          soc: null
-        }
+        fields: { nf: null, oc: null, soc: null, emitente: null }
       };
 
       const t = text.replace(/\s+/g, ' ');
 
-      // ---------- SOC (Benner) ----------
+      // SOC (Benner)
       const socMatch = t.match(/(?:Soc|SOC)\s*[:.\-]?\s*(\d{5,10})/i);
       if (socMatch) {
         result.fields.soc = socMatch[1];
-        result.score += 45;
+        result.score += 40;
       }
 
-      // ---------- OC ----------
+      // OC
       const ocPatterns = [
         /Ord(?:em)?\.?\s*Compra\s*[:.\-]?\s*(\d{4,10})/i,
         /Ordem\s+de\s+Compra\s*[:.\-]?\s*(\d{4,10})/i,
@@ -383,42 +403,21 @@
       for (const p of ocPatterns) {
         const m = t.match(p);
         if (m) {
-          result.fields.numero = m[1];
+          result.fields.oc = m[1];
           result.score += 40;
           break;
         }
       }
 
-      // ---------- NF ----------
-      // XML NF-e
+      // NF
       if (isXml) {
-        if (t.includes('<nfeProc') || t.includes('<NFe') || t.includes('infNFe')) {
-          result.score += 55;
-          result.type = 'nf';
-        }
-        // Número
-        const nNF = t.match(/<nNF>(\d+)<\/nNF>/i) || t.match(/<nNF>(\d+)<\/nNF>/);
+        if (t.includes('<nfeProc') || t.includes('<NFe') || t.includes('infNFe')) result.score += 50;
+        const nNF = t.match(/<nNF>(\d+)<\/nNF>/i);
         if (nNF) {
-          result.fields.numero = nNF[1];
-          result.score += 15;
-        }
-        // Série
-        const serie = t.match(/<serie>(\d+)<\/serie>/i);
-        if (serie) result.fields.serie = serie[1];
-        // Chave
-        const chave = t.match(/Id="NFe(\d{44})"/i) || t.match(/<chNFe>(\d{44})<\/chNFe>/i);
-        if (chave) {
-          result.fields.chave = chave[1];
+          result.fields.nf = nNF[1];
           result.score += 20;
         }
-        // Emitente
-        const emit = t.match(/<xNome>([^<]{5,80})<\/xNome>/i);
-        if (emit) {
-          result.fields.emitente = emit[1].trim();
-          result.score += 10;
-        }
       } else {
-        // PDF / OCR – padrões comuns de NF
         const nfPatterns = [
           /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*)([0-9]{3}[.\s]?[0-9]{3}[.\s]?[0-9]{3})/i,
           /(?:N[ºo°.]?\s*|NF-?e?\s*)([0-9]{6,9})/i,
@@ -427,64 +426,41 @@
         for (const p of nfPatterns) {
           const m = t.match(p);
           if (m) {
-            result.fields.numero = m[1].replace(/[.\s]/g, '');
-            result.score += 25;
+            result.fields.nf = m[1].replace(/[.\s]/g, '');
+            result.score += 30;
             break;
           }
         }
       }
 
-      // ---------- Decisão do tipo ----------
-      if (result.fields.soc && result.score >= 40) {
-        result.type = 'soc';
-      } else if (result.type === 'nf' || (result.fields.numero && result.score >= 50 && isXml)) {
-        result.type = 'nf';
-      } else if (result.fields.numero && result.score >= 35) {
-        // Se achou número de OC com boa pontuação
-        if (t.match(/ordem\s+de\s+compra|ord\.?\s*compra|pedido\s+de\s+compra/i)) {
-          result.type = 'oc';
-        } else if (result.fields.soc) {
-          result.type = 'soc';
-        } else {
-          result.type = 'oc'; // fallback comum no seu uso
-        }
-      } else if (result.fields.soc) {
-        result.type = 'soc';
-      }
+      // Tipo
+      if (result.fields.nf && result.fields.oc) result.type = 'mixed';
+      else if (result.fields.nf) result.type = 'nf';
+      else if (result.fields.oc) result.type = 'oc';
+      else if (result.fields.soc) result.type = 'soc';
 
-      // Confiança
       if (result.score >= 60) result.confidence = 'high';
       else if (result.score >= 35) result.confidence = 'medium';
       else result.confidence = 'low';
-
-      if (result.type === 'unknown') result.confidence = 'low';
 
       return result;
     }
 
     // ====================== GERAÇÃO DE NOME ======================
     function generateFileName(analysis, originalName) {
-      const ext = getExtension(originalName) || 'pdf';
+      const ext = getExtension(originalName);
       const f = analysis.fields;
 
       let name = '';
+      if (f.nf && f.oc) name = `NF_${f.nf}_OC_${f.oc}`;
+      else if (f.nf && f.soc) name = `NF_${f.nf}_SOC_${f.soc}`;
+      else if (f.oc && f.soc) name = `OC_${f.oc}_SOC_${f.soc}`;
+      else if (f.nf) name = `NF_${f.nf}`;
+      else if (f.oc) name = `OC_${f.oc}`;
+      else if (f.soc) name = `SOC_${f.soc}`;
+      else name = originalName.replace(/\.[^/.]+$/, '');
 
-      if (analysis.type === 'nf') {
-        name = `NF ${f.numero || 'S_NUMERO'}`;
-        if (f.emitente) name += ` - ${f.emitente.substring(0, 40)}`;
-        if (f.data) name += ` - ${f.data}`;
-      } else if (analysis.type === 'oc') {
-        name = `OC ${f.numero || 'S_NUMERO'}`;
-        if (f.fornecedor) name += ` - ${f.fornecedor.substring(0, 40)}`;
-      } else if (analysis.type === 'soc') {
-        name = `SOC ${f.soc || f.numero || 'S_NUMERO'}`;
-      } else {
-        // Mantém nome original limpo se não identificou
-        name = originalName.replace(/\.[^/.]+$/, '');
-      }
-
-      name = sanitizeFileName(name);
-      return `${name}.${ext}`;
+      return sanitizeFileName(name) + '.' + ext;
     }
 
     // ====================== PROCESSAMENTO ======================
@@ -494,14 +470,13 @@
       successfulFiles = [];
 
       const files = Array.from(fileList);
-      resultsBody.innerHTML = '';
-      resultsDiv.style.display = 'block';
-      btnDownloadAll.style.display = 'none';
-      btnClearList.style.display = 'none';
       progressBar.style.display = 'block';
       progressFill.style.width = '0%';
+      resultsDiv.style.display = 'block';
 
       setStatus(`Analisando ${files.length} arquivo(s)...`, 'processing');
+
+      const db = loadDB();
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -512,86 +487,83 @@
           const { text, isXml } = await extractTextFromFile(file);
           const analysis = analyzeDocument(text, isXml);
           const suggestedName = generateFileName(analysis, file.name);
-          addResultRow(file, analysis, suggestedName);
+
+          // Salva no "banco" local
+          const record = {
+            id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+            originalName: file.name,
+            type: analysis.type,
+            confidence: analysis.confidence,
+            fields: analysis.fields,
+            suggestedName: suggestedName,
+            date: new Date().toLocaleString('pt-BR')
+          };
+          db.unshift(record); // mais recente primeiro
+          saveDB(db);
+
+          addResultRow(file, analysis, suggestedName, record.id);
         } catch (err) {
           console.error(err);
-          addResultRow(file, { type: 'error', confidence: 'low', fields: {}, score: 0 }, null, err.message);
+          addResultRow(file, { type: 'error', confidence: 'low', fields: {} }, null, null, err.message);
         }
       }
 
       progressFill.style.width = '100%';
-      setStatus(`Concluído! ${files.length} arquivo(s) analisado(s).`, 'success');
+      setStatus(`Concluído! ${files.length} arquivo(s) analisado(s). Dados salvos localmente.`, 'success');
       isProcessing = false;
 
-      if (resultsBody.children.length > 0) btnClearList.style.display = 'inline-block';
+      btnClearList.style.display = 'inline-block';
       if (successfulFiles.length > 0) {
         btnDownloadAll.style.display = 'inline-block';
         btnDownloadAll.textContent = `Baixar todos em ZIP (${successfulFiles.length})`;
       }
     }
 
-    function addResultRow(file, analysis, suggestedName, errorMsg = null) {
+    function addResultRow(file, analysis, suggestedName, recordId = null, errorMsg = null) {
       const tr = document.createElement('tr');
-      const id = 'row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 
-      let typeBadge = '';
-      let typeLabel = '';
-      if (analysis.type === 'nf') {
-        typeBadge = 'badge-nf';
-        typeLabel = '🟢 NF';
-      } else if (analysis.type === 'oc') {
-        typeBadge = 'badge-oc';
-        typeLabel = '🔵 OC';
-      } else if (analysis.type === 'soc') {
-        typeBadge = 'badge-soc';
-        typeLabel = '🟣 SOC';
-      } else if (analysis.type === 'error') {
-        typeBadge = 'badge-error';
-        typeLabel = '🔴 Erro';
-      } else {
-        typeBadge = 'badge-unknown';
-        typeLabel = '⚪ Não identificado';
-      }
+      let typeBadge = 'badge-unknown', typeLabel = '⚪ Não identificado';
+      if (analysis.type === 'mixed') { typeBadge = 'badge-mixed'; typeLabel = '🟢 NF + OC'; }
+      else if (analysis.type === 'nf') { typeBadge = 'badge-nf'; typeLabel = '🟢 NF'; }
+      else if (analysis.type === 'oc') { typeBadge = 'badge-oc'; typeLabel = '🔵 OC'; }
+      else if (analysis.type === 'soc') { typeBadge = 'badge-soc'; typeLabel = '🟣 SOC'; }
+      else if (analysis.type === 'error') { typeBadge = 'badge-error'; typeLabel = '🔴 Erro'; }
 
       const confBadge = analysis.confidence === 'high' ? 'badge-high' :
                        analysis.confidence === 'medium' ? 'badge-medium' : 'badge-low';
       const confLabel = analysis.confidence === 'high' ? 'Alta' :
                         analysis.confidence === 'medium' ? 'Média' : 'Baixa';
 
-      // Informações encontradas
       let infoHtml = '';
-      const f = analysis.fields;
-      if (f.numero) infoHtml += `Nº: <strong>${f.numero}</strong><br>`;
+      const f = analysis.fields || {};
+      if (f.nf) infoHtml += `NF: <strong>${f.nf}</strong><br>`;
+      if (f.oc) infoHtml += `OC: <strong>${f.oc}</strong><br>`;
       if (f.soc) infoHtml += `SOC: <strong>${f.soc}</strong><br>`;
-      if (f.emitente) infoHtml += `Emitente: ${f.emitente.substring(0, 35)}<br>`;
-      if (f.fornecedor) infoHtml += `Fornecedor: ${f.fornecedor.substring(0, 35)}<br>`;
-      if (f.chave) infoHtml += `Chave: ${f.chave.substring(0, 20)}...<br>`;
       if (errorMsg) infoHtml += `<span style="color:#dc2626">${errorMsg}</span>`;
       if (!infoHtml) infoHtml = '<span style="color:#94a3b8">—</span>';
 
-      const canDownload = analysis.type !== 'error' && analysis.type !== 'unknown' && suggestedName;
+      const canDownload = suggestedName && analysis.type !== 'error';
 
       tr.innerHTML = `
-        <td class="filename" title="${file.name}">${file.name}</td>
+        <td class="filename" title="${file ? file.name : ''}">${file ? file.name : '—'}</td>
         <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
         <td><span class="badge ${confBadge}">${confLabel}</span></td>
         <td class="info-small">${infoHtml}</td>
         <td>
-          <input type="text" class="newname-input" value="${suggestedName || file.name}" data-id="${id}">
+          <input type="text" class="newname-input" value="${suggestedName || ''}">
         </td>
         <td>
-          ${canDownload ? `<button class="btn btn-success btn-sm" data-action="download">Baixar</button>` : '—'}
+          ${canDownload && file ? `<button class="btn btn-success btn-sm">Baixar</button>` : '—'}
         </td>
       `;
 
-      resultsBody.appendChild(tr);
+      resultsBody.prepend(tr); // mais recente no topo
 
-      if (canDownload) {
+      if (canDownload && file) {
         const input = tr.querySelector('.newname-input');
         const btn = tr.querySelector('button');
 
-        const item = { file, newName: suggestedName, id, input };
-        successfulFiles.push(item);
+        successfulFiles.push({ file, input, originalSuggested: suggestedName });
 
         btn.addEventListener('click', () => {
           const finalName = sanitizeFileName(input.value) || suggestedName;
@@ -600,11 +572,46 @@
       }
     }
 
+    // Linha só de histórico (sem arquivo real para download)
+    function addHistoryRow(record) {
+      const tr = document.createElement('tr');
+
+      let typeBadge = 'badge-unknown', typeLabel = '⚪ Não identificado';
+      if (record.type === 'mixed') { typeBadge = 'badge-mixed'; typeLabel = '🟢 NF + OC'; }
+      else if (record.type === 'nf') { typeBadge = 'badge-nf'; typeLabel = '🟢 NF'; }
+      else if (record.type === 'oc') { typeBadge = 'badge-oc'; typeLabel = '🔵 OC'; }
+      else if (record.type === 'soc') { typeBadge = 'badge-soc'; typeLabel = '🟣 SOC'; }
+
+      const confBadge = record.confidence === 'high' ? 'badge-high' :
+                       record.confidence === 'medium' ? 'badge-medium' : 'badge-low';
+      const confLabel = record.confidence === 'high' ? 'Alta' :
+                        record.confidence === 'medium' ? 'Média' : 'Baixa';
+
+      let infoHtml = '';
+      const f = record.fields || {};
+      if (f.nf) infoHtml += `NF: <strong>${f.nf}</strong><br>`;
+      if (f.oc) infoHtml += `OC: <strong>${f.oc}</strong><br>`;
+      if (f.soc) infoHtml += `SOC: <strong>${f.soc}</strong><br>`;
+      infoHtml += `<small style="color:#94a3b8">${record.date || ''}</small>`;
+
+      tr.innerHTML = `
+        <td class="filename" title="${record.originalName}">${record.originalName}</td>
+        <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
+        <td><span class="badge ${confBadge}">${confLabel}</span></td>
+        <td class="info-small">${infoHtml}</td>
+        <td>
+          <input type="text" class="newname-input" value="${record.suggestedName || ''}" disabled>
+        </td>
+        <td><span style="color:#94a3b8;font-size:0.8rem;">Histórico</span></td>
+      `;
+      resultsBody.appendChild(tr);
+    }
+
     function downloadSingle(file, newName) {
       const url = URL.createObjectURL(file);
       const a = document.createElement('a');
       a.href = url;
-      a.download = newName.endsWith(getExtension(file.name)) ? newName : newName + '.' + getExtension(file.name);
+      a.download = newName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -623,16 +630,12 @@
         const usedNames = new Map();
 
         for (const item of successfulFiles) {
-          let finalName = sanitizeFileName(item.input.value) || item.newName;
-
-          // Evita duplicados
+          let finalName = sanitizeFileName(item.input.value) || item.originalSuggested;
           let base = finalName.replace(/\.[^/.]+$/, '');
-          let ext = getExtension(finalName) || getExtension(item.file.name);
-          let counter = usedNames.get(base) || 0;
-          if (counter > 0) {
-            finalName = `${base} (${counter + 1}).${ext}`;
-          }
-          usedNames.set(base, counter + 1);
+          let ext = getExtension(finalName);
+          let count = usedNames.get(base) || 0;
+          if (count > 0) finalName = `${base} (${count + 1}).${ext}`;
+          usedNames.set(base, count + 1);
 
           const buffer = await item.file.arrayBuffer();
           zip.file(finalName, buffer);
@@ -642,7 +645,7 @@
         const url = URL.createObjectURL(content);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `arquivos_renomeados_${new Date().toISOString().slice(0,10)}.zip`;
+        a.download = `NF_OC_renomeados_${new Date().toISOString().slice(0,10)}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -657,9 +660,10 @@
 
     // ====================== LIMPAR ======================
     btnClearList.addEventListener('click', () => {
-      if (confirm('Deseja limpar toda a lista de arquivos?')) {
+      if (confirm('Deseja limpar toda a lista e o histórico salvo localmente?')) {
         resultsBody.innerHTML = '';
         successfulFiles = [];
+        clearDB(); // apaga do localStorage
         btnDownloadAll.style.display = 'none';
         btnClearList.style.display = 'none';
         resultsDiv.style.display = 'none';
