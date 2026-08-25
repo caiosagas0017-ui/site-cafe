@@ -57,7 +57,7 @@
   <div class="container">
     <header>
       <h1>Renomeador Inteligente</h1>
-      <p>NF + OC + SOC — Correção Pedido Cliente</p>
+      <p>NF + OC + SOC — Detecção de OC fortalecida</p>
     </header>
 
     <div class="content">
@@ -195,7 +195,8 @@
         .replace(/[|/\\]/g, ' ')
         .replace(/\s+/g, ' ')
         .replace(/[oO]/g, '0')
-        .replace(/[lI]/g, '1')
+        .replace(/[lI|]/g, '1')
+        .replace(/[^\w\s:.\-º°]/g, ' ')
         .trim();
     }
 
@@ -222,29 +223,56 @@
       return null;
     }
 
-    // ====================== EXTRAÇÃO DE OC (CORRIGIDA) ======================
+    // ====================== EXTRAÇÃO DE OC (FORTALECIDA) ======================
     function findOC(text) {
-      const cleaned = cleanText(text);
+      let cleaned = cleanText(text);
 
       const patterns = [
-        // ← Padrão que resolveu o seu documento
+        // 1. Padrões mais comuns em hospital / Unimed / DANFE
         /Pedido\s+Cliente\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /Pedido\s+do\s+Cliente\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /N[ºo°.]\s*Pedido\s+Cliente\s*[:.\-]?\s*([0-9]{4,10})/i,
+
+        // 2. Pedido simples
         /Pedido\s*[:.\-]?\s*([0-9]{4,10})/i,
         /N[ºo°.]\s*(?:do\s+)?Pedido\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /N[ºo°.]\s*Ped\.?\s*[:.\-]?\s*([0-9]{4,10})/i,
 
-        // Padrões clássicos
+        // 3. Ordem de Compra
         /Ord(?:em)?\.?\s*Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
         /Ordem\s+de\s+Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /Ordem\s+Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /N[ºo°.]\s*Ordem\s+de\s+Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
+
+        // 4. OC direto
         /(?:OC|O\.C\.)\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /OC\s*n[ºo°.]\s*([0-9]{4,10})/i,
+
+        // 5. Pedido de Compra
         /Pedido\s+(?:de\s+)?Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
       ];
 
+      // Tenta os padrões normais
       for (const pattern of patterns) {
         const match = cleaned.match(pattern);
-        if (match) {
+        if (match && match[1]) {
           return match[1];
         }
       }
+
+      // Fallback inteligente: procura número perto das palavras-chave
+      const fallbackPatterns = [
+        /(?:pedido|ordem|compra|oc)[^\d]{0,20}(\d{5,8})/i,
+        /(\d{5,8})[^\d]{0,15}(?:pedido|ordem|compra|oc)/i
+      ];
+
+      for (const pattern of fallbackPatterns) {
+        const match = cleaned.match(pattern);
+        if (match && match[1]) {
+          return match[1];
+        }
+      }
+
       return null;
     }
 
