@@ -3,21 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Renomeador de NF e OC</title>
+  <title>Renomeador Inteligente de NF / OC / SOC</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
+    :root {
+      --primary: #1e40af;
+      --success: #059669;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --gray: #64748b;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #f0f4f8;
-      color: #1a202c;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
       min-height: 100vh;
       padding: 1.5rem;
     }
     .container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 0 auto;
       background: white;
       border-radius: 16px;
@@ -25,56 +32,56 @@
       overflow: hidden;
     }
     header {
-      background: linear-gradient(135deg, #1e40af, #3b82f6);
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
       color: white;
       padding: 1.5rem 2rem;
     }
-    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header h1 { font-size: 1.45rem; font-weight: 700; }
     header p { opacity: 0.9; margin-top: 0.3rem; font-size: 0.95rem; }
     .content { padding: 1.5rem 2rem 2rem; }
+
     .upload-area {
       border: 2px dashed #cbd5e1;
-      border-radius: 12px;
-      padding: 2rem;
+      border-radius: 14px;
+      padding: 2.2rem;
       text-align: center;
-      transition: all 0.2s;
       cursor: pointer;
       background: #f8fafc;
+      transition: 0.2s;
     }
     .upload-area:hover, .upload-area.dragover {
       border-color: #3b82f6;
       background: #eff6ff;
     }
     .upload-area input { display: none; }
+
     .btn {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
       background: #2563eb;
       color: white;
       border: none;
-      padding: 0.7rem 1.4rem;
+      padding: 0.65rem 1.25rem;
       border-radius: 8px;
       font-weight: 600;
+      font-size: 0.9rem;
       cursor: pointer;
-      font-size: 0.95rem;
-      margin-top: 1rem;
+      transition: 0.15s;
     }
     .btn:hover { background: #1d4ed8; }
     .btn:disabled { background: #94a3b8; cursor: not-allowed; }
-    .btn-success { background: #059669; }
+    .btn-success { background: var(--success); }
     .btn-success:hover { background: #047857; }
-    .btn-zip {
-      background: #7c3aed;
-      margin-left: 0.6rem;
-    }
-    .btn-zip:hover { background: #6d28d9; }
-    .btn-sm {
-      padding: 0.4rem 0.9rem;
-      font-size: 0.85rem;
-      margin-top: 0;
-    }
+    .btn-purple { background: #7c3aed; }
+    .btn-purple:hover { background: #6d28d9; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.82rem; }
+
     #status {
       margin-top: 1.2rem;
-      padding: 0.9rem 1rem;
+      padding: 0.85rem 1rem;
       border-radius: 8px;
       display: none;
       font-size: 0.95rem;
@@ -82,6 +89,7 @@
     #status.processing { display: block; background: #fef3c7; color: #92400e; }
     #status.success { display: block; background: #d1fae5; color: #065f46; }
     #status.error { display: block; background: #fee2e2; color: #991b1b; }
+
     .progress-bar {
       height: 8px;
       background: #e2e8f0;
@@ -94,62 +102,78 @@
       height: 100%;
       background: #3b82f6;
       width: 0%;
-      transition: width 0.3s;
+      transition: width 0.25s;
     }
-    .results {
-      margin-top: 1.5rem;
-      display: none;
-    }
+
+    .results { margin-top: 1.8rem; display: none; }
     .results-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1rem;
       flex-wrap: wrap;
-      gap: 0.8rem;
+      gap: 0.6rem;
     }
-    .results h3 {
-      color: #1e40af;
-      font-size: 1.1rem;
-    }
+    .results h3 { color: #1e40af; font-size: 1.15rem; }
+    .header-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
     }
     th, td {
-      padding: 0.75rem 0.8rem;
+      padding: 0.7rem 0.75rem;
       text-align: left;
       border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
     }
     th {
       background: #f1f5f9;
       font-weight: 600;
       color: #475569;
+      font-size: 0.82rem;
     }
     tr:hover { background: #f8fafc; }
+
     .badge {
       display: inline-block;
       padding: 0.2rem 0.55rem;
       border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      font-size: 0.72rem;
+      font-weight: 700;
     }
-    .badge-ok { background: #d1fae5; color: #065f46; }
-    .badge-err { background: #fee2e2; color: #991b1b; }
+    .badge-nf { background: #dbeafe; color: #1e40af; }
+    .badge-oc { background: #d1fae5; color: #065f46; }
+    .badge-soc { background: #fce7f3; color: #9d174d; }
+    .badge-unknown { background: #f1f5f9; color: #64748b; }
+    .badge-error { background: #fee2e2; color: #991b1b; }
+    .badge-high { background: #d1fae5; color: #065f46; }
+    .badge-medium { background: #fef3c7; color: #92400e; }
+    .badge-low { background: #fee2e2; color: #991b1b; }
+
     .filename {
-      font-family: monospace;
-      font-size: 0.84rem;
-      max-width: 190px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.82rem;
+      max-width: 180px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .newname {
-      font-family: monospace;
-      font-weight: 700;
-      color: #1e40af;
-      font-size: 0.88rem;
+    .newname-input {
+      width: 100%;
+      max-width: 280px;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.82rem;
+    }
+    .info-small {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 0.25rem;
+      line-height: 1.35;
     }
     canvas { display: none; }
   </style>
@@ -157,16 +181,19 @@
 <body>
   <div class="container">
     <header>
-      <h1>Renomeador de NF e OC</h1>
-      <p>Analisa página 1 e 2 • Renomeia • Baixa tudo em ZIP</p>
+      <h1>Renomeador Inteligente</h1>
+      <p>NF • OC • SOC (Benner) — Processamento 100% local</p>
     </header>
 
     <div class="content">
       <div class="upload-area" id="dropZone">
-        <p style="font-size: 1.1rem; margin-bottom: 0.4rem;">Arraste os PDFs aqui ou clique para selecionar</p>
-        <p style="color: #64748b; font-size: 0.9rem;">Pode enviar muitos arquivos de uma vez</p>
-        <input type="file" id="fileInput" accept=".pdf,image/*" multiple>
-        <button class="btn" onclick="document.getElementById('fileInput').click()">Selecionar arquivos</button>
+        <p style="font-size: 1.15rem; margin-bottom: 0.4rem; font-weight: 600;">Arraste seus arquivos aqui</p>
+        <p style="color: #64748b; font-size: 0.9rem;">PDF, XML ou imagens • Pode enviar muitos de uma vez</p>
+        <input type="file" id="fileInput" accept=".pdf,.xml,image/*" multiple>
+        <br>
+        <button class="btn" style="margin-top: 1.1rem;" onclick="document.getElementById('fileInput').click()">
+          Selecionar arquivos
+        </button>
       </div>
 
       <div id="status"></div>
@@ -174,11 +201,10 @@
 
       <div class="results" id="results">
         <div class="results-header">
-          <h3>Arquivos processados</h3>
-          <div>
-            <button class="btn btn-success btn-sm" id="btnDownloadAll" style="display:none;">
-              Baixar todos em ZIP
-            </button>
+          <h3>Arquivos analisados</h3>
+          <div class="header-buttons">
+            <button class="btn btn-purple btn-sm" id="btnDownloadAll" style="display:none;">Baixar todos em ZIP</button>
+            <button class="btn btn-danger btn-sm" id="btnClearList" style="display:none;">Limpar lista</button>
           </div>
         </div>
 
@@ -186,10 +212,10 @@
           <thead>
             <tr>
               <th>Arquivo original</th>
-              <th>NF</th>
-              <th>OC</th>
-              <th>Novo nome</th>
-              <th>Status</th>
+              <th>Tipo</th>
+              <th>Confiança</th>
+              <th>Informações</th>
+              <th>Novo nome (editável)</th>
               <th>Ação</th>
             </tr>
           </thead>
@@ -204,6 +230,10 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+    // ====================== ESTADO ======================
+    let isProcessing = false;
+    let successfulFiles = []; // { file, newName, id }
+
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const statusEl = document.getElementById('status');
@@ -212,11 +242,9 @@
     const resultsDiv = document.getElementById('results');
     const resultsBody = document.getElementById('resultsBody');
     const btnDownloadAll = document.getElementById('btnDownloadAll');
+    const btnClearList = document.getElementById('btnClearList');
 
-    let isProcessing = false;
-    let successfulFiles = []; // guarda os arquivos que deram certo
-
-    // Drag & Drop
+    // ====================== EVENTOS ======================
     dropZone.addEventListener('dragover', e => {
       e.preventDefault();
       dropZone.classList.add('dragover');
@@ -231,65 +259,64 @@
       if (fileInput.files.length) startBatch(fileInput.files);
     });
 
+    // ====================== UTILITÁRIOS ======================
     function setStatus(msg, type) {
       statusEl.textContent = msg;
       statusEl.className = type;
       statusEl.style.display = 'block';
     }
 
-    async function startBatch(fileList) {
-      if (isProcessing) return;
-      isProcessing = true;
-      successfulFiles = [];
-
-      const files = Array.from(fileList);
-      resultsBody.innerHTML = '';
-      resultsDiv.style.display = 'block';
-      btnDownloadAll.style.display = 'none';
-      progressBar.style.display = 'block';
-      progressFill.style.width = '0%';
-
-      setStatus(`Processando ${files.length} arquivo(s)...`, 'processing');
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const percent = Math.round((i / files.length) * 100);
-        progressFill.style.width = percent + '%';
-        setStatus(`Processando ${i + 1} de ${files.length}: ${file.name}`, 'processing');
-
-        try {
-          const result = await processSingleFile(file);
-          addResultRow(file, result);
-        } catch (err) {
-          console.error(err);
-          addResultRow(file, { nf: null, oc: null, error: err.message });
-        }
-      }
-
-      progressFill.style.width = '100%';
-      setStatus(`Concluído! ${files.length} arquivo(s) processado(s).`, 'success');
-      isProcessing = false;
-
-      // Mostra o botão de ZIP se tiver pelo menos 1 sucesso
-      if (successfulFiles.length > 0) {
-        btnDownloadAll.style.display = 'inline-block';
-        btnDownloadAll.textContent = `Baixar todos em ZIP (${successfulFiles.length})`;
-      }
+    function sanitizeFileName(name) {
+      return name
+        .replace(/[\/\\:*?"<>|]/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 180);
     }
 
-    async function processSingleFile(file) {
-      let fullText = '';
+    function getExtension(filename) {
+      const parts = filename.split('.');
+      return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    }
 
-      if (file.type === 'application/pdf') {
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function fileToText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
+
+    // ====================== EXTRAÇÃO DE TEXTO ======================
+    async function extractTextFromFile(file) {
+      const ext = getExtension(file.name);
+
+      // XML → leitura direta
+      if (ext === 'xml' || file.type === 'text/xml' || file.type === 'application/xml') {
+        const text = await fileToText(file);
+        return { text, isXml: true };
+      }
+
+      // PDF → OCR nas páginas 1 e 2
+      if (file.type === 'application/pdf' || ext === 'pdf') {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const totalPages = pdf.numPages;
-        const pagesToRead = Math.min(totalPages, 2); // página 1 e 2
+        const maxPages = Math.min(pdf.numPages, 2);
+        let fullText = '';
 
-        for (let p = 1; p <= pagesToRead; p++) {
+        for (let p = 1; p <= maxPages; p++) {
           const page = await pdf.getPage(p);
-          const scale = 2.0;
-          const viewport = page.getViewport({ scale });
+          const viewport = page.getViewport({ scale: 2.0 });
           const canvas = document.getElementById('pdfCanvas');
           const ctx = canvas.getContext('2d');
           canvas.height = viewport.height;
@@ -301,57 +328,274 @@
           const { data: { text } } = await Tesseract.recognize(dataUrl, 'por+eng', {
             logger: () => {}
           });
-
-          fullText += `\n--- PÁGINA ${p} ---\n` + text;
+          fullText += `\n--- PAGINA ${p} ---\n` + text;
         }
-      } else if (file.type.startsWith('image/')) {
+        return { text: fullText, isXml: false };
+      }
+
+      // Imagem
+      if (file.type.startsWith('image/')) {
         const dataUrl = await fileToDataUrl(file);
         const { data: { text } } = await Tesseract.recognize(dataUrl, 'por+eng');
-        fullText = text;
-      } else {
-        throw new Error('Formato não suportado');
+        return { text, isXml: false };
       }
 
-      const nf = findNF(fullText);
-      const oc = findOC(fullText);
-
-      return { nf, oc };
+      throw new Error('Formato não suportado');
     }
 
-    function addResultRow(file, result) {
-      const tr = document.createElement('tr');
-      const nf = result.nf || '—';
-      const oc = result.oc || '—';
-      const success = !!(result.nf && result.oc);
-      const newName = success ? `NF_${result.nf}_OC_${result.oc}.pdf` : '—';
+    // ====================== INTELIGÊNCIA DE IDENTIFICAÇÃO ======================
+    function analyzeDocument(text, isXml) {
+      const result = {
+        type: 'unknown',          // nf | oc | soc | unknown
+        confidence: 'low',        // high | medium | low
+        score: 0,
+        fields: {
+          numero: null,
+          serie: null,
+          data: null,
+          emitente: null,
+          destinatario: null,
+          fornecedor: null,
+          comprador: null,
+          valor: null,
+          chave: null,
+          cnpj: null,
+          soc: null
+        }
+      };
 
-      let actionHtml = '—';
-      if (success) {
-        actionHtml = `<button class="btn btn-success btn-sm">Baixar</button>`;
-        // Guarda para o ZIP
-        successfulFiles.push({ file, newName });
+      const t = text.replace(/\s+/g, ' ');
+
+      // ---------- SOC (Benner) ----------
+      const socMatch = t.match(/(?:Soc|SOC)\s*[:.\-]?\s*(\d{5,10})/i);
+      if (socMatch) {
+        result.fields.soc = socMatch[1];
+        result.score += 45;
       }
+
+      // ---------- OC ----------
+      const ocPatterns = [
+        /Ord(?:em)?\.?\s*Compra\s*[:.\-]?\s*(\d{4,10})/i,
+        /Ordem\s+de\s+Compra\s*[:.\-]?\s*(\d{4,10})/i,
+        /(?:OC|O\.C\.)\s*[:.\-]?\s*(\d{4,10})/i,
+        /Pedido\s+(?:de\s+)?Compra\s*[:.\-]?\s*(\d{4,10})/i
+      ];
+      for (const p of ocPatterns) {
+        const m = t.match(p);
+        if (m) {
+          result.fields.numero = m[1];
+          result.score += 40;
+          break;
+        }
+      }
+
+      // ---------- NF ----------
+      // XML NF-e
+      if (isXml) {
+        if (t.includes('<nfeProc') || t.includes('<NFe') || t.includes('infNFe')) {
+          result.score += 55;
+          result.type = 'nf';
+        }
+        // Número
+        const nNF = t.match(/<nNF>(\d+)<\/nNF>/i) || t.match(/<nNF>(\d+)<\/nNF>/);
+        if (nNF) {
+          result.fields.numero = nNF[1];
+          result.score += 15;
+        }
+        // Série
+        const serie = t.match(/<serie>(\d+)<\/serie>/i);
+        if (serie) result.fields.serie = serie[1];
+        // Chave
+        const chave = t.match(/Id="NFe(\d{44})"/i) || t.match(/<chNFe>(\d{44})<\/chNFe>/i);
+        if (chave) {
+          result.fields.chave = chave[1];
+          result.score += 20;
+        }
+        // Emitente
+        const emit = t.match(/<xNome>([^<]{5,80})<\/xNome>/i);
+        if (emit) {
+          result.fields.emitente = emit[1].trim();
+          result.score += 10;
+        }
+      } else {
+        // PDF / OCR – padrões comuns de NF
+        const nfPatterns = [
+          /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*)([0-9]{3}[.\s]?[0-9]{3}[.\s]?[0-9]{3})/i,
+          /(?:N[ºo°.]?\s*|NF-?e?\s*)([0-9]{6,9})/i,
+          /([0-9]{3}\.[0-9]{3}\.[0-9]{3})/
+        ];
+        for (const p of nfPatterns) {
+          const m = t.match(p);
+          if (m) {
+            result.fields.numero = m[1].replace(/[.\s]/g, '');
+            result.score += 25;
+            break;
+          }
+        }
+      }
+
+      // ---------- Decisão do tipo ----------
+      if (result.fields.soc && result.score >= 40) {
+        result.type = 'soc';
+      } else if (result.type === 'nf' || (result.fields.numero && result.score >= 50 && isXml)) {
+        result.type = 'nf';
+      } else if (result.fields.numero && result.score >= 35) {
+        // Se achou número de OC com boa pontuação
+        if (t.match(/ordem\s+de\s+compra|ord\.?\s*compra|pedido\s+de\s+compra/i)) {
+          result.type = 'oc';
+        } else if (result.fields.soc) {
+          result.type = 'soc';
+        } else {
+          result.type = 'oc'; // fallback comum no seu uso
+        }
+      } else if (result.fields.soc) {
+        result.type = 'soc';
+      }
+
+      // Confiança
+      if (result.score >= 60) result.confidence = 'high';
+      else if (result.score >= 35) result.confidence = 'medium';
+      else result.confidence = 'low';
+
+      if (result.type === 'unknown') result.confidence = 'low';
+
+      return result;
+    }
+
+    // ====================== GERAÇÃO DE NOME ======================
+    function generateFileName(analysis, originalName) {
+      const ext = getExtension(originalName) || 'pdf';
+      const f = analysis.fields;
+
+      let name = '';
+
+      if (analysis.type === 'nf') {
+        name = `NF ${f.numero || 'S_NUMERO'}`;
+        if (f.emitente) name += ` - ${f.emitente.substring(0, 40)}`;
+        if (f.data) name += ` - ${f.data}`;
+      } else if (analysis.type === 'oc') {
+        name = `OC ${f.numero || 'S_NUMERO'}`;
+        if (f.fornecedor) name += ` - ${f.fornecedor.substring(0, 40)}`;
+      } else if (analysis.type === 'soc') {
+        name = `SOC ${f.soc || f.numero || 'S_NUMERO'}`;
+      } else {
+        // Mantém nome original limpo se não identificou
+        name = originalName.replace(/\.[^/.]+$/, '');
+      }
+
+      name = sanitizeFileName(name);
+      return `${name}.${ext}`;
+    }
+
+    // ====================== PROCESSAMENTO ======================
+    async function startBatch(fileList) {
+      if (isProcessing) return;
+      isProcessing = true;
+      successfulFiles = [];
+
+      const files = Array.from(fileList);
+      resultsBody.innerHTML = '';
+      resultsDiv.style.display = 'block';
+      btnDownloadAll.style.display = 'none';
+      btnClearList.style.display = 'none';
+      progressBar.style.display = 'block';
+      progressFill.style.width = '0%';
+
+      setStatus(`Analisando ${files.length} arquivo(s)...`, 'processing');
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        progressFill.style.width = Math.round((i / files.length) * 100) + '%';
+        setStatus(`Analisando ${i + 1} de ${files.length}: ${file.name}`, 'processing');
+
+        try {
+          const { text, isXml } = await extractTextFromFile(file);
+          const analysis = analyzeDocument(text, isXml);
+          const suggestedName = generateFileName(analysis, file.name);
+          addResultRow(file, analysis, suggestedName);
+        } catch (err) {
+          console.error(err);
+          addResultRow(file, { type: 'error', confidence: 'low', fields: {}, score: 0 }, null, err.message);
+        }
+      }
+
+      progressFill.style.width = '100%';
+      setStatus(`Concluído! ${files.length} arquivo(s) analisado(s).`, 'success');
+      isProcessing = false;
+
+      if (resultsBody.children.length > 0) btnClearList.style.display = 'inline-block';
+      if (successfulFiles.length > 0) {
+        btnDownloadAll.style.display = 'inline-block';
+        btnDownloadAll.textContent = `Baixar todos em ZIP (${successfulFiles.length})`;
+      }
+    }
+
+    function addResultRow(file, analysis, suggestedName, errorMsg = null) {
+      const tr = document.createElement('tr');
+      const id = 'row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
+      let typeBadge = '';
+      let typeLabel = '';
+      if (analysis.type === 'nf') {
+        typeBadge = 'badge-nf';
+        typeLabel = '🟢 NF';
+      } else if (analysis.type === 'oc') {
+        typeBadge = 'badge-oc';
+        typeLabel = '🔵 OC';
+      } else if (analysis.type === 'soc') {
+        typeBadge = 'badge-soc';
+        typeLabel = '🟣 SOC';
+      } else if (analysis.type === 'error') {
+        typeBadge = 'badge-error';
+        typeLabel = '🔴 Erro';
+      } else {
+        typeBadge = 'badge-unknown';
+        typeLabel = '⚪ Não identificado';
+      }
+
+      const confBadge = analysis.confidence === 'high' ? 'badge-high' :
+                       analysis.confidence === 'medium' ? 'badge-medium' : 'badge-low';
+      const confLabel = analysis.confidence === 'high' ? 'Alta' :
+                        analysis.confidence === 'medium' ? 'Média' : 'Baixa';
+
+      // Informações encontradas
+      let infoHtml = '';
+      const f = analysis.fields;
+      if (f.numero) infoHtml += `Nº: <strong>${f.numero}</strong><br>`;
+      if (f.soc) infoHtml += `SOC: <strong>${f.soc}</strong><br>`;
+      if (f.emitente) infoHtml += `Emitente: ${f.emitente.substring(0, 35)}<br>`;
+      if (f.fornecedor) infoHtml += `Fornecedor: ${f.fornecedor.substring(0, 35)}<br>`;
+      if (f.chave) infoHtml += `Chave: ${f.chave.substring(0, 20)}...<br>`;
+      if (errorMsg) infoHtml += `<span style="color:#dc2626">${errorMsg}</span>`;
+      if (!infoHtml) infoHtml = '<span style="color:#94a3b8">—</span>';
+
+      const canDownload = analysis.type !== 'error' && analysis.type !== 'unknown' && suggestedName;
 
       tr.innerHTML = `
         <td class="filename" title="${file.name}">${file.name}</td>
-        <td><strong>${nf}</strong></td>
-        <td><strong>${oc}</strong></td>
-        <td class="newname">${newName}</td>
+        <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
+        <td><span class="badge ${confBadge}">${confLabel}</span></td>
+        <td class="info-small">${infoHtml}</td>
         <td>
-          <span class="badge ${success ? 'badge-ok' : 'badge-err'}">
-            ${success ? 'OK' : 'Falha'}
-          </span>
+          <input type="text" class="newname-input" value="${suggestedName || file.name}" data-id="${id}">
         </td>
-        <td>${actionHtml}</td>
+        <td>
+          ${canDownload ? `<button class="btn btn-success btn-sm" data-action="download">Baixar</button>` : '—'}
+        </td>
       `;
 
       resultsBody.appendChild(tr);
 
-      // Botão individual
-      if (success) {
+      if (canDownload) {
+        const input = tr.querySelector('.newname-input');
         const btn = tr.querySelector('button');
+
+        const item = { file, newName: suggestedName, id, input };
+        successfulFiles.push(item);
+
         btn.addEventListener('click', () => {
-          downloadSingle(file, newName);
+          const finalName = sanitizeFileName(input.value) || suggestedName;
+          downloadSingle(file, finalName);
         });
       }
     }
@@ -360,14 +604,14 @@
       const url = URL.createObjectURL(file);
       const a = document.createElement('a');
       a.href = url;
-      a.download = newName;
+      a.download = newName.endsWith(getExtension(file.name)) ? newName : newName + '.' + getExtension(file.name);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
 
-    // ===================== BAIXAR TODOS EM ZIP =====================
+    // ====================== ZIP ======================
     btnDownloadAll.addEventListener('click', async () => {
       if (successfulFiles.length === 0) return;
 
@@ -376,97 +620,54 @@
 
       try {
         const zip = new JSZip();
+        const usedNames = new Map();
 
         for (const item of successfulFiles) {
-          const arrayBuffer = await item.file.arrayBuffer();
-          zip.file(item.newName, arrayBuffer);
+          let finalName = sanitizeFileName(item.input.value) || item.newName;
+
+          // Evita duplicados
+          let base = finalName.replace(/\.[^/.]+$/, '');
+          let ext = getExtension(finalName) || getExtension(item.file.name);
+          let counter = usedNames.get(base) || 0;
+          if (counter > 0) {
+            finalName = `${base} (${counter + 1}).${ext}`;
+          }
+          usedNames.set(base, counter + 1);
+
+          const buffer = await item.file.arrayBuffer();
+          zip.file(finalName, buffer);
         }
 
         const content = await zip.generateAsync({ type: 'blob' });
         const url = URL.createObjectURL(content);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `NFs_renomeadas_${new Date().toISOString().slice(0,10)}.zip`;
+        a.download = `arquivos_renomeados_${new Date().toISOString().slice(0,10)}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-
-        btnDownloadAll.textContent = `Baixar todos em ZIP (${successfulFiles.length})`;
       } catch (err) {
-        console.error(err);
-        alert('Erro ao gerar o ZIP: ' + err.message);
-        btnDownloadAll.textContent = `Baixar todos em ZIP (${successfulFiles.length})`;
+        alert('Erro ao gerar ZIP: ' + err.message);
       }
 
       btnDownloadAll.disabled = false;
+      btnDownloadAll.textContent = `Baixar todos em ZIP (${successfulFiles.length})`;
     });
 
-    function fileToDataUrl(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    // ===================== EXTRAÇÃO DE NF =====================
-    function findNF(text) {
-      const patterns = [
-        /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*|N[ºo°.]\s*)([0-9]{3}[.\s]?[0-9]{3}[.\s]?[0-9]{3})/gi,
-        /(?:N[ºo°.]?\s*|NF-?e?\s*)([0-9]{6,9})/gi,
-        /NF-?e?\s*(?:N[ºo°.]?\s*)?([0-9]{3}\.[0-9]{3}\.[0-9]{3})/gi,
-        /N[ºo°.]\s*([0-9]{3}\.[0-9]{3}\.[0-9]{3})/gi,
-        /([0-9]{3}\.[0-9]{3}\.[0-9]{3})/g
-      ];
-
-      const candidates = [];
-      for (const pat of patterns) {
-        let m;
-        while ((m = pat.exec(text)) !== null) {
-          const cleaned = m[1].replace(/[.\s]/g, '');
-          if (cleaned.length >= 6 && cleaned.length <= 9 && /^\d+$/.test(cleaned)) {
-            candidates.push(cleaned);
-          }
-        }
+    // ====================== LIMPAR ======================
+    btnClearList.addEventListener('click', () => {
+      if (confirm('Deseja limpar toda a lista de arquivos?')) {
+        resultsBody.innerHTML = '';
+        successfulFiles = [];
+        btnDownloadAll.style.display = 'none';
+        btnClearList.style.display = 'none';
+        resultsDiv.style.display = 'none';
+        progressBar.style.display = 'none';
+        statusEl.style.display = 'none';
+        fileInput.value = '';
       }
-
-      if (candidates.length) {
-        candidates.sort((a, b) => (b.length === 9 ? 1 : 0) - (a.length === 9 ? 1 : 0));
-        return candidates[0];
-      }
-      return null;
-    }
-
-    // ===================== EXTRAÇÃO DE OC =====================
-    function findOC(text) {
-      // Padrão prioritário (da imagem que você mandou)
-      const priority = [
-        /Ord\.?\s*Compra\s*[:\-]?\s*([0-9]{4,8})/gi,
-        /Ordem\s+de\s+Compra\s*[:\-]?\s*([0-9]{4,8})/gi,
-        /Ordem\s+Compra\s*[:\-]?\s*([0-9]{4,8})/gi,
-      ];
-
-      for (const pat of priority) {
-        const m = pat.exec(text);
-        if (m) return m[1].replace(/[.\s]/g, '');
-      }
-
-      const secondary = [
-        /(?:OC|O\.C\.)\s*[:\-]?\s*([0-9]{4,8})/gi,
-        /(?:N[ºo°.]\s*)?Pedido\s*[:\-]?\s*([0-9]{4,8})/gi,
-        /Pedido\s+de\s+Compra\s*[:\-]?\s*([0-9]{4,8})/gi,
-        /(?:loc|joc|0c0|oc0)\s*[:\-]?\s*([0-9]{4,8})/gi,
-      ];
-
-      for (const pat of secondary) {
-        const m = pat.exec(text);
-        if (m) return m[1].replace(/[.\s]/g, '');
-      }
-
-      return null;
-    }
+    });
   </script>
 </body>
 </html>
