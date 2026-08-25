@@ -9,6 +9,13 @@
     <!-- JSZip para compactação de arquivos na hora de baixar todos -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     
+    <!-- PDF.js para leitura real do conteúdo do PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Configuração obrigatória do Worker do PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    
     <style>
         /* Pequenos ajustes para animações que o Tailwind puro precisa de config extra */
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -124,10 +131,12 @@
                 </div>
                 
                 <!-- Rodapé da Tabela -->
-                <div class="bg-slate-50 border border-t-0 border-slate-200 p-4 rounded-b-xl flex justify-between text-xs text-slate-500">
-                    <span id="process-stats">Processados: 0 / 0</span>
-                    <span>Motor OCR Simulado (PDF) | Leitura NFe Real (XML)</span>
-                </div>
+            <div class="bg-slate-50 border border-t-0 border-slate-200 p-4 rounded-b-xl flex justify-between text-xs text-slate-500">
+                <span id="process-stats">Processados: 0 / 0</span>
+                <span>Motor de Leitura Real (PDF.js) | Leitura NFe Real (XML)</span>
+            </div>
+        </div>
+    </div>
             </div>
         </div>
 
@@ -472,30 +481,72 @@
             });
         };
 
-        const simulatePDFAnalysis = (file) => {
-            return new Promise((resolve) => {
-                // Simula OCR (1 a 2 segundos)
-                setTimeout(() => {
-                    let nfNum = '';
-                    let ocNum = '';
+        const analyzePDFText = async (file) => {
+            return new Promise(async (resolve) => {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    let fullText = '';
                     
-                    // A inteligência pedida para capturar o documento específico e colocar ambos!
-                    if (file.name === 'Untitled_20260824_164246.pdf') {
-                        nfNum = '65000';
-                        ocNum = '161676';
-                    } else {
-                        // Tenta extrair números do nome. Se não achar 2 grupos de números, emite log de erro.
+                    // Extrai o texto de todas as páginas
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        fullText += pageText + ' ';
+                    }
+
+                    // Limpa o texto (remove espaços duplos) para facilitar o mapeamento
+                    const cleanText = fullText.replace(/\s+/g, ' ');
+
+                    // 1. Tentar encontrar a Nota Fiscal (NF)
+                    // Procura por "Nº 65000", "NF-e 65000", "Nota Fiscal 65000", etc.
+                    let nfNum = '';
+                    const nfMatch = cleanText.match(/(?:N[º°]|NF[-e]?|Nota Fiscal)\s*[:.-]?\s*(\d{4,9})/i);
+                    if (nfMatch) {
+                        nfNum = nfMatch[1];
+                    }
+
+                    // 2. Tentar encontrar a Ordem de Compra (OC/SOC)
+                    // Procura por "Soc: 161676", "OC 161676" ou "Pedido 161676"
+                    let ocNum = '';
+                    const ocMatch = cleanText.match(/(?:Soc|OC|Pedido|Ordem de Compra|Solicita[çc][ãa]o)\s*[:.-]?\s*(\d{5,9})/i);
+                    
+                    if (ocMatch) {
+                        ocNum = ocMatch[1];
+                    } else if (cleanText.toLowerCase().includes('soc')) {
+                        // Fallback caso a quebra de linha do PDF tenha separado a palavra "Soc" do número
+                        // Procura qualquer número de 6 dígitos (padrão de SOC no seu exemplo)
+                        const fallbackOcMatch = cleanText.match(/\b(\d{6})\b/g);
+                        if (fallbackOcMatch) {
+                            // Pega o primeiro número de 6 dígitos que seja diferente do número da NF
+                            ocNum = fallbackOcMatch.find(num => num !== nfNum) || fallbackOcMatch[0];
+                        }
+                    }
+
+                    // Validações e Logs caso não encontre
+                    if (!nfNum && !ocNum) {
+                        // Último recurso: tenta extrair do nome do arquivo (para imagens escaneadas)
                         const numbersInName = file.name.match(/\d+/g);
                         if (numbersInName && numbersInName.length >= 2) {
                             nfNum = numbersInName[0].substring(0, 6);
                             ocNum = numbersInName[1].substring(0, 6);
+                            addErrorLog(file.name, "Alerta: Dados extraídos do NOME do arquivo. O PDF parece ser uma imagem escaneada sem texto selecionável.");
                         } else {
-                            addErrorLog(file.name, "Análise simulada falhou: Números de NF e OC não foram identificados automaticamente.");
+                            addErrorLog(file.name, "Não foi possível encontrar a NF nem a OC no texto do documento.");
                         }
+                    } else if (!nfNum) {
+                        addErrorLog(file.name, "Nota Fiscal não encontrada no documento. Apenas OC foi localizada.");
+                    } else if (!ocNum) {
+                        addErrorLog(file.name, "Ordem de Compra (OC/SOC) não encontrada no documento. Apenas NF localizada.");
                     }
-                    
+
                     resolve({ type: 'PDF', nfNumero: nfNum, ocNumero: ocNum });
-                }, 1000 + Math.random() * 1000);
+                } catch (error) {
+                    console.error("Erro no PDF.js:", error);
+                    addErrorLog(file.name, "Erro ao processar o conteúdo do PDF. O arquivo pode estar protegido ou ser muito complexo.");
+                    resolve({ type: 'ERROR', nfNumero: '', ocNumero: '' });
+                }
             });
         };
 
@@ -518,7 +569,7 @@
                 if (fileExt === 'xml') {
                     parsedData = await parseXMLNFe(files[i].originalFile);
                 } else {
-                    parsedData = await simulatePDFAnalysis(files[i].originalFile);
+                    parsedData = await analyzePDFText(files[i].originalFile);
                 }
 
                 files[i].parsedData = parsedData;
