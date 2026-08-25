@@ -1,667 +1,472 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocFlow - Gestão Profissional de Arquivos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.01em; }
-        
-        /* Custom Scrollbar */
-        .custom-scroll::-webkit-scrollbar { width: 5px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-
-        /* --- Sidebar Premium & Estável --- */
-        #sidebar {
-            width: 280px;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            background: white;
-            border-right: 1px solid #f1f5f9;
-            overflow: hidden;
-        }
-
-        #sidebar.sidebar-collapsed {
-            width: 88px !important;
-        }
-
-        /* Animação de Texto sem "pulos" */
-        .sidebar-text {
-            display: inline-block;
-            white-space: nowrap;
-            transition: opacity 0.3s ease, transform 0.3s ease, max-width 0.3s ease;
-            max-width: 200px;
-            opacity: 1;
-        }
-
-        .sidebar-collapsed .sidebar-text {
-            opacity: 0;
-            max-width: 0;
-            transform: translateX(-10px);
-            pointer-events: none;
-        }
-
-        .sidebar-item {
-            margin: 0.25rem 0.75rem;
-            padding: 0.75rem 1rem;
-            display: flex;
-            align-items: center;
-            border-radius: 1rem;
-            transition: all 0.2s ease;
-            color: #64748b;
-            cursor: pointer;
-            border: none;
-            background: transparent;
-        }
-
-        .sidebar-collapsed .sidebar-item {
-            justify-content: center;
-            padding: 0.75rem 0;
-        }
-
-        .sidebar-item.active {
-            background-color: #f0f7ff;
-            color: #2563eb;
-        }
-
-        .sidebar-icon {
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        /* User Profile Transition */
-        .user-profile {
-            padding: 0.75rem;
-            margin: 0 0.75rem 1rem 0.75rem;
-            background-color: #f8fafc;
-            border-radius: 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar-collapsed .user-profile {
-            background-color: transparent;
-            padding: 0.5rem 0;
-            justify-content: center;
-        }
-
-        /* Modern Card Styling */
-        .doc-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid #f1f5f9;
-        }
-        .doc-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05);
-            border-color: #e2e8f0;
-        }
-
-        .glass-header {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-
-        .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Renomeador de NF e OC</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    header {
+      background: linear-gradient(135deg, #1e40af, #3b82f6);
+      color: white;
+      padding: 1.5rem 2rem;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header p { opacity: 0.9; margin-top: 0.3rem; font-size: 0.95rem; }
+    .content { padding: 1.5rem 2rem 2rem; }
+    .upload-area {
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.2s;
+      cursor: pointer;
+      background: #f8fafc;
+    }
+    .upload-area:hover, .upload-area.dragover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .upload-area input { display: none; }
+    .btn {
+      display: inline-block;
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 0.7rem 1.4rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      margin-top: 1rem;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-success { background: #059669; }
+    .btn-success:hover { background: #047857; }
+    .btn-zip {
+      background: #7c3aed;
+      margin-left: 0.6rem;
+    }
+    .btn-zip:hover { background: #6d28d9; }
+    .btn-sm {
+      padding: 0.4rem 0.9rem;
+      font-size: 0.85rem;
+      margin-top: 0;
+    }
+    #status {
+      margin-top: 1.2rem;
+      padding: 0.9rem 1rem;
+      border-radius: 8px;
+      display: none;
+      font-size: 0.95rem;
+    }
+    #status.processing { display: block; background: #fef3c7; color: #92400e; }
+    #status.success { display: block; background: #d1fae5; color: #065f46; }
+    #status.error { display: block; background: #fee2e2; color: #991b1b; }
+    .progress-bar {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      margin-top: 0.8rem;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar .fill {
+      height: 100%;
+      background: #3b82f6;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .results {
+      margin-top: 1.5rem;
+      display: none;
+    }
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+    .results h3 {
+      color: #1e40af;
+      font-size: 1.1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 0.75rem 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+      color: #475569;
+    }
+    tr:hover { background: #f8fafc; }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-ok { background: #d1fae5; color: #065f46; }
+    .badge-err { background: #fee2e2; color: #991b1b; }
+    .filename {
+      font-family: monospace;
+      font-size: 0.84rem;
+      max-width: 190px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .newname {
+      font-family: monospace;
+      font-weight: 700;
+      color: #1e40af;
+      font-size: 0.88rem;
+    }
+    canvas { display: none; }
+  </style>
 </head>
-<body class="bg-[#fbfcfd] text-slate-900 overflow-hidden h-screen flex">
+<body>
+  <div class="container">
+    <header>
+      <h1>Renomeador de NF e OC</h1>
+      <p>Analisa página 1 e 2 • Renomeia • Baixa tudo em ZIP</p>
+    </header>
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="z-50">
-        <div class="p-6 flex items-center justify-between min-h-[88px] overflow-hidden">
-            <div class="flex items-center gap-3 overflow-hidden">
-                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex-shrink-0 flex items-center justify-center text-white shadow-lg shadow-blue-200/50">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                    </svg>
-                </div>
-                <h1 class="font-extrabold text-xl tracking-tighter text-slate-800 sidebar-text">DocFlow<span class="text-blue-600">.</span></h1>
-            </div>
-            <button onclick="toggleSidebar()" class="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+    <div class="content">
+      <div class="upload-area" id="dropZone">
+        <p style="font-size: 1.1rem; margin-bottom: 0.4rem;">Arraste os PDFs aqui ou clique para selecionar</p>
+        <p style="color: #64748b; font-size: 0.9rem;">Pode enviar muitos arquivos de uma vez</p>
+        <input type="file" id="fileInput" accept=".pdf,image/*" multiple>
+        <button class="btn" onclick="document.getElementById('fileInput').click()">Selecionar arquivos</button>
+      </div>
+
+      <div id="status"></div>
+      <div class="progress-bar" id="progressBar"><div class="fill" id="progressFill"></div></div>
+
+      <div class="results" id="results">
+        <div class="results-header">
+          <h3>Arquivos processados</h3>
+          <div>
+            <button class="btn btn-success btn-sm" id="btnDownloadAll" style="display:none;">
+              Baixar todos em ZIP
             </button>
+          </div>
         </div>
 
-        <nav class="flex-1 py-4 space-y-1 overflow-y-auto custom-scroll overflow-x-hidden">
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] px-8 mb-4 sidebar-text">Principal</p>
-            
-            <button onclick="switchView('all')" id="nav-all" class="sidebar-item active w-full group">
-                <div class="sidebar-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                </div>
-                <span class="sidebar-text ml-3 font-semibold">Todos Arquivos</span>
-            </button>
-            
-            <button onclick="switchView('categories')" id="nav-categories" class="sidebar-item w-full group">
-                <div class="sidebar-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                </div>
-                <span class="sidebar-text ml-3 font-semibold">Categorias</span>
-            </button>
-            
-            <div class="pt-8">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] px-8 mb-4 sidebar-text">Filtros</p>
-                <div id="quickCategories" class="space-y-1"></div>
-            </div>
-        </nav>
-
-        <div class="user-profile">
-            <div class="w-9 h-9 flex-shrink-0 rounded-xl bg-white shadow-sm flex items-center justify-center text-blue-600 font-bold text-xs border border-slate-100" id="userInitial">AD</div>
-            <div class="flex flex-col min-w-0 sidebar-text">
-                <span class="text-xs font-bold text-slate-800 truncate leading-none mb-1">Utilizador Ativo</span>
-                <span class="text-[9px] text-emerald-500 font-bold uppercase tracking-tighter">Guardado na Nuvem</span>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <header class="h-20 glass-header border-b border-slate-100 flex items-center justify-between px-8 flex-shrink-0 z-40">
-            <div class="flex items-center gap-6 flex-1">
-                <div id="searchContainer" class="relative max-w-xl w-full group">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-300 group-focus-within:text-blue-500 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    </span>
-                    <input type="text" id="searchInput" placeholder="Pesquisar por fornecedor, NF ou OC..." class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all outline-none">
-                </div>
-            </div>
-            <button onclick="toggleModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl text-sm font-bold flex items-center gap-2 transition-all shadow-xl shadow-blue-500/20 active:scale-95">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
-                <span>Novo Arquivo</span>
-            </button>
-        </header>
-
-        <div class="flex-1 overflow-y-auto p-8 custom-scroll">
-            <!-- Loading -->
-            <div id="initialLoading" class="flex flex-col items-center justify-center h-full gap-4">
-                <div class="loading-spinner"></div>
-                <p class="text-sm font-bold text-slate-400 animate-pulse">Sincronizando com a Nuvem...</p>
-            </div>
-
-            <!-- Docs View -->
-            <div id="docsView" class="hidden">
-                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-10">
-                    <div>
-                        <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Arquivo Central</h2>
-                        <div class="flex items-center gap-3 text-slate-400 text-sm font-medium">
-                            <span class="flex items-center gap-1.5 bg-white border border-slate-100 px-3 py-1 rounded-full shadow-sm">
-                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                                <span id="stat-total" class="text-slate-900 font-bold">0</span> Itens
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="flex flex-wrap items-center gap-3">
-                        <div class="flex items-center gap-2 bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm">
-                            <div class="px-3">
-                                <label class="text-[9px] font-bold text-slate-400 uppercase block mb-0.5 tracking-wider">Intervalo de Datas</label>
-                                <div class="flex items-center gap-2">
-                                    <input type="date" id="startDate" class="text-xs font-bold text-slate-600 outline-none bg-transparent" onchange="renderDocs()">
-                                    <span class="text-slate-200">/</span>
-                                    <input type="date" id="endDate" class="text-xs font-bold text-slate-600 outline-none bg-transparent" onchange="renderDocs()">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="relative bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center overflow-hidden">
-                            <div class="pl-4 text-slate-300">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-                            </div>
-                            <select id="filterCategory" onchange="renderDocs()" class="text-sm px-3 py-3 pr-10 outline-none font-bold text-slate-700 bg-transparent cursor-pointer appearance-none">
-                                <option value="all">Todas Categorias</option>
-                            </select>
-                        </div>
-                        <button onclick="resetFilters()" class="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                    </div>
-                </div>
-                <div id="docsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 mb-12"></div>
-            </div>
-
-            <!-- Categories View -->
-            <div id="categoriesView" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div class="max-w-4xl">
-                    <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight mb-8">Gestão de Categorias</h2>
-                    <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm mb-10 flex flex-col md:flex-row gap-4 items-end">
-                        <div class="flex-1 w-full">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Nome</label>
-                            <input type="text" id="newCatInput" placeholder="Ex: Financeiro, Logística..." class="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all font-semibold">
-                        </div>
-                        <button onclick="addCategory()" class="bg-slate-900 text-white px-8 py-3.5 rounded-2xl font-bold hover:bg-blue-600 transition-all shadow-lg">Criar Categoria</button>
-                    </div>
-                    <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                </div>
-            </div>
-
-            <div id="emptyState" class="hidden flex flex-col items-center justify-center py-32 text-center">
-                <div class="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mb-6 text-slate-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2">Sem arquivos encontrados</h3>
-                <button onclick="resetFilters()" class="mt-6 text-blue-600 font-bold hover:underline">Limpar filtros</button>
-            </div>
-        </div>
-    </main>
-
-    <!-- Modals -->
-    <div id="modalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden p-4">
-        <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden border border-white/20">
-            <div class="p-8 border-b border-slate-50 flex justify-between items-center">
-                <h3 class="text-2xl font-extrabold text-slate-900 tracking-tight">Arquivar Novo</h3>
-                <button onclick="toggleModal()" class="p-2 text-slate-300 hover:text-slate-900 transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
-            </div>
-            <form id="docForm" class="p-8 space-y-5">
-                <input type="text" id="provider" required placeholder="Fornecedor" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all font-semibold">
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="text" id="nf" placeholder="N° Nota Fiscal" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white font-mono">
-                    <input type="text" id="oc" placeholder="N° OC" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white font-mono">
-                </div>
-                <select id="docCategory" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-semibold"></select>
-                <div class="group relative bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] p-6 text-center cursor-pointer hover:border-blue-400 transition-all" onclick="document.getElementById('fileInput').click()">
-                    <div class="flex items-center justify-center gap-3 text-slate-600">
-                        <div class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-slate-400 group-hover:text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 4v16m8-8H4" stroke-width="2.5"/></svg></div>
-                        <span class="text-sm font-bold">Escolher Ficheiros</span>
-                    </div>
-                    <input type="file" id="fileInput" class="hidden" multiple onchange="handleNewFileQueue(this)">
-                </div>
-                <div id="pendingFilesList" class="max-h-32 overflow-y-auto custom-scroll space-y-2"></div>
-                <div class="flex gap-4 pt-4">
-                    <button type="button" onclick="toggleModal()" class="flex-1 py-4 text-sm font-bold text-slate-400">Cancelar</button>
-                    <button type="submit" id="btnSubmitDoc" class="flex-1 py-4 text-sm bg-blue-600 text-white rounded-2xl font-extrabold shadow-xl disabled:opacity-50">Arquivar Tudo</button>
-                </div>
-            </form>
-        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Arquivo original</th>
+              <th>NF</th>
+              <th>OC</th>
+              <th>Novo nome</th>
+              <th>Status</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
     </div>
+  </div>
 
-    <!-- Modal Visualização -->
-    <div id="previewOverlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[150] flex items-center justify-center hidden p-4 lg:p-8">
-        <div class="bg-white w-full max-w-6xl h-full lg:h-[85vh] rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in duration-500 text-slate-800">
-            <div class="flex-1 bg-[#f8fafc] flex flex-col relative p-6">
-                <div class="flex-1 rounded-[2rem] bg-white flex flex-col items-center justify-center overflow-hidden shadow-inner border border-slate-100 relative">
-                    <div id="fileContent" class="w-full h-full flex flex-col items-center justify-center p-12 text-center animate-in fade-in duration-300"></div>
-                </div>
-                <div class="mt-6 flex justify-center gap-6">
-                    <button onclick="simulateAction('Imprimir')" class="w-14 h-14 bg-white border border-slate-200 rounded-2xl hover:bg-blue-600 hover:text-white shadow-sm flex items-center justify-center transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2-2v4" stroke-width="2"/></svg></button>
-                    <button onclick="simulateAction('Download')" class="w-14 h-14 bg-white border border-slate-200 rounded-2xl hover:bg-blue-600 hover:text-white shadow-sm flex items-center justify-center transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-width="2"/></svg></button>
-                </div>
-            </div>
-            <div class="w-full md:w-[28rem] bg-white border-l border-slate-50 flex flex-col overflow-hidden">
-                <div class="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-                    <h3 class="font-extrabold text-2xl text-slate-900 leading-none">Ficheiro</h3>
-                    <button onclick="closePreview()" class="p-2.5 text-slate-300 hover:text-slate-900 bg-white rounded-2xl shadow-sm transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                </div>
-                <div class="flex-1 overflow-y-auto custom-scroll p-8 space-y-8">
-                    <div id="previewDetails" class="space-y-4"></div>
-                    <div class="pt-8 border-t border-slate-50">
-                        <div class="flex items-center justify-between mb-5">
-                            <h4 class="font-bold text-slate-800 text-xs uppercase tracking-widest">Itens Anexados</h4>
-                            <button onclick="triggerAttachNewItemViewer()" class="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-600 hover:text-white transition-all">+ Novo Item</button>
-                            <input type="file" id="viewerItemInput" class="hidden" onchange="handleViewerAttachment(this)">
-                        </div>
-                        <div id="attachmentsList" class="space-y-2.5"></div>
-                    </div>
-                </div>
-                <div class="p-8 border-t border-slate-50">
-                    <button onclick="closePreview()" class="w-full bg-slate-900 text-white py-4 rounded-[1.5rem] font-extrabold hover:bg-blue-600 transition-all shadow-xl">Fechar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+  <canvas id="pdfCanvas"></canvas>
 
-    <!-- Confirm Modal -->
-    <div id="confirmModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[200] flex items-center justify-center hidden p-4">
-        <div class="bg-white w-full max-w-[320px] rounded-[2rem] shadow-2xl p-6 text-center text-slate-800 border border-white/20">
-            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-800"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"/></svg></div>
-            <h3 class="text-lg font-extrabold text-slate-900 mb-1">Eliminar permanentemente?</h3>
-            <p class="text-slate-500 text-xs mb-6 px-2 leading-relaxed">Esta ação não poderá ser revertida.</p>
-            <div class="flex flex-col gap-2">
-                <button onclick="executeDelete()" class="w-full py-3 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-red-700 active:scale-95 transition-all text-slate-800">Eliminar Agora</button>
-                <button onclick="closeConfirmModal()" class="w-full py-3 bg-slate-50 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all text-slate-800">Cancelar</button>
-            </div>
-        </div>
-    </div>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    <!-- Toast -->
-    <div id="toast" class="fixed bottom-10 right-10 translate-y-32 opacity-0 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl transition-all duration-500 z-[300] flex items-center gap-4 border border-slate-800">
-        <div class="w-8 h-8 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center text-slate-800"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 14.14L8 12.586l-3.293-3.293a1 1 0 111.414-1.414L8 10.828l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div>
-        <div class="flex flex-col"><span class="text-sm font-bold mb-1">Sincronizado</span><span id="toastMsg" class="text-xs text-slate-400 font-medium text-slate-800">Sucesso!</span></div>
-    </div>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const statusEl = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const resultsDiv = document.getElementById('results');
+    const resultsBody = document.getElementById('resultsBody');
+    const btnDownloadAll = document.getElementById('btnDownloadAll');
 
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-        import { getFirestore, collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, updateDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+    let isProcessing = false;
+    let successfulFiles = []; // guarda os arquivos que deram certo
 
-        // --- Configuração ---
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'docflow-v1';
+    // Drag & Drop
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) startBatch(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) startBatch(fileInput.files);
+    });
 
-        // --- Estado Global ---
-        let user = null;
-        let documents = [];
-        let categories = ['Financeiro', 'Suprimentos', 'Logística', 'Recursos Humanos'];
-        let pendingFiles = [];
-        let currentEditingDocId = null;
-        let currentPreviewedFileName = null;
-        let idToDelete = null;
-        let currentView = 'all'; // Variável restaurada
+    function setStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = type;
+      statusEl.style.display = 'block';
+    }
 
-        const categoryPalette = [
-            { bg: 'bg-blue-600', text: 'text-white', light: 'bg-blue-50', gradient: 'from-blue-600 to-indigo-500' },
-            { bg: 'bg-amber-500', text: 'text-white', light: 'bg-amber-50', gradient: 'from-amber-500 to-orange-400' },
-            { bg: 'bg-emerald-600', text: 'text-white', light: 'bg-emerald-50', gradient: 'from-emerald-600 to-teal-400' },
-            { bg: 'bg-purple-600', text: 'text-white', light: 'bg-purple-50', gradient: 'from-purple-600 to-indigo-400' },
-            { bg: 'bg-rose-600', text: 'text-white', light: 'bg-rose-50', gradient: 'from-rose-600 to-pink-400' }
-        ];
+    async function startBatch(fileList) {
+      if (isProcessing) return;
+      isProcessing = true;
+      successfulFiles = [];
 
-        // --- Funções Auxiliares (Definidas antes do uso para evitar ReferenceErrors) ---
-        function getCatTheme(catName) {
-            const index = categories.indexOf(catName);
-            return categoryPalette[index % categoryPalette.length] || categoryPalette[0];
+      const files = Array.from(fileList);
+      resultsBody.innerHTML = '';
+      resultsDiv.style.display = 'block';
+      btnDownloadAll.style.display = 'none';
+      progressBar.style.display = 'block';
+      progressFill.style.width = '0%';
+
+      setStatus(`Processando ${files.length} arquivo(s)...`, 'processing');
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const percent = Math.round((i / files.length) * 100);
+        progressFill.style.width = percent + '%';
+        setStatus(`Processando ${i + 1} de ${files.length}: ${file.name}`, 'processing');
+
+        try {
+          const result = await processSingleFile(file);
+          addResultRow(file, result);
+        } catch (err) {
+          console.error(err);
+          addResultRow(file, { nf: null, oc: null, error: err.message });
         }
+      }
 
-        function formatDate(s) { const [y,m,d] = s.split('-'); return `${d}/${m}/${y.slice(-2)}`; }
+      progressFill.style.width = '100%';
+      setStatus(`Concluído! ${files.length} arquivo(s) processado(s).`, 'success');
+      isProcessing = false;
 
-        function showToast(m) { 
-            const t = document.getElementById('toast'); document.getElementById('toastMsg').innerText = m; 
-            t.classList.remove('translate-y-32', 'opacity-0'); 
-            setTimeout(() => t.classList.add('translate-y-32', 'opacity-0'), 3000); 
+      // Mostra o botão de ZIP se tiver pelo menos 1 sucesso
+      if (successfulFiles.length > 0) {
+        btnDownloadAll.style.display = 'inline-block';
+        btnDownloadAll.textContent = `Baixar todos em ZIP (${successfulFiles.length})`;
+      }
+    }
+
+    async function processSingleFile(file) {
+      let fullText = '';
+
+      if (file.type === 'application/pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const totalPages = pdf.numPages;
+        const pagesToRead = Math.min(totalPages, 2); // página 1 e 2
+
+        for (let p = 1; p <= pagesToRead; p++) {
+          const page = await pdf.getPage(p);
+          const scale = 2.0;
+          const viewport = page.getViewport({ scale });
+          const canvas = document.getElementById('pdfCanvas');
+          const ctx = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          const dataUrl = canvas.toDataURL('image/png');
+
+          const { data: { text } } = await Tesseract.recognize(dataUrl, 'por+eng', {
+            logger: () => {}
+          });
+
+          fullText += `\n--- PÁGINA ${p} ---\n` + text;
         }
+      } else if (file.type.startsWith('image/')) {
+        const dataUrl = await fileToDataUrl(file);
+        const { data: { text } } = await Tesseract.recognize(dataUrl, 'por+eng');
+        fullText = text;
+      } else {
+        throw new Error('Formato não suportado');
+      }
 
-        const fileToBase64 = (file) => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
+      const nf = findNF(fullText);
+      const oc = findOC(fullText);
+
+      return { nf, oc };
+    }
+
+    function addResultRow(file, result) {
+      const tr = document.createElement('tr');
+      const nf = result.nf || '—';
+      const oc = result.oc || '—';
+      const success = !!(result.nf && result.oc);
+      const newName = success ? `NF_${result.nf}_OC_${result.oc}.pdf` : '—';
+
+      let actionHtml = '—';
+      if (success) {
+        actionHtml = `<button class="btn btn-success btn-sm">Baixar</button>`;
+        // Guarda para o ZIP
+        successfulFiles.push({ file, newName });
+      }
+
+      tr.innerHTML = `
+        <td class="filename" title="${file.name}">${file.name}</td>
+        <td><strong>${nf}</strong></td>
+        <td><strong>${oc}</strong></td>
+        <td class="newname">${newName}</td>
+        <td>
+          <span class="badge ${success ? 'badge-ok' : 'badge-err'}">
+            ${success ? 'OK' : 'Falha'}
+          </span>
+        </td>
+        <td>${actionHtml}</td>
+      `;
+
+      resultsBody.appendChild(tr);
+
+      // Botão individual
+      if (success) {
+        const btn = tr.querySelector('button');
+        btn.addEventListener('click', () => {
+          downloadSingle(file, newName);
         });
+      }
+    }
 
-        // --- Renderização ---
-        function renderDocs() {
-            const container = document.getElementById('docsContainer');
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            const cat = document.getElementById('filterCategory').value;
-            const start = document.getElementById('startDate').value;
-            const end = document.getElementById('endDate').value;
-            const today = new Date().toISOString().split('T')[0];
+    function downloadSingle(file, newName) {
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = newName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
 
-            const filtered = documents.filter(d => {
-                const mSearch = (d.provider.toLowerCase().includes(search) || d.nf.toLowerCase().includes(search) || d.oc.toLowerCase().includes(search));
-                const mCat = (cat === 'all' || d.category === cat);
-                let mDate = true;
-                if (start && d.date < start) mDate = false;
-                if (end && d.date > end) mDate = false;
-                return mSearch && mCat && mDate;
-            });
+    // ===================== BAIXAR TODOS EM ZIP =====================
+    btnDownloadAll.addEventListener('click', async () => {
+      if (successfulFiles.length === 0) return;
 
-            document.getElementById('emptyState').classList.toggle('hidden', filtered.length > 0 || documents.length === 0);
-            container.innerHTML = filtered.map(d => {
-                const theme = getCatTheme(d.category);
-                const isToday = d.date === today;
-                return `
-                <div class="doc-card bg-white p-7 rounded-[2rem] shadow-sm relative group overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r ${theme.gradient} opacity-80 transition-all"></div>
-                    <div class="flex justify-between items-start mb-6">
-                        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-100 shadow-sm ${theme.light}">
-                            <span class="w-1.5 h-1.5 rounded-full ${theme.bg}"></span>
-                            <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-700">${d.category}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            ${isToday ? '<span class="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-tighter shadow-sm border border-emerald-100">Hoje</span>' : ''}
-                            <button onclick="deleteDoc('${d.id}')" class="p-2 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"/></svg></button>
-                        </div>
-                    </div>
-                    <h4 class="font-extrabold text-slate-900 mb-6 text-xl leading-tight truncate group-hover:text-blue-600 transition-colors">${d.provider}</h4>
-                    <div class="space-y-3 mb-8">
-                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100/50"><span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Fiscal</span><span class="text-xs font-extrabold text-slate-700 font-mono">${d.nf || '---'}</span></div>
-                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100/50"><span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-slate-800 text-slate-800">Itens</span><span class="text-xs font-extrabold text-blue-600 font-bold">${d.attachments ? d.attachments.length : 0} Ficheiros</span></div>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-bold text-slate-400 italic">${formatDate(d.date)}</span>
-                        <button onclick="viewDoc('${d.id}')" class="bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-[11px] font-extrabold hover:${theme.bg} shadow-xl transition-all uppercase tracking-widest">Gerir</button>
-                    </div>
-                </div>`}).join('');
-            document.getElementById('stat-total').innerText = documents.length;
+      btnDownloadAll.disabled = true;
+      btnDownloadAll.textContent = 'Gerando ZIP...';
+
+      try {
+        const zip = new JSZip();
+
+        for (const item of successfulFiles) {
+          const arrayBuffer = await item.file.arrayBuffer();
+          zip.file(item.newName, arrayBuffer);
         }
 
-        function updateCategoriesUI() {
-            document.getElementById('quickCategories').innerHTML = categories.map((c, i) => {
-                const theme = getCatTheme(c);
-                return `<button onclick="filterByQuickCategory('${c}')" class="group w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all text-left">
-                    <span class="w-2.5 h-2.5 rounded-full ${theme.bg} group-hover:scale-125 transition-transform"></span> 
-                    <span class="sidebar-text ml-3 truncate text-slate-800 font-semibold">${c}</span>
-                </button>`;
-            }).join('');
-            document.getElementById('filterCategory').innerHTML = '<option value="all">Todas Categorias</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
-            document.getElementById('docCategory').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        const content = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `NFs_renomeadas_${new Date().toISOString().slice(0,10)}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        btnDownloadAll.textContent = `Baixar todos em ZIP (${successfulFiles.length})`;
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao gerar o ZIP: ' + err.message);
+        btnDownloadAll.textContent = `Baixar todos em ZIP (${successfulFiles.length})`;
+      }
+
+      btnDownloadAll.disabled = false;
+    });
+
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ===================== EXTRAÇÃO DE NF =====================
+    function findNF(text) {
+      const patterns = [
+        /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*|N[ºo°.]\s*)([0-9]{3}[.\s]?[0-9]{3}[.\s]?[0-9]{3})/gi,
+        /(?:N[ºo°.]?\s*|NF-?e?\s*)([0-9]{6,9})/gi,
+        /NF-?e?\s*(?:N[ºo°.]?\s*)?([0-9]{3}\.[0-9]{3}\.[0-9]{3})/gi,
+        /N[ºo°.]\s*([0-9]{3}\.[0-9]{3}\.[0-9]{3})/gi,
+        /([0-9]{3}\.[0-9]{3}\.[0-9]{3})/g
+      ];
+
+      const candidates = [];
+      for (const pat of patterns) {
+        let m;
+        while ((m = pat.exec(text)) !== null) {
+          const cleaned = m[1].replace(/[.\s]/g, '');
+          if (cleaned.length >= 6 && cleaned.length <= 9 && /^\d+$/.test(cleaned)) {
+            candidates.push(cleaned);
+          }
         }
+      }
 
-        function renderCategoriesList() {
-            document.getElementById('categoriesGrid').innerHTML = categories.map(c => {
-                const theme = getCatTheme(c);
-                return `
-                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 flex justify-between items-center group transition-all hover:shadow-xl hover:border-blue-100 shadow-sm text-slate-800">
-                    <div class="flex items-center gap-5 text-slate-800"><div class="w-12 h-12 rounded-2xl ${theme.light} flex items-center justify-center ${theme.bg.replace('bg-', 'text-')} font-extrabold border border-slate-100 shadow-inner text-slate-800">${c.substring(0, 2).toUpperCase()}</div><div><span class="font-extrabold text-lg block leading-none mb-1 text-slate-800 text-slate-800">${c}</span><span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-slate-800">Guardado na Nuvem</span></div></div>
-                    <button onclick="removeCategory('${c}')" class="text-slate-200 hover:text-red-500 transition-colors p-2 text-slate-800"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"/></svg></button>
-                </div>`}).join('');
-        }
+      if (candidates.length) {
+        candidates.sort((a, b) => (b.length === 9 ? 1 : 0) - (a.length === 9 ? 1 : 0));
+        return candidates[0];
+      }
+      return null;
+    }
 
-        function renderPendingFiles() {
-            const list = document.getElementById('pendingFilesList');
-            const btn = document.getElementById('btnSubmitDoc');
-            if (pendingFiles.length === 0) {
-                list.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center py-4">Nenhum item adicionado.</p>`;
-                btn.disabled = true;
-            } else {
-                btn.disabled = false;
-                list.innerHTML = pendingFiles.map((f, i) => `
-                    <div class="flex items-center justify-between bg-white border border-slate-100 p-2.5 rounded-xl text-[11px] font-bold text-slate-700 animate-in fade-in slide-in-from-left-2 shadow-sm">
-                        <span class="truncate">${f.name}</span>
-                        <button type="button" onclick="removePendingFile(${i})" class="text-slate-300 hover:text-red-500 p-1"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" stroke-width="2"/></svg></button>
-                    </div>`).join('');
-            }
-        }
+    // ===================== EXTRAÇÃO DE OC =====================
+    function findOC(text) {
+      // Padrão prioritário (da imagem que você mandou)
+      const priority = [
+        /Ord\.?\s*Compra\s*[:\-]?\s*([0-9]{4,8})/gi,
+        /Ordem\s+de\s+Compra\s*[:\-]?\s*([0-9]{4,8})/gi,
+        /Ordem\s+Compra\s*[:\-]?\s*([0-9]{4,8})/gi,
+      ];
 
-        // --- Firebase Auth & Setup ---
-        onAuthStateChanged(auth, (u) => {
-            if (!u) {
-                signInAnonymously(auth);
-            } else {
-                user = u;
-                document.getElementById('userInitial').innerText = u.uid.substring(0,2).toUpperCase();
-                setupDataSync();
-            }
-        });
+      for (const pat of priority) {
+        const m = pat.exec(text);
+        if (m) return m[1].replace(/[.\s]/g, '');
+      }
 
-        function setupDataSync() {
-            if (!user) return;
-            const docsRef = collection(db, 'artifacts', appId, 'users', user.uid, 'documents');
-            onSnapshot(docsRef, (snapshot) => {
-                documents = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                renderDocs();
-                document.getElementById('initialLoading').classList.add('hidden');
-                document.getElementById('docsView').classList.remove('hidden');
-            });
-            const catsRef = collection(db, 'artifacts', appId, 'users', user.uid, 'categories');
-            onSnapshot(catsRef, (snapshot) => {
-                const cloudCats = snapshot.docs.map(d => d.data().name);
-                if (cloudCats.length > 0) categories = cloudCats;
-                updateCategoriesUI();
-                renderCategoriesList();
-            });
-        }
+      const secondary = [
+        /(?:OC|O\.C\.)\s*[:\-]?\s*([0-9]{4,8})/gi,
+        /(?:N[ºo°.]\s*)?Pedido\s*[:\-]?\s*([0-9]{4,8})/gi,
+        /Pedido\s+de\s+Compra\s*[:\-]?\s*([0-9]{4,8})/gi,
+        /(?:loc|joc|0c0|oc0)\s*[:\-]?\s*([0-9]{4,8})/gi,
+      ];
 
-        // --- Eventos da Janela (Exportar para Global) ---
-        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('sidebar-collapsed');
-        window.toggleModal = () => {
-            const m = document.getElementById('modalOverlay');
-            m.classList.toggle('hidden');
-            if(m.classList.contains('hidden')) {
-                document.getElementById('docForm').reset();
-                pendingFiles = [];
-                renderPendingFiles();
-            }
-        };
+      for (const pat of secondary) {
+        const m = pat.exec(text);
+        if (m) return m[1].replace(/[.\s]/g, '');
+      }
 
-        window.switchView = (view) => {
-            currentView = view; 
-            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-            const navBtn = document.getElementById(`nav-${view}`);
-            if(navBtn) navBtn.classList.add('active');
-            document.getElementById('docsView').classList.toggle('hidden', view !== 'all');
-            document.getElementById('categoriesView').classList.toggle('hidden', view !== 'categories');
-            if(view === 'all') renderDocs(); else renderCategoriesList();
-        };
-
-        window.handleNewFileQueue = (input) => {
-            const files = Array.from(input.files);
-            files.forEach(async (f) => {
-                if (f.size > 800000) return showToast("Ficheiro muito grande (>800KB)");
-                const base64Data = await fileToBase64(f);
-                if (!pendingFiles.some(p => p.name === f.name)) pendingFiles.push({ name: f.name, data: base64Data });
-                renderPendingFiles();
-            });
-            input.value = '';
-        };
-
-        window.removePendingFile = (idx) => { pendingFiles.splice(idx, 1); renderPendingFiles(); };
-
-        window.deleteDoc = (id) => { idToDelete = id; document.getElementById('confirmModal').classList.remove('hidden'); };
-        window.closeConfirmModal = () => { idToDelete = null; document.getElementById('confirmModal').classList.add('hidden'); };
-        window.executeDelete = async () => {
-            if (!user || !idToDelete) return;
-            await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'documents', idToDelete));
-            showToast("Documento eliminado.");
-            closeConfirmModal();
-        };
-
-        window.viewDoc = (id) => {
-            currentEditingDocId = id;
-            const docData = documents.find(d => d.id === id);
-            if (!docData) return;
-
-            const theme = getCatTheme(docData.category);
-            document.getElementById('previewDetails').innerHTML = `
-                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100 text-slate-800">
-                    <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Fornecedor</label>
-                    <p class="text-lg font-extrabold text-slate-900 leading-tight">${docData.provider}</p>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100"><label class="text-[9px] font-bold text-slate-400 block mb-1">NF</label><p class="text-sm font-mono font-extrabold text-blue-600">${docData.nf || '---'}</p></div>
-                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100"><label class="text-[9px] font-bold text-slate-400 block mb-1">OC</label><p class="text-sm font-mono font-extrabold text-amber-600">${docData.oc || '---'}</p></div>
-                </div>
-                <div class="bg-white border border-slate-100 p-5 rounded-2xl flex items-center justify-between shadow-sm">
-                    <div class="flex flex-col"><label class="text-[9px] font-bold text-slate-400 uppercase mb-1">Arquivado em</label><p class="text-sm font-bold text-slate-700">${formatDate(docData.date)}</p></div>
-                    <span class="text-[10px] font-extrabold px-4 py-1.5 rounded-full ${theme.bg} ${theme.text}">${docData.category}</span>
-                </div>`;
-            if (docData.attachments && docData.attachments.length > 0) updateFilePreview(docData.attachments[0], docData.provider);
-            document.getElementById('previewOverlay').classList.remove('hidden');
-        };
-
-        window.updateFilePreview = (fileObj, provider) => {
-            currentPreviewedFileName = fileObj.name;
-            const content = document.getElementById('fileContent');
-            const isImage = fileObj.data.startsWith('data:image');
-            content.innerHTML = isImage ? 
-                `<img src="${fileObj.data}" class="max-w-full max-h-full rounded-2xl shadow-xl">` :
-                `<div class="flex flex-col items-center animate-in fade-in">
-                    <div class="bg-red-50 text-red-500 w-32 h-44 rounded-3xl flex items-center justify-center mb-8 border-2 shadow-xl"><svg class="h-20 w-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" stroke-width="1.5"/></svg></div>
-                    <h4 class="font-extrabold text-slate-900 text-2xl mb-2">${fileObj.name}</h4>
-                    <p class="text-sm text-slate-400 font-bold uppercase">${provider}</p>
-                </div>`;
-            renderAttachmentsList(documents.find(d => d.id === currentEditingDocId));
-        };
-
-        function renderAttachmentsList(docData) {
-            const list = document.getElementById('attachmentsList');
-            if (!docData || !docData.attachments) return;
-            list.innerHTML = docData.attachments.map((file, i) => `
-                <div onclick="updateFilePreview(documents.find(d=>d.id==='${docData.id}').attachments[${i}], '${docData.provider}')" class="flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer ${file.name === currentPreviewedFileName ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-800 hover:bg-slate-50'}">
-                    <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" stroke-width="2"/></svg>
-                    <span class="text-xs font-extrabold truncate">${file.name}</span>
-                </div>`).join('');
-        }
-
-        window.closePreview = () => { document.getElementById('previewOverlay').classList.add('hidden'); currentEditingDocId = null; currentPreviewedFileName = null; };
-
-        window.triggerAttachNewItemViewer = () => document.getElementById('viewerItemInput').click();
-        window.handleViewerAttachment = async (input) => {
-            if (input.files[0] && currentEditingDocId) {
-                const base64 = await fileToBase64(input.files[0]);
-                const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'documents', currentEditingDocId);
-                const docData = documents.find(d => d.id === currentEditingDocId);
-                const newAttachments = [...(docData.attachments || []), { name: input.files[0].name, data: base64 }];
-                await updateDoc(docRef, { attachments: newAttachments });
-                showToast("Item anexado!");
-                updateFilePreview({ name: input.files[0].name, data: base64 }, docData.provider);
-                input.value = '';
-            }
-        };
-
-        window.addCategory = async () => {
-            const n = document.getElementById('newCatInput').value.trim();
-            if(!n || categories.includes(n)) return;
-            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'categories'), { name: n });
-            document.getElementById('newCatInput').value = '';
-            showToast("Categoria salva.");
-        };
-
-        window.removeCategory = async (name) => {
-            showToast("Apenas categorias sem documentos podem ser removidas.");
-        };
-
-        window.simulateAction = (act) => showToast(`${act} simulado.`);
-        window.filterByQuickCategory = (c) => { document.getElementById('filterCategory').value = c; window.switchView('all'); };
-        window.resetFilters = () => { 
-            document.getElementById('searchInput').value = ''; 
-            document.getElementById('filterCategory').value = 'all'; 
-            document.getElementById('startDate').value = ''; 
-            document.getElementById('endDate').value = ''; 
-            renderDocs(); 
-        };
-
-        document.getElementById('docForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btnSubmitDoc');
-            btn.disabled = true;
-            const now = new Date().toISOString().split('T')[0];
-            const newDoc = {
-                provider: document.getElementById('provider').value,
-                nf: document.getElementById('nf').value,
-                oc: document.getElementById('oc').value,
-                category: document.getElementById('docCategory').value,
-                date: now,
-                attachments: pendingFiles
-            };
-            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'documents'), newDoc);
-            toggleModal();
-            showToast("Arquivo arquivado!");
-            btn.disabled = false;
-        };
-
-        document.getElementById('searchInput').oninput = renderDocs;
-
-    </script>
+      return null;
+    }
+  </script>
 </body>
 </html>
