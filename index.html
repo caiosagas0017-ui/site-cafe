@@ -3,175 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Renomeador Inteligente de NF / OC / SOC</title>
+  <title>Renomeador NF + OC + SOC</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
-    :root {
-      --primary: #1e40af;
-      --success: #059669;
-      --danger: #dc2626;
-    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: #f1f5f9;
-      color: #0f172a;
-      min-height: 100vh;
-      padding: 1.5rem;
-    }
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-      overflow: hidden;
-    }
-    header {
-      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-      color: white;
-      padding: 1.5rem 2rem;
-    }
-    header h1 { font-size: 1.45rem; font-weight: 700; }
-    header p { opacity: 0.9; margin-top: 0.3rem; font-size: 0.95rem; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; color: #0f172a; padding: 1.5rem; }
+    .container { max-width: 1100px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); overflow: hidden; }
+    header { background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 1.4rem 2rem; }
+    header h1 { font-size: 1.4rem; }
+    header p { opacity: 0.9; font-size: 0.95rem; margin-top: 0.3rem; }
     .content { padding: 1.5rem 2rem 2rem; }
-
-    .upload-area {
-      border: 2px dashed #cbd5e1;
-      border-radius: 14px;
-      padding: 2.2rem;
-      text-align: center;
-      cursor: pointer;
-      background: #f8fafc;
-      transition: 0.2s;
-    }
-    .upload-area:hover, .upload-area.dragover {
-      border-color: #3b82f6;
-      background: #eff6ff;
-    }
+    .upload-area { border: 2px dashed #cbd5e1; border-radius: 14px; padding: 2.2rem; text-align: center; cursor: pointer; background: #f8fafc; }
+    .upload-area:hover, .upload-area.dragover { border-color: #3b82f6; background: #eff6ff; }
     .upload-area input { display: none; }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      background: #2563eb;
-      color: white;
-      border: none;
-      padding: 0.65rem 1.25rem;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
+    .btn { background: #2563eb; color: white; border: none; padding: 0.65rem 1.3rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
     .btn:hover { background: #1d4ed8; }
-    .btn:disabled { background: #94a3b8; cursor: not-allowed; }
-    .btn-success { background: var(--success); }
+    .btn-success { background: #059669; }
     .btn-success:hover { background: #047857; }
     .btn-purple { background: #7c3aed; }
     .btn-purple:hover { background: #6d28d9; }
-    .btn-danger { background: var(--danger); }
+    .btn-danger { background: #dc2626; }
     .btn-danger:hover { background: #b91c1c; }
-    .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.82rem; }
-
-    #status {
-      margin-top: 1.2rem;
-      padding: 0.85rem 1rem;
-      border-radius: 8px;
-      display: none;
-      font-size: 0.95rem;
-    }
+    .btn-sm { padding: 0.35rem 0.8rem; font-size: 0.82rem; }
+    #status { margin-top: 1.2rem; padding: 0.85rem 1rem; border-radius: 8px; display: none; }
     #status.processing { display: block; background: #fef3c7; color: #92400e; }
     #status.success { display: block; background: #d1fae5; color: #065f46; }
-    #status.error { display: block; background: #fee2e2; color: #991b1b; }
-
-    .progress-bar {
-      height: 8px;
-      background: #e2e8f0;
-      border-radius: 4px;
-      margin-top: 0.8rem;
-      overflow: hidden;
-      display: none;
-    }
-    .progress-bar .fill {
-      height: 100%;
-      background: #3b82f6;
-      width: 0%;
-      transition: width 0.25s;
-    }
-
+    .progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 0.8rem; overflow: hidden; display: none; }
+    .progress-bar .fill { height: 100%; background: #3b82f6; width: 0%; transition: width 0.25s; }
     .results { margin-top: 1.8rem; display: none; }
-    .results-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-    }
-    .results h3 { color: #1e40af; font-size: 1.15rem; }
-    .header-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-    }
-    th, td {
-      padding: 0.7rem 0.75rem;
-      text-align: left;
-      border-bottom: 1px solid #e2e8f0;
-      vertical-align: top;
-    }
-    th {
-      background: #f1f5f9;
-      font-weight: 600;
-      color: #475569;
-      font-size: 0.82rem;
-    }
-    tr:hover { background: #f8fafc; }
-
-    .badge {
-      display: inline-block;
-      padding: 0.2rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-    }
+    .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+    th, td { padding: 0.7rem 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 0.82rem; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .badge-mixed { background: #e0e7ff; color: #3730a3; }
     .badge-nf { background: #dbeafe; color: #1e40af; }
     .badge-oc { background: #d1fae5; color: #065f46; }
     .badge-soc { background: #fce7f3; color: #9d174d; }
-    .badge-mixed { background: #e0e7ff; color: #3730a3; }
     .badge-unknown { background: #f1f5f9; color: #64748b; }
-    .badge-error { background: #fee2e2; color: #991b1b; }
     .badge-high { background: #d1fae5; color: #065f46; }
     .badge-medium { background: #fef3c7; color: #92400e; }
     .badge-low { background: #fee2e2; color: #991b1b; }
-
-    .filename {
-      font-family: ui-monospace, monospace;
-      font-size: 0.82rem;
-      max-width: 170px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .newname-input {
-      width: 100%;
-      max-width: 290px;
-      padding: 0.35rem 0.5rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      font-family: ui-monospace, monospace;
-      font-size: 0.82rem;
-    }
-    .info-small {
-      font-size: 0.78rem;
-      color: #64748b;
-      line-height: 1.4;
-    }
+    .filename { font-family: monospace; font-size: 0.82rem; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .newname-input { width: 100%; max-width: 260px; padding: 0.35rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-family: monospace; font-size: 0.82rem; }
+    .info-small { font-size: 0.78rem; color: #64748b; line-height: 1.4; }
+    .log-box { margin-top: 6px; padding: 8px 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; font-size: 0.75rem; color: #9a3412; white-space: pre-wrap; max-width: 340px; }
     canvas { display: none; }
   </style>
 </head>
@@ -179,18 +57,16 @@
   <div class="container">
     <header>
       <h1>Renomeador Inteligente</h1>
-      <p>NF + OC + SOC (Benner) — Dados salvos localmente (localStorage)</p>
+      <p>Melhor reconhecimento de NF + OC + SOC</p>
     </header>
 
     <div class="content">
       <div class="upload-area" id="dropZone">
-        <p style="font-size: 1.15rem; margin-bottom: 0.4rem; font-weight: 600;">Arraste seus arquivos aqui</p>
-        <p style="color: #64748b; font-size: 0.9rem;">PDF, XML ou imagens • Histórico salvo automaticamente</p>
+        <p style="font-size: 1.15rem; font-weight: 600; margin-bottom: 0.4rem;">Arraste os PDFs aqui</p>
+        <p style="color: #64748b; font-size: 0.9rem;">Suporta PDF, XML e imagens</p>
         <input type="file" id="fileInput" accept=".pdf,.xml,image/*" multiple>
         <br>
-        <button class="btn" style="margin-top: 1.1rem;" onclick="document.getElementById('fileInput').click()">
-          Selecionar arquivos
-        </button>
+        <button class="btn" style="margin-top: 1.1rem;" onclick="document.getElementById('fileInput').click()">Selecionar arquivos</button>
       </div>
 
       <div id="status"></div>
@@ -199,24 +75,20 @@
       <div class="results" id="results">
         <div class="results-header">
           <h3>Arquivos analisados</h3>
-          <div class="header-buttons">
-            <button class="btn btn-purple btn-sm" id="btnDownloadAll" style="display:none;">
-              Baixar todos em ZIP
-            </button>
-            <button class="btn btn-danger btn-sm" id="btnClearList" style="display:none;">
-              Limpar lista
-            </button>
+          <div>
+            <button class="btn btn-purple btn-sm" id="btnDownloadAll" style="display:none;">Baixar todos em ZIP</button>
+            <button class="btn btn-danger btn-sm" id="btnClearList" style="display:none; margin-left:6px;">Limpar lista</button>
           </div>
         </div>
 
         <table>
           <thead>
             <tr>
-              <th>Arquivo original</th>
+              <th>Arquivo</th>
               <th>Tipo</th>
               <th>Confiança</th>
-              <th>Informações</th>
-              <th>Novo nome (editável)</th>
+              <th>Informações + Log</th>
+              <th>Novo nome</th>
               <th>Ação</th>
             </tr>
           </thead>
@@ -231,33 +103,8 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    // ====================== BANCO LOCAL (localStorage) ======================
-    const DB_KEY = 'renomeador_nf_oc_db';
-
-    function loadDB() {
-      try {
-        const data = localStorage.getItem(DB_KEY);
-        return data ? JSON.parse(data) : [];
-      } catch (e) {
-        return [];
-      }
-    }
-
-    function saveDB(data) {
-      try {
-        localStorage.setItem(DB_KEY, JSON.stringify(data));
-      } catch (e) {
-        console.warn('Não foi possível salvar no localStorage', e);
-      }
-    }
-
-    function clearDB() {
-      localStorage.removeItem(DB_KEY);
-    }
-
-    // ====================== ESTADO ======================
     let isProcessing = false;
-    let successfulFiles = []; // arquivos da sessão atual (com File real)
+    let successfulFiles = [];
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -269,11 +116,8 @@
     const btnDownloadAll = document.getElementById('btnDownloadAll');
     const btnClearList = document.getElementById('btnClearList');
 
-    // ====================== EVENTOS ======================
-    dropZone.addEventListener('dragover', e => {
-      e.preventDefault();
-      dropZone.classList.add('dragover');
-    });
+    // Eventos
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', e => {
       e.preventDefault();
@@ -284,17 +128,6 @@
       if (fileInput.files.length) startBatch(fileInput.files);
     });
 
-    // Carrega histórico ao abrir a página
-    window.addEventListener('DOMContentLoaded', () => {
-      const history = loadDB();
-      if (history.length > 0) {
-        resultsDiv.style.display = 'block';
-        btnClearList.style.display = 'inline-block';
-        history.forEach(item => addHistoryRow(item));
-        setStatus(`Histórico carregado: ${history.length} arquivo(s) salvos localmente.`, 'success');
-      }
-    });
-
     function setStatus(msg, type) {
       statusEl.textContent = msg;
       statusEl.className = type;
@@ -302,11 +135,7 @@
     }
 
     function sanitizeFileName(name) {
-      return name
-        .replace(/[\/\\:*?"<>|]/g, '-')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 180);
+      return name.replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim().substring(0, 180);
     }
 
     function getExtension(filename) {
@@ -314,31 +143,12 @@
       return parts.length > 1 ? parts.pop().toLowerCase() : 'pdf';
     }
 
-    function fileToDataUrl(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function fileToText(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsText(file);
-      });
-    }
-
     // ====================== EXTRAÇÃO DE TEXTO ======================
     async function extractTextFromFile(file) {
       const ext = getExtension(file.name);
 
       if (ext === 'xml' || file.type.includes('xml')) {
-        const text = await fileToText(file);
-        return { text, isXml: true };
+        return { text: await file.text(), isXml: true };
       }
 
       if (file.type === 'application/pdf' || ext === 'pdf') {
@@ -349,7 +159,7 @@
 
         for (let p = 1; p <= maxPages; p++) {
           const page = await pdf.getPage(p);
-          const viewport = page.getViewport({ scale: 2.0 });
+          const viewport = page.getViewport({ scale: 2.2 }); // um pouco maior = melhor OCR
           const canvas = document.getElementById('pdfCanvas');
           const ctx = canvas.getContext('2d');
           canvas.height = viewport.height;
@@ -367,7 +177,11 @@
       }
 
       if (file.type.startsWith('image/')) {
-        const dataUrl = await fileToDataUrl(file);
+        const dataUrl = await new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(file);
+        });
         const { data: { text } } = await Tesseract.recognize(dataUrl, 'por+eng');
         return { text, isXml: false };
       }
@@ -375,78 +189,131 @@
       throw new Error('Formato não suportado');
     }
 
-    // ====================== INTELIGÊNCIA ======================
+    // ====================== LIMPEZA DO TEXTO ======================
+    function cleanText(text) {
+      return text
+        .replace(/[|/\\]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/[oO]/g, '0')          // OCR costuma trocar 0 por O
+        .replace(/[lI|]/g, '1')         // OCR costuma trocar 1 por l ou I
+        .trim();
+    }
+
+    // ====================== EXTRAÇÃO DE NF (MELHORADA) ======================
+    function findNF(text) {
+      const cleaned = cleanText(text);
+
+      // Lista de padrões em ordem de prioridade
+      const patterns = [
+        // Formato clássico com pontos: 000.049.133
+        /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*|N[ºo°.]\s*)([0-9]{3}[.\s]?[0-9]{3}[.\s]?[0-9]{3})/i,
+        /([0-9]{3}\.[0-9]{3}\.[0-9]{3})/,
+
+        // Sem pontos, mas com label
+        /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*|NF-?e?\s*)([0-9]{6,9})/i,
+
+        // Só o número isolado de 6 a 9 dígitos (última opção)
+        /\b([0-9]{6,9})\b/
+      ];
+
+      for (const pattern of patterns) {
+        const match = cleaned.match(pattern);
+        if (match) {
+          const number = match[1].replace(/[.\s]/g, '');
+          if (number.length >= 6 && number.length <= 9) {
+            return number;
+          }
+        }
+      }
+      return null;
+    }
+
+    // ====================== EXTRAÇÃO DE OC ======================
+    function findOC(text) {
+      const cleaned = cleanText(text);
+
+      const patterns = [
+        /Ord(?:em)?\.?\s*Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /Ordem\s+de\s+Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /(?:OC|O\.C\.)\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /Pedido\s+(?:de\s+)?Compra\s*[:.\-]?\s*([0-9]{4,10})/i
+      ];
+
+      for (const pattern of patterns) {
+        const match = cleaned.match(pattern);
+        if (match) return match[1];
+      }
+      return null;
+    }
+
+    // ====================== EXTRAÇÃO DE SOC (Benner) ======================
+    function findSOC(text) {
+      const cleaned = cleanText(text);
+      const match = cleaned.match(/(?:Soc|SOC)\s*[:.\-]?\s*([0-9]{5,10})/i);
+      return match ? match[1] : null;
+    }
+
+    // ====================== ANÁLISE COMPLETA ======================
     function analyzeDocument(text, isXml) {
       const result = {
         type: 'unknown',
         confidence: 'low',
-        score: 0,
-        fields: { nf: null, oc: null, soc: null, emitente: null }
+        fields: { nf: null, oc: null, soc: null },
+        log: []
       };
 
-      const t = text.replace(/\s+/g, ' ');
-
-      // SOC (Benner)
-      const socMatch = t.match(/(?:Soc|SOC)\s*[:.\-]?\s*(\d{5,10})/i);
-      if (socMatch) {
-        result.fields.soc = socMatch[1];
-        result.score += 40;
-      }
-
-      // OC
-      const ocPatterns = [
-        /Ord(?:em)?\.?\s*Compra\s*[:.\-]?\s*(\d{4,10})/i,
-        /Ordem\s+de\s+Compra\s*[:.\-]?\s*(\d{4,10})/i,
-        /(?:OC|O\.C\.)\s*[:.\-]?\s*(\d{4,10})/i,
-        /Pedido\s+(?:de\s+)?Compra\s*[:.\-]?\s*(\d{4,10})/i
-      ];
-      for (const p of ocPatterns) {
-        const m = t.match(p);
-        if (m) {
-          result.fields.oc = m[1];
-          result.score += 40;
-          break;
-        }
-      }
-
-      // NF
+      // XML tem tratamento especial
       if (isXml) {
-        if (t.includes('<nfeProc') || t.includes('<NFe') || t.includes('infNFe')) result.score += 50;
-        const nNF = t.match(/<nNF>(\d+)<\/nNF>/i);
+        const nNF = text.match(/<nNF>(\d+)<\/nNF>/i);
         if (nNF) {
           result.fields.nf = nNF[1];
-          result.score += 20;
+          result.log.push(`✅ NF encontrada no XML: ${nNF[1]}`);
         }
       } else {
-        const nfPatterns = [
-          /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*)([0-9]{3}[.\s]?[0-9]{3}[.\s]?[0-9]{3})/i,
-          /(?:N[ºo°.]?\s*|NF-?e?\s*)([0-9]{6,9})/i,
-          /([0-9]{3}\.[0-9]{3}\.[0-9]{3})/
-        ];
-        for (const p of nfPatterns) {
-          const m = t.match(p);
-          if (m) {
-            result.fields.nf = m[1].replace(/[.\s]/g, '');
-            result.score += 30;
-            break;
-          }
+        result.fields.nf = findNF(text);
+        if (result.fields.nf) {
+          result.log.push(`✅ NF encontrada: ${result.fields.nf}`);
+        } else {
+          result.log.push(`❌ NF NÃO encontrada`);
         }
+      }
+
+      result.fields.oc = findOC(text);
+      if (result.fields.oc) {
+        result.log.push(`✅ OC encontrada: ${result.fields.oc}`);
+      } else {
+        result.log.push(`❌ OC NÃO encontrada`);
+      }
+
+      result.fields.soc = findSOC(text);
+      if (result.fields.soc) {
+        result.log.push(`✅ SOC encontrada: ${result.fields.soc}`);
       }
 
       // Tipo
-      if (result.fields.nf && result.fields.oc) result.type = 'mixed';
-      else if (result.fields.nf) result.type = 'nf';
-      else if (result.fields.oc) result.type = 'oc';
-      else if (result.fields.soc) result.type = 'soc';
-
-      if (result.score >= 60) result.confidence = 'high';
-      else if (result.score >= 35) result.confidence = 'medium';
-      else result.confidence = 'low';
+      if (result.fields.nf && result.fields.oc) {
+        result.type = 'mixed';
+        result.confidence = 'high';
+      } else if (result.fields.nf) {
+        result.type = 'nf';
+        result.confidence = 'high';
+      } else if (result.fields.oc) {
+        result.type = 'oc';
+        result.confidence = 'medium';
+      } else if (result.fields.soc) {
+        result.type = 'soc';
+        result.confidence = 'medium';
+      } else {
+        result.confidence = 'low';
+        // Mostra trecho do texto para debug
+        const preview = text.replace(/\s+/g, ' ').substring(0, 350);
+        result.log.push(`\n📄 Texto lido pelo OCR (trecho):\n"${preview}..."`);
+      }
 
       return result;
     }
 
-    // ====================== GERAÇÃO DE NOME ======================
+    // ====================== NOME DO ARQUIVO ======================
     function generateFileName(analysis, originalName) {
       const ext = getExtension(originalName);
       const f = analysis.fields;
@@ -454,7 +321,6 @@
       let name = '';
       if (f.nf && f.oc) name = `NF_${f.nf}_OC_${f.oc}`;
       else if (f.nf && f.soc) name = `NF_${f.nf}_SOC_${f.soc}`;
-      else if (f.oc && f.soc) name = `OC_${f.oc}_SOC_${f.soc}`;
       else if (f.nf) name = `NF_${f.nf}`;
       else if (f.oc) name = `OC_${f.oc}`;
       else if (f.soc) name = `SOC_${f.soc}`;
@@ -470,46 +336,33 @@
       successfulFiles = [];
 
       const files = Array.from(fileList);
+      resultsBody.innerHTML = '';
+      resultsDiv.style.display = 'block';
+      btnDownloadAll.style.display = 'none';
+      btnClearList.style.display = 'none';
       progressBar.style.display = 'block';
       progressFill.style.width = '0%';
-      resultsDiv.style.display = 'block';
 
       setStatus(`Analisando ${files.length} arquivo(s)...`, 'processing');
-
-      const db = loadDB();
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         progressFill.style.width = Math.round((i / files.length) * 100) + '%';
-        setStatus(`Analisando ${i + 1} de ${files.length}: ${file.name}`, 'processing');
+        setStatus(`Analisando ${i + 1}/${files.length}: ${file.name}`, 'processing');
 
         try {
           const { text, isXml } = await extractTextFromFile(file);
           const analysis = analyzeDocument(text, isXml);
           const suggestedName = generateFileName(analysis, file.name);
-
-          // Salva no "banco" local
-          const record = {
-            id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-            originalName: file.name,
-            type: analysis.type,
-            confidence: analysis.confidence,
-            fields: analysis.fields,
-            suggestedName: suggestedName,
-            date: new Date().toLocaleString('pt-BR')
-          };
-          db.unshift(record); // mais recente primeiro
-          saveDB(db);
-
-          addResultRow(file, analysis, suggestedName, record.id);
+          addResultRow(file, analysis, suggestedName);
         } catch (err) {
           console.error(err);
-          addResultRow(file, { type: 'error', confidence: 'low', fields: {} }, null, null, err.message);
+          addResultRow(file, { type: 'error', confidence: 'low', fields: {}, log: [err.message] }, null);
         }
       }
 
       progressFill.style.width = '100%';
-      setStatus(`Concluído! ${files.length} arquivo(s) analisado(s). Dados salvos localmente.`, 'success');
+      setStatus(`Concluído! ${files.length} arquivo(s) processado(s).`, 'success');
       isProcessing = false;
 
       btnClearList.style.display = 'inline-block';
@@ -519,7 +372,7 @@
       }
     }
 
-    function addResultRow(file, analysis, suggestedName, recordId = null, errorMsg = null) {
+    function addResultRow(file, analysis, suggestedName) {
       const tr = document.createElement('tr');
 
       let typeBadge = 'badge-unknown', typeLabel = '⚪ Não identificado';
@@ -527,84 +380,43 @@
       else if (analysis.type === 'nf') { typeBadge = 'badge-nf'; typeLabel = '🟢 NF'; }
       else if (analysis.type === 'oc') { typeBadge = 'badge-oc'; typeLabel = '🔵 OC'; }
       else if (analysis.type === 'soc') { typeBadge = 'badge-soc'; typeLabel = '🟣 SOC'; }
-      else if (analysis.type === 'error') { typeBadge = 'badge-error'; typeLabel = '🔴 Erro'; }
 
-      const confBadge = analysis.confidence === 'high' ? 'badge-high' :
-                       analysis.confidence === 'medium' ? 'badge-medium' : 'badge-low';
+      const confClass = analysis.confidence === 'high' ? 'badge-high' :
+                        analysis.confidence === 'medium' ? 'badge-medium' : 'badge-low';
       const confLabel = analysis.confidence === 'high' ? 'Alta' :
                         analysis.confidence === 'medium' ? 'Média' : 'Baixa';
 
       let infoHtml = '';
-      const f = analysis.fields || {};
-      if (f.nf) infoHtml += `NF: <strong>${f.nf}</strong><br>`;
-      if (f.oc) infoHtml += `OC: <strong>${f.oc}</strong><br>`;
-      if (f.soc) infoHtml += `SOC: <strong>${f.soc}</strong><br>`;
-      if (errorMsg) infoHtml += `<span style="color:#dc2626">${errorMsg}</span>`;
-      if (!infoHtml) infoHtml = '<span style="color:#94a3b8">—</span>';
+      if (analysis.fields.nf) infoHtml += `NF: <strong>${analysis.fields.nf}</strong><br>`;
+      if (analysis.fields.oc) infoHtml += `OC: <strong>${analysis.fields.oc}</strong><br>`;
+      if (analysis.fields.soc) infoHtml += `SOC: <strong>${analysis.fields.soc}</strong><br>`;
 
-      const canDownload = suggestedName && analysis.type !== 'error';
+      if (analysis.log && analysis.log.length) {
+        infoHtml += `<div class="log-box">${analysis.log.join('\n')}</div>`;
+      }
+
+      const canDownload = suggestedName && analysis.type !== 'unknown' && analysis.type !== 'error';
 
       tr.innerHTML = `
-        <td class="filename" title="${file ? file.name : ''}">${file ? file.name : '—'}</td>
+        <td class="filename" title="${file.name}">${file.name}</td>
         <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
-        <td><span class="badge ${confBadge}">${confLabel}</span></td>
-        <td class="info-small">${infoHtml}</td>
-        <td>
-          <input type="text" class="newname-input" value="${suggestedName || ''}">
-        </td>
-        <td>
-          ${canDownload && file ? `<button class="btn btn-success btn-sm">Baixar</button>` : '—'}
-        </td>
+        <td><span class="badge ${confClass}">${confLabel}</span></td>
+        <td class="info-small">${infoHtml || '—'}</td>
+        <td><input type="text" class="newname-input" value="${suggestedName || file.name}"></td>
+        <td>${canDownload ? '<button class="btn btn-success btn-sm">Baixar</button>' : '—'}</td>
       `;
 
-      resultsBody.prepend(tr); // mais recente no topo
+      resultsBody.appendChild(tr);
 
-      if (canDownload && file) {
+      if (canDownload) {
         const input = tr.querySelector('.newname-input');
         const btn = tr.querySelector('button');
-
         successfulFiles.push({ file, input, originalSuggested: suggestedName });
 
         btn.addEventListener('click', () => {
-          const finalName = sanitizeFileName(input.value) || suggestedName;
-          downloadSingle(file, finalName);
+          downloadSingle(file, sanitizeFileName(input.value) || suggestedName);
         });
       }
-    }
-
-    // Linha só de histórico (sem arquivo real para download)
-    function addHistoryRow(record) {
-      const tr = document.createElement('tr');
-
-      let typeBadge = 'badge-unknown', typeLabel = '⚪ Não identificado';
-      if (record.type === 'mixed') { typeBadge = 'badge-mixed'; typeLabel = '🟢 NF + OC'; }
-      else if (record.type === 'nf') { typeBadge = 'badge-nf'; typeLabel = '🟢 NF'; }
-      else if (record.type === 'oc') { typeBadge = 'badge-oc'; typeLabel = '🔵 OC'; }
-      else if (record.type === 'soc') { typeBadge = 'badge-soc'; typeLabel = '🟣 SOC'; }
-
-      const confBadge = record.confidence === 'high' ? 'badge-high' :
-                       record.confidence === 'medium' ? 'badge-medium' : 'badge-low';
-      const confLabel = record.confidence === 'high' ? 'Alta' :
-                        record.confidence === 'medium' ? 'Média' : 'Baixa';
-
-      let infoHtml = '';
-      const f = record.fields || {};
-      if (f.nf) infoHtml += `NF: <strong>${f.nf}</strong><br>`;
-      if (f.oc) infoHtml += `OC: <strong>${f.oc}</strong><br>`;
-      if (f.soc) infoHtml += `SOC: <strong>${f.soc}</strong><br>`;
-      infoHtml += `<small style="color:#94a3b8">${record.date || ''}</small>`;
-
-      tr.innerHTML = `
-        <td class="filename" title="${record.originalName}">${record.originalName}</td>
-        <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
-        <td><span class="badge ${confBadge}">${confLabel}</span></td>
-        <td class="info-small">${infoHtml}</td>
-        <td>
-          <input type="text" class="newname-input" value="${record.suggestedName || ''}" disabled>
-        </td>
-        <td><span style="color:#94a3b8;font-size:0.8rem;">Histórico</span></td>
-      `;
-      resultsBody.appendChild(tr);
     }
 
     function downloadSingle(file, newName) {
@@ -618,37 +430,33 @@
       URL.revokeObjectURL(url);
     }
 
-    // ====================== ZIP ======================
+    // ZIP
     btnDownloadAll.addEventListener('click', async () => {
-      if (successfulFiles.length === 0) return;
-
+      if (!successfulFiles.length) return;
       btnDownloadAll.disabled = true;
       btnDownloadAll.textContent = 'Gerando ZIP...';
 
       try {
         const zip = new JSZip();
-        const usedNames = new Map();
+        const used = new Map();
 
         for (const item of successfulFiles) {
-          let finalName = sanitizeFileName(item.input.value) || item.originalSuggested;
-          let base = finalName.replace(/\.[^/.]+$/, '');
-          let ext = getExtension(finalName);
-          let count = usedNames.get(base) || 0;
-          if (count > 0) finalName = `${base} (${count + 1}).${ext}`;
-          usedNames.set(base, count + 1);
+          let name = sanitizeFileName(item.input.value) || item.originalSuggested;
+          let base = name.replace(/\.[^/.]+$/, '');
+          let ext = getExtension(name);
+          let count = used.get(base) || 0;
+          if (count > 0) name = `${base} (${count + 1}).${ext}`;
+          used.set(base, count + 1);
 
-          const buffer = await item.file.arrayBuffer();
-          zip.file(finalName, buffer);
+          zip.file(name, await item.file.arrayBuffer());
         }
 
-        const content = await zip.generateAsync({ type: 'blob' });
-        const url = URL.createObjectURL(content);
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `NF_OC_renomeados_${new Date().toISOString().slice(0,10)}.zip`;
-        document.body.appendChild(a);
+        a.download = `NF_OC_${new Date().toISOString().slice(0,10)}.zip`;
         a.click();
-        document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } catch (err) {
         alert('Erro ao gerar ZIP: ' + err.message);
@@ -658,12 +466,11 @@
       btnDownloadAll.textContent = `Baixar todos em ZIP (${successfulFiles.length})`;
     });
 
-    // ====================== LIMPAR ======================
+    // Limpar
     btnClearList.addEventListener('click', () => {
-      if (confirm('Deseja limpar toda a lista e o histórico salvo localmente?')) {
+      if (confirm('Limpar toda a lista?')) {
         resultsBody.innerHTML = '';
         successfulFiles = [];
-        clearDB(); // apaga do localStorage
         btnDownloadAll.style.display = 'none';
         btnClearList.style.display = 'none';
         resultsDiv.style.display = 'none';
