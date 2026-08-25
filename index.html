@@ -57,7 +57,7 @@
   <div class="container">
     <header>
       <h1>Renomeador Inteligente</h1>
-      <p>NF + OC + SOC — Detecção de OC fortalecida</p>
+      <p>NF + OC + SOC (Benner) — Soc: agora é tratado como OC</p>
     </header>
 
     <div class="content">
@@ -223,36 +223,30 @@
       return null;
     }
 
-    // ====================== EXTRAÇÃO DE OC (FORTALECIDA) ======================
+    // ====================== EXTRAÇÃO DE OC (ATUALIZADA - ACEITA SOC) ======================
     function findOC(text) {
       let cleaned = cleanText(text);
 
       const patterns = [
-        // 1. Padrões mais comuns em hospital / Unimed / DANFE
+        // 1. SOC do Benner (agora tratado como OC)
+        /(?:Soc|SOC)\s*[:.\-]?\s*([0-9]{5,10})/i,
+
+        // 2. Padrões clássicos de Pedido / OC
         /Pedido\s+Cliente\s*[:.\-]?\s*([0-9]{4,10})/i,
         /Pedido\s+do\s+Cliente\s*[:.\-]?\s*([0-9]{4,10})/i,
-        /N[ºo°.]\s*Pedido\s+Cliente\s*[:.\-]?\s*([0-9]{4,10})/i,
-
-        // 2. Pedido simples
         /Pedido\s*[:.\-]?\s*([0-9]{4,10})/i,
         /N[ºo°.]\s*(?:do\s+)?Pedido\s*[:.\-]?\s*([0-9]{4,10})/i,
-        /N[ºo°.]\s*Ped\.?\s*[:.\-]?\s*([0-9]{4,10})/i,
 
         // 3. Ordem de Compra
         /Ord(?:em)?\.?\s*Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
         /Ordem\s+de\s+Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
         /Ordem\s+Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
-        /N[ºo°.]\s*Ordem\s+de\s+Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
 
         // 4. OC direto
         /(?:OC|O\.C\.)\s*[:.\-]?\s*([0-9]{4,10})/i,
-        /OC\s*n[ºo°.]\s*([0-9]{4,10})/i,
-
-        // 5. Pedido de Compra
         /Pedido\s+(?:de\s+)?Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
       ];
 
-      // Tenta os padrões normais
       for (const pattern of patterns) {
         const match = cleaned.match(pattern);
         if (match && match[1]) {
@@ -260,13 +254,13 @@
         }
       }
 
-      // Fallback inteligente: procura número perto das palavras-chave
-      const fallbackPatterns = [
-        /(?:pedido|ordem|compra|oc)[^\d]{0,20}(\d{5,8})/i,
-        /(\d{5,8})[^\d]{0,15}(?:pedido|ordem|compra|oc)/i
+      // Fallback
+      const fallback = [
+        /(?:soc|pedido|ordem|compra|oc)[^\d]{0,20}(\d{5,8})/i,
+        /(\d{5,8})[^\d]{0,15}(?:soc|pedido|ordem|compra|oc)/i
       ];
 
-      for (const pattern of fallbackPatterns) {
+      for (const pattern of fallback) {
         const match = cleaned.match(pattern);
         if (match && match[1]) {
           return match[1];
@@ -276,19 +270,12 @@
       return null;
     }
 
-    // ====================== EXTRAÇÃO DE SOC (Benner) ======================
-    function findSOC(text) {
-      const cleaned = cleanText(text);
-      const match = cleaned.match(/(?:Soc|SOC)\s*[:.\-]?\s*([0-9]{5,10})/i);
-      return match ? match[1] : null;
-    }
-
     // ====================== ANÁLISE COMPLETA ======================
     function analyzeDocument(text, isXml) {
       const result = {
         type: 'unknown',
         confidence: 'low',
-        fields: { nf: null, oc: null, soc: null },
+        fields: { nf: null, oc: null },
         log: []
       };
 
@@ -308,18 +295,12 @@
         }
       }
 
-      // OC
+      // OC (agora inclui Soc:)
       result.fields.oc = findOC(text);
       if (result.fields.oc) {
         result.log.push(`✅ OC encontrada: ${result.fields.oc}`);
       } else {
         result.log.push(`❌ OC NÃO encontrada`);
-      }
-
-      // SOC
-      result.fields.soc = findSOC(text);
-      if (result.fields.soc) {
-        result.log.push(`✅ SOC encontrada: ${result.fields.soc}`);
       }
 
       // Tipo e confiança
@@ -331,9 +312,6 @@
         result.confidence = 'high';
       } else if (result.fields.oc) {
         result.type = 'oc';
-        result.confidence = 'medium';
-      } else if (result.fields.soc) {
-        result.type = 'soc';
         result.confidence = 'medium';
       } else {
         result.confidence = 'low';
@@ -351,10 +329,8 @@
 
       let name = '';
       if (f.nf && f.oc) name = `NF_${f.nf}_OC_${f.oc}`;
-      else if (f.nf && f.soc) name = `NF_${f.nf}_SOC_${f.soc}`;
       else if (f.nf) name = `NF_${f.nf}`;
       else if (f.oc) name = `OC_${f.oc}`;
-      else if (f.soc) name = `SOC_${f.soc}`;
       else name = originalName.replace(/\.[^/.]+$/, '');
 
       return sanitizeFileName(name) + '.' + ext;
@@ -410,7 +386,6 @@
       if (analysis.type === 'mixed') { typeBadge = 'badge-mixed'; typeLabel = '🟢 NF + OC'; }
       else if (analysis.type === 'nf') { typeBadge = 'badge-nf'; typeLabel = '🟢 NF'; }
       else if (analysis.type === 'oc') { typeBadge = 'badge-oc'; typeLabel = '🔵 OC'; }
-      else if (analysis.type === 'soc') { typeBadge = 'badge-soc'; typeLabel = '🟣 SOC'; }
 
       const confClass = analysis.confidence === 'high' ? 'badge-high' :
                         analysis.confidence === 'medium' ? 'badge-medium' : 'badge-low';
@@ -420,7 +395,6 @@
       let infoHtml = '';
       if (analysis.fields.nf) infoHtml += `NF: <strong>${analysis.fields.nf}</strong><br>`;
       if (analysis.fields.oc) infoHtml += `OC: <strong>${analysis.fields.oc}</strong><br>`;
-      if (analysis.fields.soc) infoHtml += `SOC: <strong>${analysis.fields.soc}</strong><br>`;
 
       if (analysis.log && analysis.log.length) {
         infoHtml += `<div class="log-box">${analysis.log.join('\n')}</div>`;
