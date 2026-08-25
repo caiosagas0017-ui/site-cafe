@@ -3,69 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoRenomeador DocSync</title>
+    <title>Renomeador Automático DocSync</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .toast-enter { animation: toastIn 0.3s ease-out forwards; }
+        .toast-exit { animation: toastOut 0.3s ease-in forwards; }
+        @keyframes toastIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes toastOut { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-100%); opacity: 0; } }
+        
+        /* Loading spinner */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
+<body class="min-h-screen p-4 md:p-8">
 
-    <div id="toast" class="fixed top-4 right-4 p-4 rounded-lg shadow-lg flex items-center gap-3 z-50 transition-all transform translate-x-[150%] bg-blue-100 text-blue-800 border border-blue-200">
-        <span id="toast-msg" class="font-medium">Mensagem</span>
-    </div>
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
 
-    <div class="max-w-6xl mx-auto space-y-6">
+    <div class="max-w-7xl mx-auto space-y-6">
+        
         <!-- Header -->
         <header class="flex items-center gap-4 border-b border-slate-200 pb-6">
             <div class="p-3 bg-blue-600 rounded-xl text-white shadow-sm">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
             </div>
             <div>
                 <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">AutoRenomeador DocSync</h1>
-                <p class="text-slate-500 mt-1">Análise inteligente com IA (OCR) de Notas Fiscais e Ordens de Compra</p>
+                <p class="text-slate-500 mt-1">Análise inteligente (OCR) de Notas Fiscais e Ordens de Compra</p>
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
+            <!-- Coluna Esquerda: Config & Dropzone -->
             <div class="lg:col-span-1 space-y-6">
+                
                 <!-- Configurações -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                     <div class="flex items-center gap-2 mb-4">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                        <h2 class="text-lg font-semibold">Padrões de Nomenclatura</h2>
+                        <svg class="text-slate-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        <h2 class="text-lg font-semibold">Padrão de Nome</h2>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Formato do Nome</label>
-                        <input type="text" id="namePattern" value="NF {nf} OC {oc}" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <p class="text-xs text-slate-400 mt-1">Tags permitidas: {nf} e {oc}</p>
+                        <input type="text" id="namePattern" value="NF {nf} OC {oc}" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
+                        <p class="text-xs text-slate-400 mt-2">Use <strong>{nf}</strong> e <strong>{oc}</strong> como variáveis.</p>
                     </div>
                 </div>
 
                 <!-- Dropzone -->
                 <div id="dropzone" class="bg-white rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50 transition-all p-8 text-center cursor-pointer flex flex-col items-center justify-center min-h-[200px]">
-                    <svg class="text-blue-500 mb-3" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <h3 class="font-medium text-slate-700">Clique ou arraste arquivos aqui</h3>
-                    <p class="text-sm text-slate-500 mt-2">Suporta .PDF e .XML</p>
-                    <input type="file" id="fileInput" multiple accept=".pdf,.xml" class="hidden" />
+                    <svg class="text-blue-500 mb-3" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <h3 class="font-medium text-slate-700">Clique ou arraste arquivos</h3>
+                    <p class="text-sm text-slate-500 mt-1">.PDF ou .XML</p>
+                    <input type="file" id="fileInput" multiple accept=".pdf,.xml" class="hidden">
                 </div>
+
             </div>
 
             <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-full min-h-[500px]">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <h2 class="text-lg font-semibold flex items-center gap-2">
-                        Fila de Processamento
-                        <span id="fileCount" class="bg-slate-100 text-slate-600 text-xs py-1 px-2 rounded-full font-medium">0 arquivos</span>
+                        Fila de Processamento <span id="fileCount" class="bg-slate-100 text-slate-600 text-xs py-1 px-2 rounded-full font-medium">0</span>
                     </h2>
-                    
                     <div class="flex gap-2 w-full sm:w-auto">
-                        <button id="btnProcess" class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors opacity-50 cursor-not-allowed">
-                            Analisar Documentos
+                        <button id="btnProcess" disabled class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                            Analisar
                         </button>
-                        <button id="btnZip" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors opacity-50 cursor-not-allowed flex items-center justify-center gap-2">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            Baixar ZIP
+                        <button id="btnDownloadZip" disabled class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Baixar ZIP
                         </button>
                     </div>
                 </div>
@@ -74,37 +93,37 @@
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-sm">
-                                <th class="p-4 font-medium">Original</th>
-                                <th class="p-4 font-medium">Dados Encontrados</th>
-                                <th class="p-4 font-medium">Novo Nome Sugerido</th>
+                                <th class="p-4 font-medium">Arquivo</th>
+                                <th class="p-4 font-medium">Dados (Editável)</th>
+                                <th class="p-4 font-medium">Novo Nome</th>
                                 <th class="p-4 font-medium text-center">Status</th>
                                 <th class="p-4 font-medium text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-slate-100 text-sm">
-                            <tr>
-                                <td colspan="5" class="p-12 text-center text-slate-400">Nenhum documento na fila. Arraste arquivos para começar.</td>
-                            </tr>
+                            <tr><td colspan="5" class="p-12 text-center text-slate-400">Arraste seus PDFs ou XMLs para começar.</td></tr>
                         </tbody>
                     </table>
                 </div>
-
-                <div id="logsPanel" class="mt-6 hidden">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-sm font-bold text-orange-600 flex items-center gap-2">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                            Log de Ocorrências (IA)
-                        </h3>
-                        <button id="btnClearLogs" class="text-xs text-slate-400 hover:text-slate-600">Limpar</button>
-                    </div>
-                    <div id="logsContent" class="bg-orange-50 border border-orange-100 rounded-lg p-3 text-xs text-orange-800 h-32 overflow-y-auto font-mono space-y-1">
-                    </div>
+            </div>
+            
+            <div class="lg:col-span-3 bg-amber-50 rounded-2xl p-6 shadow-sm border border-amber-200 hidden" id="logPanel">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-amber-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        Log do Motor de IA
+                    </h3>
+                    <button id="btnClearLogs" class="text-amber-700 hover:bg-amber-100 px-3 py-1 rounded text-sm transition-colors">Limpar Logs</button>
+                </div>
+                <div id="logContainer" class="max-h-40 overflow-y-auto text-xs font-mono text-amber-900 space-y-1 p-2 bg-white/50 rounded border border-amber-200">
                 </div>
             </div>
+
         </div>
     </div>
 
     <script>
+        // Configura o worker do PDF.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
         let filesData = [];
@@ -115,123 +134,359 @@
         const fileInput = document.getElementById('fileInput');
         const tableBody = document.getElementById('tableBody');
         const btnProcess = document.getElementById('btnProcess');
-        const btnZip = document.getElementById('btnZip');
-        const inputPattern = document.getElementById('namePattern');
-        const logsPanel = document.getElementById('logsPanel');
-        const logsContent = document.getElementById('logsContent');
+        const btnDownloadZip = document.getElementById('btnDownloadZip');
+        const namePatternInput = document.getElementById('namePattern');
+        const fileCountSpan = document.getElementById('fileCount');
+        const logPanel = document.getElementById('logPanel');
+        const logContainer = document.getElementById('logContainer');
+        const btnClearLogs = document.getElementById('btnClearLogs');
 
         function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = message;
-            toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg flex items-center gap-3 z-50 transition-all transform bg-blue-100 text-blue-800 border border-blue-200`;
-            setTimeout(() => { toast.classList.add('translate-x-[150%]'); }, 3000);
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-blue-100 text-blue-800 border-blue-200';
+            if(type === 'success') bgClass = 'bg-green-100 text-green-800 border-green-200';
+            if(type === 'warning') bgClass = 'bg-amber-100 text-amber-800 border-amber-200';
+            if(type === 'error') bgClass = 'bg-red-100 text-red-800 border-red-200';
+
+            toast.className = `toast-enter flex items-center gap-3 p-4 rounded-lg shadow-lg border ${bgClass}`;
+            toast.innerHTML = `<span class="font-medium text-sm">${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
         }
 
         function addLog(filename, message) {
-            logsPanel.classList.remove('hidden');
+            logPanel.classList.remove('hidden');
             const time = new Date().toLocaleTimeString();
-            logsContent.innerHTML += `<div><span class="text-orange-500">[${time}]</span> <b>${filename}:</b> ${message}</div>`;
-            logsContent.scrollTop = logsContent.scrollHeight;
+            const logLine = document.createElement('div');
+            logLine.innerHTML = `<span class="opacity-50">[${time}]</span> <strong class="text-amber-800">${filename}:</strong> ${message}`;
+            logContainer.prepend(logLine);
         }
-        document.getElementById('btnClearLogs').onclick = () => { logsContent.innerHTML = ''; logsPanel.classList.add('hidden'); };
 
-        dropzone.onclick = () => fileInput.click();
-        dropzone.ondragover = (e) => { e.preventDefault(); dropzone.classList.add('border-blue-500', 'bg-blue-50'); };
-        dropzone.ondragleave = () => { dropzone.classList.remove('border-blue-500', 'bg-blue-50'); };
-        dropzone.ondrop = (e) => { e.preventDefault(); dropzone.classList.remove('border-blue-500', 'bg-blue-50'); handleFiles(e.dataTransfer.files); };
-        fileInput.onchange = (e) => handleFiles(e.target.files);
+        btnClearLogs.addEventListener('click', () => {
+            logContainer.innerHTML = '';
+            logPanel.classList.add('hidden');
+        });
 
-        function handleFiles(newFiles) {
-            Array.from(newFiles).forEach(file => {
-                if(file.type === 'application/pdf' || file.type === 'text/xml' || file.name.endsWith('.xml') || file.name.endsWith('.pdf')) {
-                    filesData.push({ id: Math.random().toString(36).substr(2, 9), file: file, name: file.name, status: 'pending', nf: '', oc: '', newName: '' });
-                }
+        function generateNewName(nf, oc, originalName) {
+            const ext = originalName.split('.').pop();
+            const pattern = namePatternInput.value;
+            let cleanNf = (nf || '0000').replace(/\s+/g, '');
+            let cleanOc = (oc || '0000').replace(/\s+/g, '');
+            
+            let newName = pattern.replace('{nf}', cleanNf).replace('{oc}', cleanOc);
+            return `${newName.trim()}.${ext}`;
+        }
+
+        function renderTable() {
+            fileCountSpan.innerText = filesData.length;
+            
+            const pendingCount = filesData.filter(f => f.status === 'pending').length;
+            const doneCount = filesData.filter(f => f.status === 'done').length;
+            
+            btnProcess.disabled = isProcessing || pendingCount === 0;
+            btnDownloadZip.disabled = isProcessing || doneCount === 0;
+
+            if (filesData.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400">Arraste seus PDFs ou XMLs para começar.</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = '';
+            filesData.forEach(fileObj => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/50 transition-colors';
+                
+                let statusHtml = '';
+                if (fileObj.status === 'pending') statusHtml = `<span class="inline-block w-2 h-2 rounded-full bg-slate-300" title="Pendente"></span>`;
+                if (fileObj.status === 'processing') statusHtml = `<div class="loader mx-auto"></div>`;
+                if (fileObj.status === 'done') statusHtml = `<svg class="text-green-500 mx-auto" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+
+                const nfVal = fileObj.parsedData ? fileObj.parsedData.nf : '';
+                const ocVal = fileObj.parsedData ? fileObj.parsedData.oc : '';
+                
+                tr.innerHTML = `
+                    <td class="p-4 font-medium text-slate-700 truncate max-w-[150px]" title="${fileObj.originalName}">${fileObj.originalName}</td>
+                    <td class="p-4">
+                        ${fileObj.parsedData ? `
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-1">
+                                <span class="text-[10px] font-bold text-blue-600 bg-blue-100 px-1 rounded">NF</span>
+                                <input type="text" data-id="${fileObj.id}" data-field="nf" value="${nfVal}" class="border border-slate-200 rounded px-2 py-1 text-xs w-24 focus:outline-none focus:border-blue-500" placeholder="0000">
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="text-[10px] font-bold text-orange-600 bg-orange-100 px-1 rounded">OC</span>
+                                <input type="text" data-id="${fileObj.id}" data-field="oc" value="${ocVal}" class="border border-slate-200 rounded px-2 py-1 text-xs w-24 focus:outline-none focus:border-blue-500" placeholder="0000">
+                            </div>
+                        </div>
+                        ` : '<span class="text-slate-300">-</span>'}
+                    </td>
+                    <td class="p-4 text-emerald-600 font-medium text-xs break-all">${fileObj.newName || '<span class="text-slate-300 font-normal italic">Aguardando...</span>'}</td>
+                    <td class="p-4 text-center">${statusHtml}</td>
+                    <td class="p-4">
+                        <div class="flex justify-center gap-2">
+                            ${fileObj.status === 'done' ? `<button onclick="downloadIndividual('${fileObj.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Baixar Arquivo"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>` : ''}
+                            <button onclick="removeFile('${fileObj.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" title="Remover"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2v2"></path></svg></button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function handleFiles(files) {
+            const validFiles = Array.from(files).filter(f => f.type === 'application/pdf' || f.type === 'text/xml' || f.name.toLowerCase().endsWith('.xml'));
+            
+            if (validFiles.length !== files.length) showToast('Apenas PDFs e XMLs suportados.', 'warning');
+            
+            validFiles.forEach(file => {
+                filesData.push({
+                    id: Math.random().toString(36).substr(2, 9),
+                    originalFile: file,
+                    originalName: file.name,
+                    status: 'pending',
+                    parsedData: null,
+                    newName: null
+                });
             });
             renderTable();
         }
 
-        function generateName(nf, oc, originalName) {
-            const ext = originalName.split('.').pop();
-            let newName = inputPattern.value.replace('{nf}', nf || '').replace('{oc}', oc || '').trim();
-            // Limpa espaços duplos
-            newName = newName.replace(/\s{2,}/g, ' ');
-            return `${newName}.${ext}`;
-        }
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('border-blue-500', 'bg-blue-50'); });
+        dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('border-blue-500', 'bg-blue-50'); });
+        dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('border-blue-500', 'bg-blue-50'); handleFiles(e.dataTransfer.files); });
+        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', e => handleFiles(e.target.files));
 
-        function renderTable() {
-            document.getElementById('fileCount').innerText = `${filesData.length} arquivos`;
-            btnProcess.classList.toggle('opacity-50', filesData.length === 0 || isProcessing);
-            btnProcess.classList.toggle('cursor-not-allowed', filesData.length === 0 || isProcessing);
-            btnZip.classList.toggle('opacity-50', !filesData.some(f => f.status === 'done'));
-            btnZip.classList.toggle('cursor-not-allowed', !filesData.some(f => f.status === 'done'));
+        window.removeFile = (id) => { filesData = filesData.filter(f => f.id !== id); renderTable(); };
 
-            if (filesData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400">Nenhum documento na fila. Arraste arquivos para começar.</td></tr>`;
-                return;
+        // Edição ao vivo na tabela
+        tableBody.addEventListener('input', (e) => {
+            if(e.target.tagName === 'INPUT') {
+                const id = e.target.getAttribute('data-id');
+                const field = e.target.getAttribute('data-field');
+                const val = e.target.value;
+                
+                const fileObj = filesData.find(f => f.id === id);
+                if(fileObj && fileObj.parsedData) {
+                    fileObj.parsedData[field] = val;
+                    fileObj.newName = generateNewName(fileObj.parsedData.nf, fileObj.parsedData.oc, fileObj.originalName);
+                    
+                    // Atualiza texto da td do novo nome direto no DOM pra ser instantâneo
+                    const tr = e.target.closest('tr');
+                    tr.querySelector('td:nth-child(3)').innerText = fileObj.newName;
+                }
             }
+        });
 
-            tableBody.innerHTML = filesData.map(f => `
-                <tr class="hover:bg-slate-50/50">
-                    <td class="p-4 font-medium text-slate-700 truncate max-w-[200px]" title="${f.name}">${f.name}</td>
-                    <td class="p-4">
-                        <div class="flex flex-col gap-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs font-bold text-slate-500 w-6">NF:</span>
-                                <input type="text" data-id="${f.id}" data-field="nf" value="${f.nf}" class="file-input border border-slate-200 rounded px-2 py-1 text-sm w-24 focus:border-blue-500" placeholder="-" ${f.status === 'processing' ? 'disabled' : ''}>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs font-bold text-slate-500 w-6">OC:</span>
-                                <input type="text" data-id="${f.id}" data-field="oc" value="${f.oc}" class="file-input border border-slate-200 rounded px-2 py-1 text-sm w-24 focus:border-blue-500" placeholder="-" ${f.status === 'processing' ? 'disabled' : ''}>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="p-4 text-emerald-600 font-medium">${f.newName || '<span class="text-slate-300 italic">Aguardando...</span>'}</td>
-                    <td class="p-4 text-center">
-                        ${f.status === 'pending' ? '<span class="inline-block w-2 h-2 rounded-full bg-slate-300"></span>' : ''}
-                        ${f.status === 'processing' ? '<svg class="animate-spin h-5 w-5 mx-auto text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>' : ''}
-                        ${f.status === 'done' ? '<svg class="h-5 w-5 mx-auto text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>' : ''}
-                    </td>
-                    <td class="p-4">
-                        <div class="flex justify-center gap-2">
-                            ${f.status === 'done' ? `<button onclick="downloadSingle('${f.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Baixar Arquivo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>` : ''}
-                            <button onclick="removeFile('${f.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-
-            // Delegação de eventos para Inputs manuais
-            document.querySelectorAll('.file-input').forEach(input => {
-                input.addEventListener('input', (e) => {
-                    const id = e.target.getAttribute('data-id');
-                    const field = e.target.getAttribute('data-field');
-                    const fileObj = filesData.find(f => f.id === id);
-                    if(fileObj) {
-                        fileObj[field] = e.target.value;
-                        fileObj.newName = generateName(fileObj.nf, fileObj.oc, fileObj.name);
-                        // Atualiza apenas a coluna de nome daquela linha para não repintar tudo e perder o foco do teclado
-                        e.target.closest('tr').querySelector('td:nth-child(3)').innerText = fileObj.newName;
-                    }
-                });
-            });
-        }
-
-        inputPattern.addEventListener('input', () => {
+        namePatternInput.addEventListener('input', () => {
             filesData.forEach(f => {
-                if (f.status === 'done') f.newName = generateName(f.nf, f.oc, f.name);
+                if(f.status === 'done' && f.parsedData) {
+                    f.newName = generateNewName(f.parsedData.nf, f.parsedData.oc, f.originalName);
+                }
             });
             renderTable();
         });
 
-        function removeFile(id) {
-            filesData = filesData.filter(f => f.id !== id);
-            renderTable();
+        async function processXML(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(e.target.result, "text/xml");
+                        const nNF = xmlDoc.getElementsByTagName("nNF")[0]?.textContent;
+                        
+                        if(!nNF) addLog(file.name, "Tag <nNF> não encontrada no XML.");
+                        resolve({ nf: nNF || '', oc: '' });
+                    } catch (error) {
+                        addLog(file.name, "Erro ao ler XML.");
+                        resolve({ nf: '', oc: '' });
+                    }
+                };
+                reader.readAsText(file);
+            });
         }
 
-        window.downloadSingle = (id) => {
+        async function processPDF(file) {
+            return new Promise(async (resolve) => {
+                let fullText = "";
+                let isScanned = false;
+                let nfNum = "";
+                let ocNum = "";
+
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    
+                    for (let i = 1; i <= Math.min(pdf.numPages, 3); i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        fullText += pageText + ' ';
+                    }
+
+                    // Se não tiver texto nenhum, é imagem escaneada.
+                    if (fullText.trim().length < 50) {
+                        isScanned = true;
+                    }
+
+                    // Se for imagem, aciona o motor de OCR Inteligente (Tesseract)
+                    if (isScanned) {
+                        addLog(file.name, "🔍 PDF escaneado detectado. Iniciando IA (OCR) Tesseract. Isso pode demorar...");
+                        showToast(`Lendo imagem: ${file.name}... Aguarde.`, 'info');
+                        
+                        fullText = ""; 
+                        
+                        // Renderiza a página para o OCR ler
+                        const page = await pdf.getPage(1);
+                        const viewport = page.getViewport({ scale: 3.0 }); // Alta resolução
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        
+                        // Filtro de Alto Contraste
+                        context.filter = 'contrast(1.4) grayscale(1)';
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                        
+                        // Aciona Tesseract
+                        const result = await Tesseract.recognize(canvas, 'por');
+                        fullText = result.data.text;
+                        addLog(file.name, "✅ Leitura da imagem concluída pela IA.");
+                    }
+
+                    // PREPARAÇÃO DE TEXTO
+                    const textForNF = fullText.replace(/[\-\|]/g, ' '); 
+                    
+                    // --- CÉREBRO DICIONÁRIO: BUSCA DA NOTA FISCAL ---
+                    const regrasNF = [
+                        // Tipo 1: Chave de Acesso (Infalível se achar os 44 números)
+                        { r: /(?:CHAVE DE ACESSO[:\s]*|)\b(\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?(\d{9})\s?\d{1}\s?\d{8}\s?\d{1})\b/i, id: 'chave' },
+                        // Tipo 1.5: Padrão Nacional NFS-e (Ignora palavras intrometidas de até 45 letras da IA)
+                        { r: /N[ÚU]MERO\s+(?:DA\s+)?NFS?-?[eE]?[^\d]{0,45}\b([IL1]?\s?\d{1,9})\b/i, id: 'forte' },
+                        // Tipo 2: Palavras Fortes (NFS-e, DANFE)
+                        { r: /N[ÚU]MERO\s*(?:DA\s*)?NFS?-?[eE]?\s*[:\.\-]?\s*([IL1]?\s?\d{1,9})/i, id: 'forte' },
+                        { r: /NFS?-?[eE]?\s*[:\.\-]?\s*([IL1]?\s?\d{1,9})/i, id: 'forte' },
+                        { r: /DANFE.*?\s+([IL1]?\s?\d{1,9})/i, id: 'forte' },
+                        // Tipo 3: Genéricas
+                        { r: /(?:NF-?[E]?|NOTA FISCAL(?: DE SERVI[CÇ]O)?)\s*[:\.\-]?\s*([IL1]?\s?\d{1,9})/i, id: 'generica' },
+                        // Tipo 4: Apenas Nº
+                        { r: /\bN[º°\.]?\s*([IL1]?\s?\d{1,9})\b/i, id: 'simples' }
+                    ];
+
+                    for (let regra of regrasNF) {
+                        const match = textForNF.match(regra.r);
+                        if (match) {
+                            let extracted = regra.id === 'chave' ? match[2] : match[1];
+                            extracted = extracted.replace(/[\s\.]/g, '').replace(/^[IL]/i, '1');
+                            
+                            // MOTOR ANTI-ENDEREÇO (Para regras não-chave)
+                            if (regra.id === 'simples' || regra.id === 'generica') {
+                                const index = match.index;
+                                const textoAoRedor = textForNF.substring(Math.max(0, index - 40), index + 40).toUpperCase();
+                                if(textoAoRedor.includes('RUA') || textoAoRedor.includes('AV ') || textoAoRedor.includes('CEP') || textoAoRedor.includes('BAIRRO')) {
+                                    addLog(file.name, `Rejeitou o nº ${extracted} pois parece ser de um Endereço (CEP/Rua).`);
+                                    continue; // Pula e tenta a próxima regra
+                                }
+                            }
+                            
+                            nfNum = parseInt(extracted, 10).toString(); // Limpa zeros a esquerda
+                            if(nfNum !== 'NaN') break;
+                        }
+                    }
+
+                    // Tática Zeros de Sobrevivência (Caso falhe todas as regras)
+                    if (!nfNum) {
+                        const zeroMatch = textForNF.match(/\b0{3,}[IL1]?\s?(\d{1,6})\b/);
+                        if (zeroMatch) {
+                            nfNum = parseInt(zeroMatch[1].replace(/\s/g, '').replace(/^[IL]/i, '1'), 10).toString();
+                        }
+                    }
+
+                    // --- CÉREBRO DICIONÁRIO: BUSCA DA ORDEM DE COMPRA (SOC) ---
+                    // Ignora traços e pontos no meio
+                    const textForOC = fullText.replace(/[\-\.]/g, ''); 
+                    
+                    const regrasOC = [
+                        // Prioridade 1: Ord. Compra (Não adiciona 1)
+                        { r: /(?:Ord\s*Compra|Ordem\s*de\s*Compra|Ord,??\s*Compra)\s*[:]?\s*([IL1]?\s?\d{4,6})/i, id: 'ord_compra' },
+                        // Prioridade 2: SOC / Pedido (Comporta a regra de adicionar 1)
+                        { r: /(?:SOC|PEDIDO)\s*[:]?\s*([IL1]?\s?\d{4,6})/i, id: 'soc' }
+                    ];
+
+                    for (let regra of regrasOC) {
+                        const match = textForOC.match(regra.r);
+                        if (match) {
+                            let extracted = match[1].replace(/[\s\.]/g, '').replace(/^[IL]/i, '1');
+                            
+                            // Super Correção para SOC de 5 dígitos (A IA cortou o '1')
+                            if (regra.id === 'soc' && extracted.length === 5) {
+                                ocNum = "1" + extracted;
+                                addLog(file.name, `🛠️ IA corrigiu SOC cortada: ${extracted} -> ${ocNum}`);
+                            } else {
+                                ocNum = extracted;
+                            }
+                            break;
+                        }
+                    }
+
+                    if(!nfNum && !ocNum) addLog(file.name, "⚠️ Nenhum dado encontrado. Digite manualmente.");
+
+                    resolve({ nf: nfNum, oc: ocNum });
+
+                } catch (error) {
+                    console.error(error);
+                    addLog(file.name, "Erro ao processar PDF: " + error.message);
+                    resolve({ nf: '', oc: '' });
+                }
+            });
+        }
+
+        btnProcess.addEventListener('click', async () => {
+            isProcessing = true;
+            renderTable();
+
+            for (let i = 0; i < filesData.length; i++) {
+                if (filesData[i].status !== 'pending') continue;
+
+                filesData[i].status = 'processing';
+                renderTable();
+
+                const ext = filesData[i].originalName.split('.').pop().toLowerCase();
+                let parsed;
+
+                if (ext === 'xml') {
+                    parsed = await processXML(filesData[i].originalFile);
+                } else if (ext === 'pdf') {
+                    parsed = await processPDF(filesData[i].originalFile);
+                } else {
+                    parsed = { nf: '', oc: '' };
+                }
+
+                filesData[i].parsedData = parsed;
+                filesData[i].newName = generateNewName(parsed.nf, parsed.oc, filesData[i].originalName);
+                filesData[i].status = 'done';
+                renderTable();
+            }
+
+            isProcessing = false;
+            renderTable();
+            showToast('Processamento concluído!', 'success');
+        });
+
+        window.downloadIndividual = (id) => {
             const fileObj = filesData.find(f => f.id === id);
             if (!fileObj || !fileObj.newName) return;
-            const url = URL.createObjectURL(fileObj.file);
+            
+            const url = URL.createObjectURL(fileObj.originalFile);
             const a = document.createElement('a');
             a.href = url;
             a.download = fileObj.newName;
@@ -241,171 +496,16 @@
             URL.revokeObjectURL(url);
         };
 
-        btnProcess.onclick = async () => {
-            if (isProcessing) return;
-            isProcessing = true;
-            renderTable();
-
-            for (let i = 0; i < filesData.length; i++) {
-                if (filesData[i].status !== 'pending') continue;
-                filesData[i].status = 'processing';
-                renderTable();
-
-                const fileObj = filesData[i];
-                let nfNum = "";
-                let ocNum = "";
-
-                try {
-                    if (fileObj.name.toLowerCase().endsWith('.xml')) {
-                        const text = await fileObj.file.text();
-                        const parser = new DOMParser();
-                        const xml = parser.parseFromString(text, "text/xml");
-                        nfNum = xml.getElementsByTagName("nNF")[0]?.textContent || "";
-                        if (!nfNum) addLog(fileObj.name, "Tag <nNF> não encontrada no XML.");
-                    } 
-                    else if (fileObj.name.toLowerCase().endsWith('.pdf')) {
-                        const arrayBuffer = await fileObj.file.arrayBuffer();
-                        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-                        
-                        let fullText = "";
-                        let isScanned = true;
-                        
-                        for (let j = 1; j <= Math.min(pdf.numPages, 3); j++) {
-                            const page = await pdf.getPage(j);
-                            const textContent = await page.getTextContent();
-                            const pageText = textContent.items.map(item => item.str).join(" ");
-                            if (pageText.trim().length > 20) isScanned = false;
-                            fullText += pageText + " ";
-                        }
-
-                        // MOTOR IA (TESSERACT) para PDF Escaneado
-                        if (isScanned) {
-                            addLog(fileObj.name, "PDF escaneado detectado. Iniciando Inteligência Artificial (OCR)...");
-                            showToast(`Analisando imagem: ${fileObj.name}`, 'info');
-                            
-                            for (let j = 1; j <= Math.min(pdf.numPages, 2); j++) {
-                                const page = await pdf.getPage(j);
-                                const viewport = page.getViewport({ scale: 3.0 }); // Zoom 300%
-                                const canvas = document.createElement('canvas');
-                                const context = canvas.getContext('2d');
-                                canvas.height = viewport.height;
-                                canvas.width = viewport.width;
-                                // Filtro alto contraste
-                                context.filter = 'contrast(1.4) grayscale(1)';
-                                await page.render({ canvasContext: context, viewport: viewport }).promise;
-                                
-                                const result = await Tesseract.recognize(canvas, 'por');
-                                fullText += result.data.text + ' ';
-                            }
-                            addLog(fileObj.name, "Leitura da imagem concluída pela IA.");
-                        }
-
-                        // PREPARAÇÃO DE TEXTO
-                        const textForNF = fullText.replace(/[\-\|]/g, ' '); 
-                        
-                        // 1. CÉREBRO: BUSCA DA NOTA FISCAL (NF / NFS-e)
-                        const regrasNF = [
-                            // Tipo 1: Chave de Acesso NF-e (Extrai posições exatas)
-                            { r: /(?:CHAVE DE ACESSO[:\s]*|)\b(\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?(\d{9})\s?\d{1}\s?\d{8}\s?\d{1})\b/i, id: 'chave' },
-                            // Tipo 2: Palavras fortes de Nota de Serviço
-                            { r: /N[ÚU]MERO\s*(?:DA\s*)?NFS?-?[eE]?\s*[:\.\-]?\s*([IL1]?\s?\d{3,9})/i, id: 'forte' },
-                            { r: /NFS?-?[eE]?\s*[:\.\-]?\s*([IL1]?\s?\d{3,9})/i, id: 'forte' },
-                            { r: /DANFE.*?\s+([IL1]?\s?\d{3,9})/i, id: 'forte' },
-                            // Tipo 3: Genéricas
-                            { r: /(?:NF-?[E]?|NOTA FISCAL)\s*[:\.\-]?\s*([IL1]?\s?\d{3,9})/i, id: 'generica' },
-                            // Tipo 4: Apenas Nº
-                            { r: /\bN[º°.]\s*([IL1]?\s?\d{3,9})\b/i, id: 'simples' }
-                        ];
-
-                        for (let regra of regrasNF) {
-                            const match = textForNF.match(regra.r);
-                            if (match) {
-                                let numEncontrado = regra.id === 'chave' && match[2] ? match[2] : match[1];
-                                numEncontrado = numEncontrado.replace(/[\s\.]/g, '').replace(/[IL]/g, '1').replace(/^0+/, '');
-                                
-                                // Radar Anti-Endereço
-                                let contexto = textForNF.substring(Math.max(0, match.index - 45), match.index).toUpperCase();
-                                if (!/CEP|RUA|AV\.|AVENIDA|BAIRRO/i.test(contexto)) {
-                                    nfNum = numEncontrado;
-                                    break;
-                                }
-                            }
-                        }
-
-                        // Plano de Sobrevivência (Série)
-                        if (!nfNum) {
-                            let fallback = textForNF.match(/([IL1]?\s?\d{3,9})\s*(?:S[ÉE]RIE|fl\.)/i);
-                            if(fallback) nfNum = fallback[1].replace(/[\s\.]/g, '').replace(/[IL]/g, '1').replace(/^0+/, '');
-                        }
-                        
-                        if (!nfNum) addLog(fileObj.name, "NF não identificada (verifique manualmente).");
-
-
-                        // 2. CÉREBRO: BUSCA DA ORDEM DE COMPRA (OC / SOC)
-                        const textForOC = fullText.replace(/[\-\|]/g, ' '); 
-                        const regrasOC = [
-                            { r: /(?:0RD|ORD)[\.\,\s]*C[O0]MPRA\s*[:\.\-]?\s*([IL1]?\s?\d{4,8})/i, tipo: 'ord' },
-                            { r: /ORDEM\s*DE\s*C[O0]MPRA\s*[:\.\-]?\s*([IL1]?\s?\d{4,8})/i, tipo: 'ord' },
-                            { r: /SOC\s*[:\.\-]?\s*([IL1]?\s?\d{4,8})/i, tipo: 'soc' },
-                            { r: /(?:PEDIDO|P[EÉ]DIDO\s*DE\s*COMPRAS?)\s*[:\.\-]?\s*([IL1]?\s?\d{4,8})/i, tipo: 'ped' },
-                            { r: /\bO\.?\s*C\.?\s*[:\.\-]?\s*([IL1]?\s?\d{4,8})/i, tipo: 'oc' }
-                        ];
-
-                        for (let regra of regrasOC) {
-                            const match = textForOC.match(regra.r);
-                            if (match && match[1]) {
-                                ocNum = match[1].replace(/[\s\.]/g, '').replace(/[IL]/g, '1');
-                                
-                                // Correção Fail-Safe EXCLUSIVA para a sigla SOC (adiciona 1 se a IA comeu)
-                                if (regra.tipo === 'soc' && ocNum.length === 5) {
-                                    ocNum = "1" + ocNum;
-                                    addLog(fileObj.name, `Auto-correção ativada: '1' adicionado na SOC.`);
-                                }
-                                break; 
-                            }
-                        }
-
-                        // Plano B da OC (Força Bruta com Anti-Endereço)
-                        if (!ocNum) {
-                            let matches = [...textForOC.matchAll(/\b(1\d{5})\b/g)];
-                            for (let m of matches) {
-                                let contexto = textForOC.substring(Math.max(0, m.index - 30), m.index).toUpperCase();
-                                if (!/CEP|RUA|AV|BAIRRO|FONE|TEL|CNPJ|INSC/i.test(contexto)) {
-                                    ocNum = m[1];
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!ocNum) addLog(fileObj.name, "OC não identificada (verifique manualmente).");
-                    }
-
-                    fileObj.nf = nfNum;
-                    fileObj.oc = ocNum;
-                    fileObj.newName = generateName(nfNum, ocNum, fileObj.name);
-                    fileObj.status = 'done';
-
-                } catch (error) {
-                    console.error(error);
-                    addLog(fileObj.name, "Erro ao processar arquivo: " + error.message);
-                    fileObj.status = 'done';
-                }
-            }
-
-            isProcessing = false;
-            renderTable();
-            showToast('Análise finalizada!', 'success');
-        };
-
-        btnZip.onclick = async () => {
+        btnDownloadZip.addEventListener('click', async () => {
             const doneFiles = filesData.filter(f => f.status === 'done' && f.newName);
-            if (doneFiles.length === 0) return showToast('Nenhum arquivo pronto para baixar.', 'warning');
-            
-            showToast('Compactando arquivos... Aguarde.', 'info');
+            if(doneFiles.length === 0) return;
+
+            showToast('Compactando arquivos...', 'info');
+            btnDownloadZip.innerHTML = '<div class="loader mx-auto"></div>';
             
             try {
                 const zip = new JSZip();
-                doneFiles.forEach(f => { zip.file(f.newName, f.file); });
+                doneFiles.forEach(f => zip.file(f.newName, f.originalFile));
                 
                 const content = await zip.generateAsync({ type: 'blob' });
                 const url = URL.createObjectURL(content);
@@ -416,11 +516,15 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                
                 showToast('Download do ZIP concluído!', 'success');
-            } catch (err) {
-                showToast('Erro ao gerar ZIP.', 'warning');
+            } catch (error) {
+                showToast('Erro ao gerar arquivo ZIP.', 'error');
+            } finally {
+                btnDownloadZip.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Baixar ZIP';
             }
-        };
+        });
+
     </script>
 </body>
 </html>
