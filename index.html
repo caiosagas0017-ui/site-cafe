@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Renomeador NF + OC + SOC</title>
+  <title>Renomeador NF + OC</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -41,7 +41,6 @@
     .badge-mixed { background: #e0e7ff; color: #3730a3; }
     .badge-nf { background: #dbeafe; color: #1e40af; }
     .badge-oc { background: #d1fae5; color: #065f46; }
-    .badge-soc { background: #fce7f3; color: #9d174d; }
     .badge-unknown { background: #f1f5f9; color: #64748b; }
     .badge-high { background: #d1fae5; color: #065f46; }
     .badge-medium { background: #fef3c7; color: #92400e; }
@@ -57,7 +56,7 @@
   <div class="container">
     <header>
       <h1>Renomeador Inteligente</h1>
-      <p>NF + OC + SOC (Benner) — Soc: agora é tratado como OC</p>
+      <p>NF + OC — Otimizado para os dois modelos que você usa</p>
     </header>
 
     <div class="content">
@@ -116,7 +115,6 @@
     const btnDownloadAll = document.getElementById('btnDownloadAll');
     const btnClearList = document.getElementById('btnClearList');
 
-    // Eventos
     dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', e => {
@@ -154,12 +152,12 @@
       if (file.type === 'application/pdf' || ext === 'pdf') {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const maxPages = Math.min(pdf.numPages, 2);
+        const maxPages = Math.min(pdf.numPages, 2); // analisa página 1 e 2
         let fullText = '';
 
         for (let p = 1; p <= maxPages; p++) {
           const page = await pdf.getPage(p);
-          const viewport = page.getViewport({ scale: 2.2 });
+          const viewport = page.getViewport({ scale: 2.3 });
           const canvas = document.getElementById('pdfCanvas');
           const ctx = canvas.getContext('2d');
           canvas.height = viewport.height;
@@ -189,14 +187,13 @@
       throw new Error('Formato não suportado');
     }
 
-    // ====================== LIMPEZA DO TEXTO ======================
+    // ====================== LIMPEZA ======================
     function cleanText(text) {
       return text
         .replace(/[|/\\]/g, ' ')
         .replace(/\s+/g, ' ')
         .replace(/[oO]/g, '0')
         .replace(/[lI|]/g, '1')
-        .replace(/[^\w\s:.\-º°]/g, ' ')
         .trim();
     }
 
@@ -207,7 +204,7 @@
       const patterns = [
         /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*|N[ºo°.]\s*)([0-9]{3}[.\s]?[0-9]{3}[.\s]?[0-9]{3})/i,
         /([0-9]{3}\.[0-9]{3}\.[0-9]{3})/,
-        /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*|NF-?e?\s*)([0-9]{6,9})/i,
+        /(?:N[ºo°.]?\s*|NF-?e?\s*)([0-9]{6,9})/i,
         /\b([0-9]{6,9})\b/
       ];
 
@@ -215,34 +212,31 @@
         const match = cleaned.match(pattern);
         if (match) {
           const number = match[1].replace(/[.\s]/g, '');
-          if (number.length >= 6 && number.length <= 9) {
-            return number;
-          }
+          if (number.length >= 6 && number.length <= 9) return number;
         }
       }
       return null;
     }
 
-    // ====================== EXTRAÇÃO DE OC (ATUALIZADA - ACEITA SOC) ======================
+    // ====================== EXTRAÇÃO DE OC (MUITO REFORÇADA) ======================
     function findOC(text) {
-      let cleaned = cleanText(text);
+      const cleaned = cleanText(text);
 
+      // Padrões prioritários (baseados nos seus dois modelos)
       const patterns = [
-        // 1. SOC do Benner (agora tratado como OC)
+        // Modelo 1: ORDEM DE COMPRA N° 32183
+        /ORDEM\s+DE\s+COMPRA\s+N[ºo°.]?\s*([0-9]{4,10})/i,
+        /ORDEM\s+DE\s+COMPRA\s*[:.\-]?\s*N[ºo°.]?\s*([0-9]{4,10})/i,
+        /ORDEM\s+DE\s+COMPRA\s*[:.\-]?\s*([0-9]{4,10})/i,
+
+        // Modelo 2: Soc: 161676
         /(?:Soc|SOC)\s*[:.\-]?\s*([0-9]{5,10})/i,
 
-        // 2. Padrões clássicos de Pedido / OC
+        // Outros padrões comuns
         /Pedido\s+Cliente\s*[:.\-]?\s*([0-9]{4,10})/i,
-        /Pedido\s+do\s+Cliente\s*[:.\-]?\s*([0-9]{4,10})/i,
         /Pedido\s*[:.\-]?\s*([0-9]{4,10})/i,
         /N[ºo°.]\s*(?:do\s+)?Pedido\s*[:.\-]?\s*([0-9]{4,10})/i,
-
-        // 3. Ordem de Compra
         /Ord(?:em)?\.?\s*Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
-        /Ordem\s+de\s+Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
-        /Ordem\s+Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
-
-        // 4. OC direto
         /(?:OC|O\.C\.)\s*[:.\-]?\s*([0-9]{4,10})/i,
         /Pedido\s+(?:de\s+)?Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
       ];
@@ -254,23 +248,21 @@
         }
       }
 
-      // Fallback
+      // Fallback: número perto das palavras-chave
       const fallback = [
-        /(?:soc|pedido|ordem|compra|oc)[^\d]{0,20}(\d{5,8})/i,
-        /(\d{5,8})[^\d]{0,15}(?:soc|pedido|ordem|compra|oc)/i
+        /(?:ordem\s+de\s+compra|soc|pedido|oc)[^\d]{0,25}(\d{4,8})/i,
+        /(\d{4,8})[^\d]{0,20}(?:ordem\s+de\s+compra|soc|pedido|oc)/i
       ];
 
       for (const pattern of fallback) {
         const match = cleaned.match(pattern);
-        if (match && match[1]) {
-          return match[1];
-        }
+        if (match && match[1]) return match[1];
       }
 
       return null;
     }
 
-    // ====================== ANÁLISE COMPLETA ======================
+    // ====================== ANÁLISE ======================
     function analyzeDocument(text, isXml) {
       const result = {
         type: 'unknown',
@@ -295,7 +287,7 @@
         }
       }
 
-      // OC (agora inclui Soc:)
+      // OC
       result.fields.oc = findOC(text);
       if (result.fields.oc) {
         result.log.push(`✅ OC encontrada: ${result.fields.oc}`);
@@ -303,7 +295,7 @@
         result.log.push(`❌ OC NÃO encontrada`);
       }
 
-      // Tipo e confiança
+      // Tipo
       if (result.fields.nf && result.fields.oc) {
         result.type = 'mixed';
         result.confidence = 'high';
@@ -315,14 +307,14 @@
         result.confidence = 'medium';
       } else {
         result.confidence = 'low';
-        const preview = text.replace(/\s+/g, ' ').substring(0, 350);
-        result.log.push(`\n📄 Texto lido pelo OCR (trecho):\n"${preview}..."`);
+        const preview = text.replace(/\s+/g, ' ').substring(0, 400);
+        result.log.push(`\n📄 Texto lido pelo OCR:\n"${preview}..."`);
       }
 
       return result;
     }
 
-    // ====================== NOME DO ARQUIVO ======================
+    // ====================== NOME ======================
     function generateFileName(analysis, originalName) {
       const ext = getExtension(originalName);
       const f = analysis.fields;
@@ -452,7 +444,6 @@
           let count = used.get(base) || 0;
           if (count > 0) name = `${base} (${count + 1}).${ext}`;
           used.set(base, count + 1);
-
           zip.file(name, await item.file.arrayBuffer());
         }
 
