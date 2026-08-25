@@ -57,7 +57,7 @@
   <div class="container">
     <header>
       <h1>Renomeador Inteligente</h1>
-      <p>Melhor reconhecimento de NF + OC + SOC</p>
+      <p>NF + OC + SOC — Correção Pedido Cliente</p>
     </header>
 
     <div class="content">
@@ -159,7 +159,7 @@
 
         for (let p = 1; p <= maxPages; p++) {
           const page = await pdf.getPage(p);
-          const viewport = page.getViewport({ scale: 2.2 }); // um pouco maior = melhor OCR
+          const viewport = page.getViewport({ scale: 2.2 });
           const canvas = document.getElementById('pdfCanvas');
           const ctx = canvas.getContext('2d');
           canvas.height = viewport.height;
@@ -194,25 +194,19 @@
       return text
         .replace(/[|/\\]/g, ' ')
         .replace(/\s+/g, ' ')
-        .replace(/[oO]/g, '0')          // OCR costuma trocar 0 por O
-        .replace(/[lI|]/g, '1')         // OCR costuma trocar 1 por l ou I
+        .replace(/[oO]/g, '0')
+        .replace(/[lI]/g, '1')
         .trim();
     }
 
-    // ====================== EXTRAÇÃO DE NF (MELHORADA) ======================
+    // ====================== EXTRAÇÃO DE NF ======================
     function findNF(text) {
       const cleaned = cleanText(text);
 
-      // Lista de padrões em ordem de prioridade
       const patterns = [
-        // Formato clássico com pontos: 000.049.133
         /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*|N[ºo°.]\s*)([0-9]{3}[.\s]?[0-9]{3}[.\s]?[0-9]{3})/i,
         /([0-9]{3}\.[0-9]{3}\.[0-9]{3})/,
-
-        // Sem pontos, mas com label
         /(?:N[ºo°.]?\s*|NF-?e?\s*N[ºo°.]?\s*|NF-?e?\s*)([0-9]{6,9})/i,
-
-        // Só o número isolado de 6 a 9 dígitos (última opção)
         /\b([0-9]{6,9})\b/
       ];
 
@@ -228,20 +222,28 @@
       return null;
     }
 
-    // ====================== EXTRAÇÃO DE OC ======================
+    // ====================== EXTRAÇÃO DE OC (CORRIGIDA) ======================
     function findOC(text) {
       const cleaned = cleanText(text);
 
       const patterns = [
+        // ← Padrão que resolveu o seu documento
+        /Pedido\s+Cliente\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /Pedido\s*[:.\-]?\s*([0-9]{4,10})/i,
+        /N[ºo°.]\s*(?:do\s+)?Pedido\s*[:.\-]?\s*([0-9]{4,10})/i,
+
+        // Padrões clássicos
         /Ord(?:em)?\.?\s*Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
         /Ordem\s+de\s+Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
         /(?:OC|O\.C\.)\s*[:.\-]?\s*([0-9]{4,10})/i,
-        /Pedido\s+(?:de\s+)?Compra\s*[:.\-]?\s*([0-9]{4,10})/i
+        /Pedido\s+(?:de\s+)?Compra\s*[:.\-]?\s*([0-9]{4,10})/i,
       ];
 
       for (const pattern of patterns) {
         const match = cleaned.match(pattern);
-        if (match) return match[1];
+        if (match) {
+          return match[1];
+        }
       }
       return null;
     }
@@ -262,7 +264,7 @@
         log: []
       };
 
-      // XML tem tratamento especial
+      // NF
       if (isXml) {
         const nNF = text.match(/<nNF>(\d+)<\/nNF>/i);
         if (nNF) {
@@ -278,6 +280,7 @@
         }
       }
 
+      // OC
       result.fields.oc = findOC(text);
       if (result.fields.oc) {
         result.log.push(`✅ OC encontrada: ${result.fields.oc}`);
@@ -285,12 +288,13 @@
         result.log.push(`❌ OC NÃO encontrada`);
       }
 
+      // SOC
       result.fields.soc = findSOC(text);
       if (result.fields.soc) {
         result.log.push(`✅ SOC encontrada: ${result.fields.soc}`);
       }
 
-      // Tipo
+      // Tipo e confiança
       if (result.fields.nf && result.fields.oc) {
         result.type = 'mixed';
         result.confidence = 'high';
@@ -305,7 +309,6 @@
         result.confidence = 'medium';
       } else {
         result.confidence = 'low';
-        // Mostra trecho do texto para debug
         const preview = text.replace(/\s+/g, ' ').substring(0, 350);
         result.log.push(`\n📄 Texto lido pelo OCR (trecho):\n"${preview}..."`);
       }
