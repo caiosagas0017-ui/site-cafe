@@ -5,13 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extrator Fiscal de Documentos com Lote ZIP</title>
     
-    <!-- Importando o Tailwind CSS para o design moderno -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Importando a fonte Inter do Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     
-    <!-- Configurações de estilo base -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -23,39 +19,30 @@
         }
     </style>
     
-    <!-- Importando a biblioteca PDF.js para ler PDFs no navegador -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
-    
-    <!-- Importando a biblioteca Tesseract.js para OCR de imagens e PDFs escaneados -->
     <script src='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js'></script>
-    
-    <!-- Importando a biblioteca JSZip para criar arquivos compactados (.zip) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
-
 <body class="min-h-screen flex items-center justify-center p-4">
 
-    <!-- Container principal tipo "Cartão" com sombra e cantos arredondados -->
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row">
         
         <!-- Coluna da Esquerda: Área de Upload de Arquivos Múltiplos -->
         <div class="p-8 md:w-1/2 bg-white flex flex-col">
             <h1 class="text-2xl font-bold text-gray-800 mb-2">Extrator Fiscal Automático</h1>
-            <p class="text-sm text-gray-500 mb-6">Arraste um ou mais ficheiros PDF. O sistema analisa-os, padroniza os nomes e permite baixar individualmente ou em formato ZIP.</p>
+            <p class="text-sm text-gray-500 mb-6">Arraste um ou mais ficheiros PDF. O sistema analisa-os, padroniza os nomes e permite ajuste manual ou exportação em lote ZIP.</p>
             
             <!-- Zona de Drag & Drop -->
             <div id="dropZone" class="flex-grow flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-6 transition-colors duration-200 cursor-pointer hover:bg-gray-50 min-h-[180px]">
                 <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                 <p class="text-gray-600 font-medium text-center">Arraste os PDFs para aqui</p>
                 <p class="text-sm text-gray-400 mt-1">ou clique para selecionar (múltiplos permitidos)</p>
-                <!-- Atributo multiple ativado para permitir vários arquivos -->
                 <input type="file" id="fileInput" accept="application/pdf" multiple class="hidden">
             </div>
             
-            <!-- Aviso de carregamento -->
             <div id="loadingIndicator" class="hidden mt-4 text-center text-blue-600 font-medium animate-pulse">
                 A analisar documento(s)...
             </div>
@@ -70,7 +57,6 @@
                 </div>
                 <p class="text-xs text-gray-500 mb-4">Gerencie os ficheiros antes de descarregar o lote.</p>
                 
-                <!-- Lista scrollável de documentos processados -->
                 <div id="fileListContainer" class="max-h-[300px] overflow-y-auto space-y-3 pr-1">
                     <div id="emptyState" class="text-center text-gray-400 italic py-12">
                         Nenhum ficheiro processado ainda...
@@ -78,7 +64,6 @@
                 </div>
             </div>
             
-            <!-- Botões de Ação Global (Baixar ZIP e Limpar Tudo) -->
             <div id="actionsContainer" class="mt-6 pt-4 border-t border-gray-200 flex gap-3 hidden">
                 <button onclick="downloadAllAsZip()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -87,6 +72,57 @@
                 <button onclick="clearAllFiles()" class="bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 border border-red-200">
                     Limpar
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal do Log de Diagnóstico -->
+    <div id="logModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2" id="logModalTitle">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Diagnóstico do OCR
+                </h3>
+                <button onclick="closeLogModal()" class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow space-y-4 text-sm font-mono text-gray-700 bg-white" id="logModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal de Ajuste Manual da NF -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Ajuste Manual da Nota Fiscal
+                </h3>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 bg-white">
+                <input type="hidden" id="editFileId">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Ficheiro Original</label>
+                    <p id="editOriginalName" class="text-xs text-gray-500 font-mono bg-gray-100 p-2 rounded truncate"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Número da Nota Fiscal Correcto:</label>
+                    <input type="text" id="editNfInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-gray-800 text-lg" placeholder="Ex: 912606">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="saveManualNf()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm">
+                        Salvar e Atualizar
+                    </button>
+                    <button onclick="reprocessFile()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 px-3 rounded-lg transition-colors border border-gray-300 text-xs flex items-center gap-1" title="Forçar nova pesquisa automática">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Repetir OCR
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -102,68 +138,122 @@
         const actionsContainer = document.getElementById('actionsContainer');
 
         dropZone.addEventListener('click', () => fileInput.click());
-        
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('drag-over');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('drag-over');
-        });
-
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('drag-over');
             if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files);
         });
-
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) processFiles(e.target.files);
         });
 
-        function parseNF(text) {
-            // 1º TENTATIVA (PADRÃO OURO): Layout clássico do DANFE (Nº + SÉRIE)
-            const danfeRegex = /n[\.\s]*[º°o0]?[\s:\-\.]*(\d[\d\.\s]*\d)[\s\S]{0,50}?s[eé]rie/i;
-            const danfeMatch = text.match(danfeRegex);
-            if (danfeMatch && danfeMatch[1]) {
-                let num = danfeMatch[1].replace(/\D/g, '');
-                if (num.length >= 3) return num; 
-            }
+        // Função de Limpeza e Normalização de Caracteres do OCR
+        function normalizeOCRText(text) {
+            return text
+                .replace(/[°ºªoO]/g, '°') // Padroniza símbolos de grau/ordinal
+                .replace(/\s+/g, ' ')     // Substitui quebras e múltiplos espaços por um único espaço
+                .trim();
+        }
 
-            // 2º TENTATIVA (PADRÃO PRATA): Formato com ponto de milhares (ex: 110.745)
-            const dotRegex = /(?:n[\.\s]*[º°o0]?|nf[-s]*[-e]*|nota\s*fiscal)[\s:\-\.]*(\d{1,3}(?:\.\d{3})+)/gi;
-            const dotMatches = [...text.matchAll(dotRegex)];
-            if (dotMatches.length > 0) {
-                 return dotMatches[0][1].replace(/\D/g, '');
-            }
+        function parseNF(rawText, logs) {
+            logs.push("A iniciar pesquisa pela Nota Fiscal...");
+            const text = normalizeOCRText(rawText);
 
-            // 3º TENTATIVA (RIGOROSA): Só aceita palavras EXPLICITAMENTE fiscais.
-            // Removemos o "nº" solto daqui para não apanhar números de porta ou CEPs por engano.
-            const nfRegex = /(?:nf[-s]*[-e]*|nota\s*fiscal|n[úu]mero\s*da\s*nfs-e|danfe)[\s:\-\.]*(\d[\d\.\s]*\d|\d+)/gi;
-            const matches = [...text.matchAll(nfRegex)];
+            // Método 1: Chave de Acesso de 44 Dígitos (Governo / DANFE)
+            logs.push("[Info] Método 1: A procurar Chave de Acesso...");
+            const chaveRegex = /(?:\b|^)((?:[0-9OoIiLlSsBb][\s\.\-]*){44})(?:\b|$)/g;
+            const chavesEncontradas = [...text.matchAll(chaveRegex)];
             
-            if (matches.length > 0) {
-                for (let match of matches) {
-                    let num = match[1].replace(/\D/g, ''); 
-                    if (num.length >= 4 && num.length <= 15) {
-                        return num; 
+            if (chavesEncontradas.length > 0) {
+                for (const match of chavesEncontradas) {
+                    let chaveLimpa = match[1].toUpperCase()
+                        .replace(/[O]/g, '0').replace(/[IL]/g, '1')
+                        .replace(/[S]/g, '5').replace(/[B]/g, '8')
+                        .replace(/[^0-9]/g, ''); 
+                    
+                    if (chaveLimpa.length === 44) {
+                        const modelo = chaveLimpa.substring(20, 22);
+                        if (modelo === '55' || modelo === '65') {
+                            let nfDaChave = chaveLimpa.substring(25, 34).replace(/^0+/, '');
+                            if (nfDaChave.length > 0) {
+                                logs.push(`[SUCESSO] NF extraída matematicamente da Chave SEFAZ: ${nfDaChave}`);
+                                return nfDaChave;
+                            }
+                        }
                     }
                 }
             }
+            logs.push("[Info] Método 1: Nenhuma Chave de 44 dígitos SEFAZ válida encontrada.");
+
+            // Método 2: NFS-e Exata
+            logs.push("[Info] Método 2: A procurar etiquetas explícitas de NFS-e...");
+            const nfsRegex = /(?:n[úu]mero\s*da\s*nfs[\-\s\.]*e|n[úu]mero\s*da\s*nota)[\s\S]{0,100}?(?<!\d)(\d{1,10})(?!\d)/i;
+            const nfsMatch = text.match(nfsRegex);
+            if (nfsMatch && nfsMatch[1]) {
+                let numLimpo = nfsMatch[1].replace(/^0+/, '');
+                if (numLimpo.length > 0) {
+                    logs.push(`[SUCESSO] NF extraída por etiqueta explícita de NFS-e: ${numLimpo}`);
+                    return numLimpo;
+                }
+            }
+
+            // Método 3: Análise de Vizinhança Inversa com Tolerância a Ruídos (Nº ... SÉRIE)
+            logs.push("[Info] Método 3: A procurar a âncora SÉRIE (Análise de Vizinhança Inversa robusta)...");
+            const serieRegex = /S[ÉE]RIE[\s:;\-\.\|]*/gi;
+            const matchSerie = [...text.matchAll(serieRegex)];
             
-            // SE FALHAR TUDO, DEVOLVE NULL (o sistema transformará isto em "NAO_IDENTIFICADA")
+            if (matchSerie.length > 0) {
+                logs.push(`[Info] Encontrada a palavra SÉRIE ${matchSerie.length} vez(es). Analisando área ANTERIOR...`);
+                
+                for (let i = 0; i < matchSerie.length; i++) {
+                    let match = matchSerie[i];
+                    let startIndex = Math.max(0, match.index - 350);
+                    let contexto = text.substring(startIndex, match.index);
+                    
+                    // Procura todas as ocorrências de Nº, tolerando símbolos N, °, º, etc.
+                    let matchesN = [...contexto.matchAll(/n[\.\s]*[°ºo0]?/gi)];
+                    
+                    if (matchesN.length > 0) {
+                        let ultimoN = matchesN[matchesN.length - 1]; 
+                        logs.push("[Info] Encontrado 'Nº' antes da 'SÉRIE'. Analisando o miolo com tratamento de ruídos...");
+                        
+                        let textoEntre = contexto.substring(ultimoN.index + ultimoN[0].length);
+                        let limpo = textoEntre.replace(/[01][\s\-\.]*(?:entrada|sa[íi]da)/gi, '');
+                        
+                        let blocos = [...limpo.matchAll(/[\d\.\,]+/g)].map(m => m[0].replace(/\D/g, ''));
+                        let validos = blocos.filter(n => n.length > 0 && n.length <= 9);
+                        
+                        if (validos.length > 0) {
+                            let numNF = validos[validos.length - 1]; // Pega o último número antes da série
+                            let numLimpo = numNF.replace(/^0+/, '');
+                            if (numLimpo.length > 0) {
+                                logs.push(`[SUCESSO] NF extraída com sucesso do miolo DANFE: ${numLimpo}`);
+                                return numLimpo;
+                            }
+                        }
+                    }
+                }
+            }
+
+            logs.push("[ERRO] Esgotadas todas as tentativas seguras. NF definida como NAO_IDENTIFICADA.");
             return null; 
         }
 
-        function parseOC(text) {
-            // Padrão ESTRITO MANTIDO INTACTO (Conforme o teu pedido)
+        // --- ORDEM DE COMPRA INTACTA ---
+        function parseOC(text, logs) {
+            logs.push("A iniciar pesquisa pela Ordem de Compra (OC)...");
             const ocRegex = /(?:ord\.?\s*compra|soc)[\s:\-\.]*(\d[\d\.\s]*\d|\d+)/i;
             const match = text.match(ocRegex);
             if (match && match[1]) {
-                let num = match[1].replace(/\D/g, ''); // Limpa tudo, deixa só os dígitos
-                return num.length > 0 ? num : null;
+                let num = match[1].replace(/\D/g, ''); 
+                if (num.length > 0) {
+                    logs.push(`[SUCESSO] Ordem de Compra identificada com sucesso: ${num}`);
+                    return num;
+                }
             }
+            logs.push("[ERRO] Etiqueta de Ordem de Compra (Ord. Compra ou Soc) não localizada.");
             return null;
         }
 
@@ -173,28 +263,28 @@
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 if (file.type !== 'application/pdf') continue;
+                
+                let extractionLogs = [];
+                extractionLogs.push(`--- PROCESSAMENTO INICIADO: ${file.name} ---`);
 
                 try {
                     const arrayBuffer = await file.arrayBuffer();
                     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                     let fullText = "";
                     
-                    // Tentativa 1: Extrair texto nativo (rápido)
                     for (let p = 1; p <= pdf.numPages; p++) {
                         const page = await pdf.getPage(p);
                         const textContent = await page.getTextContent();
                         const pageText = textContent.items.map(item => item.str).join(" ");
                         fullText += pageText + " ";
                     }
-
-                    // Tentativa 2: Se texto muito curto, aplicar OCR (Imagem digitalizada)
+                    
                     if (fullText.trim().length < 20) {
-                        loadingIndicator.innerText = `A aplicar OCR avançado (HD) em ${file.name}...`;
+                        extractionLogs.push(`[Aviso] Texto nativo insuficiente. A iniciar motor OCR Tesseract.js...`);
+                        loadingIndicator.innerText = `A aplicar OCR em ${file.name}...`;
                         
                         for (let p = 1; p <= pdf.numPages; p++) {
                             const page = await pdf.getPage(p);
-                            
-                            // 1. ZOOM: Aumentar a escala de 1.5 para 3.0 (Simula uma digitalização de alta resolução - HD)
                             const viewport = page.getViewport({ scale: 3.0 });
                             const canvas = document.createElement('canvas');
                             const context = canvas.getContext('2d');
@@ -203,33 +293,27 @@
 
                             await page.render({ canvasContext: context, viewport: viewport }).promise;
                             
-                            // 2. FILTRO: Criar um segundo canvas para aplicar tratamento de imagem fotográfico
                             const filteredCanvas = document.createElement('canvas');
                             const filteredCtx = filteredCanvas.getContext('2d');
                             filteredCanvas.width = canvas.width;
                             filteredCanvas.height = canvas.height;
-                            
-                            // Aplica remoção de cores (grayscale), brilho extra e alto contraste
-                            // Isto faz as letras "saltarem" do papel, evitando que o OCR confunda os números
                             filteredCtx.filter = 'grayscale(100%) contrast(300%) brightness(110%)';
                             filteredCtx.drawImage(canvas, 0, 0);
 
-                            // Captura a imagem final tratada
                             const imageDataUrl = filteredCanvas.toDataURL('image/png');
-                            
-                            // OCR usando Tesseract.js (Português) - Inicialização Correta
                             const worker = await Tesseract.createWorker();
                             await worker.loadLanguage('por');
                             await worker.initialize('por');
-                            
                             const ret = await worker.recognize(imageDataUrl);
                             fullText += ret.data.text + " ";
                             await worker.terminate();
                         }
                     }
 
-                    const nfData = parseNF(fullText);
-                    const ocData = parseOC(fullText);
+                    extractionLogs.push(`\n-----------------------------------------`);
+                    const nfData = parseNF(fullText, extractionLogs);
+                    extractionLogs.push(`-----------------------------------------\n`);
+                    const ocData = parseOC(fullText, extractionLogs);
 
                     const nfOutput = nfData ? nfData : "NAO_IDENTIFICADA";
                     const ocOutput = ocData ? ocData : "NAO_INFORMADA";
@@ -238,7 +322,11 @@
                     processedFilesList.push({
                         id: Date.now().toString(36) + Math.random().toString(36).substring(2),
                         originalFile: file,
-                        newName: newFileName
+                        newName: newFileName,
+                        ocrText: fullText,
+                        logs: extractionLogs,
+                        nfValue: nfOutput,
+                        ocValue: ocOutput
                     });
 
                 } catch (error) {
@@ -272,11 +360,17 @@
                 const card = document.createElement('div');
                 card.className = "bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex items-center justify-between gap-2";
                 card.innerHTML = `
-                    <div class="overflow-hidden">
-                        <p class="text-xs font-semibold text-gray-800 truncate" title="${item.newName}">${item.newName}</p>
+                    <div class="overflow-hidden w-full">
+                        <p class="text-xs font-semibold ${item.newName.includes('NAO_IDENTIFICADA') ? 'text-orange-600' : 'text-green-700'} truncate" title="${item.newName}">${item.newName}</p>
                         <p class="text-[10px] text-gray-500 truncate">Origem: ${item.originalFile.name}</p>
                     </div>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <button onclick="openEditModal('${item.id}')" title="Ajustar Número da NF Manualmente" class="p-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-md transition-colors border border-amber-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button onclick="openLogModal('${item.id}')" title="Ver Diagnóstico do OCR" class="p-1.5 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-md transition-colors border border-gray-300">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </button>
                         <button onclick="downloadSingle('${item.id}')" title="Baixar cópia única" class="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                         </button>
@@ -287,6 +381,96 @@
                 `;
                 fileListContainer.appendChild(card);
             });
+        }
+
+        // --- FUNÇÕES DO MODAL DE DIAGNÓSTICO ---
+        function openLogModal(id) {
+            const item = processedFilesList.find(f => f.id === id);
+            if (!item) return;
+            
+            document.getElementById('logModalTitle').innerHTML = `
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Diagnóstico: ${item.originalFile.name}
+            `;
+            
+            let html = `
+            <div class="bg-blue-50 text-blue-800 p-3 rounded-lg border border-blue-200 mb-6 flex justify-between items-center shadow-sm">
+                <div><span class="font-bold">Resultado Final:</span> ${item.newName}</div>
+            </div>`;
+            
+            html += `<h4 class="font-bold text-gray-800 mb-3 border-b pb-1 text-base">🤖 Pensamento Passo-a-Passo da IA</h4>`;
+            html += `<ul class="list-none space-y-1.5 mb-8 bg-gray-50 p-4 rounded-lg border border-gray-200">`;
+            item.logs.forEach(log => {
+                if(log.includes("[SUCESSO]")) html += `<li class="text-green-600 font-bold bg-green-50 px-2 py-1 rounded inline-block w-full">✓ ${log}</li>`;
+                else if(log.includes("[ERRO]") || log.includes("[Falha]")) html += `<li class="text-red-500 font-semibold bg-red-50 px-2 py-1 rounded">✗ ${log}</li>`;
+                else if(log.includes("---")) html += `<li class="text-gray-800 font-bold mt-4 mb-2 text-[13px] border-b border-gray-300 pb-1">${log}</li>`;
+                else html += `<li class="text-gray-600 pl-4 border-l-2 border-gray-300 ml-1">▪ ${log}</li>`;
+            });
+            html += `</ul>`;
+
+            html += `<h4 class="font-bold text-gray-800 mb-2 border-b pb-1 text-base">👁️ Texto Bruto Visualizado (O que o OCR realmente leu)</h4>`;
+            html += `<div class="bg-slate-800 text-green-400 p-4 rounded-lg border border-slate-700 whitespace-pre-wrap text-[11px] leading-relaxed shadow-inner max-h-[300px] overflow-y-auto font-mono tracking-tight">${item.ocrText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
+
+            document.getElementById('logModalContent').innerHTML = html;
+            document.getElementById('logModal').classList.remove('hidden');
+        }
+
+        function closeLogModal() {
+            document.getElementById('logModal').classList.add('hidden');
+        }
+
+        // --- FUNÇÕES DO MODAL DE AJUSTE MANUAL ---
+        function openEditModal(id) {
+            const item = processedFilesList.find(f => f.id === id);
+            if (!item) return;
+
+            document.getElementById('editFileId').value = item.id;
+            document.getElementById('editOriginalName').innerText = item.originalFile.name;
+            document.getElementById('editNfInput').value = item.nfValue === "NAO_IDENTIFICADA" ? "" : item.nfValue;
+            document.getElementById('editModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('editNfInput').focus(), 100);
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        function saveManualNf() {
+            const id = document.getElementById('editFileId').value;
+            const newNf = document.getElementById('editNfInput').value.trim();
+            const item = processedFilesList.find(f => f.id === id);
+            if (!item) return;
+
+            if (newNf.length > 0) {
+                item.nfValue = newNf;
+                item.newName = `NF_${item.nfValue}__OC_${item.ocValue}.pdf`;
+                item.logs.push(`[MANUAL] Número da NF ajustado manualmente pelo utilizador para: ${newNf}`);
+            }
+            closeEditModal();
+            updateUI();
+        }
+
+        async function reprocessFile() {
+            const id = document.getElementById('editFileId').value;
+            const item = processedFilesList.find(f => f.id === id);
+            if (!item) return;
+
+            closeEditModal();
+            loadingIndicator.innerText = `A repetir reanálise de ${item.originalFile.name}...`;
+            loadingIndicator.classList.remove('hidden');
+
+            let newLogs = [`--- REPROCESSAMENTO MANUAL: ${item.originalFile.name} ---`];
+            const nfData = parseNF(item.ocrText, newLogs);
+            const ocData = parseOC(item.ocrText, newLogs);
+
+            item.nfValue = nfData ? nfData : "NAO_IDENTIFICADA";
+            item.ocValue = ocData ? ocData : "NAO_INFORMADA";
+            item.newName = `NF_${item.nfValue}__OC_${item.ocValue}.pdf`;
+            item.logs = item.logs.concat(newLogs);
+
+            loadingIndicator.classList.add('hidden');
+            loadingIndicator.innerText = "A analisar documento(s)...";
+            updateUI();
         }
 
         function downloadSingle(id) {
@@ -308,7 +492,7 @@
         }
 
         function clearAllFiles() {
-            processedFilesList = [];
+            processedFilesList = processedFilesList.length = 0;
             updateUI();
         }
 
